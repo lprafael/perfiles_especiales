@@ -1,0 +1,48 @@
+Métricas para Evaluar la Regularidad Operativa del Transporte Público
+Este documento presenta un conjunto de métricas e ideas de visualización orientadas a evaluar la regularidad operativa de los buses por franja horaria, basado en datos históricos y actuales, con miras a su implementación en sistemas desarrollados con backend Python y frontend Javascript.
+1. Nuevas Métricas Propuestas
+Índice de Consistencia Operativa (ICO)
+Cuántas franjas horarias del día se cumplieron dentro de un umbral aceptable (por ejemplo, ±10%) respecto al promedio histórico.
+Desviación estándar por franja horaria
+Mide la variabilidad en la cantidad de buses operando por franja horaria en las últimas 4 semanas.
+Promedio móvil de regularidad
+Muestra la tendencia de regularidad a lo largo del tiempo.
+Índice de cumplimiento del parque esperado
+Porcentaje de buses esperados por franja que efectivamente operaron.
+Tasa de inactividad o caída operativa
+Diferencia neta de buses con respecto al mínimo esperado o promedio base.
+Continuidad horaria de operación
+Cuántas franjas horarias consecutivas estuvo presente un mismo bus.
+Porcentaje de buses de reserva en operación
+Cuántos buses no suelen operar habitualmente y fueron activados.
+2. Visualizaciones Recomendadas
+Heatmap de buses por franja horaria
+Muestra la densidad operativa por día y franja horaria.
+Línea temporal del índice de variación diaria
+Muestra la evolución diaria de variación operativa comparada con el promedio.
+Boxplot por franja horaria
+Visualiza la dispersión de valores operativos históricos por franja.
+Radar Chart por franja
+Compara en forma radial el porcentaje de cumplimiento por franja horaria.
+Tabla resumen por franja (semáforo)
+Muestra valores esperados, reales y variación con códigos de color.
+3. Ejemplo de Cálculo con SQL
+Ejemplo para calcular buses operativos por franja horaria y su variación respecto al promedio histórico:
+SELECT
+  franja_horaria,
+  COUNT(DISTINCT id_sam) AS buses_operativos
+FROM servicios_diarios
+WHERE fecha = '2025-07-09'
+GROUP BY franja_horaria;
+Luego, cruzar con tabla de promedios históricos por franja:
+
+SELECT
+  a.franja_horaria,
+  a.buses_operativos,
+  b.promedio_semana,
+  ROUND(100.0 * (a.buses_operativos - b.promedio_semana)/NULLIF(b.promedio_semana,0), 2) AS variacion_percent
+FROM
+  operacion_dia_actual a
+JOIN
+  promedios_historicos_franja b
+ON a.franja_horaria = b.franja_horaria;
