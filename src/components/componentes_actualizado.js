@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { API_BASE } from "../config";
+
+const PUBLIC_URL = process.env.PUBLIC_URL || "";
 // import MapaCiudades from "./mapa";
 import L from "leaflet";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -30,7 +32,7 @@ function CabeceradePagina() {
         Viceministerio de Transporte(MOPC)
       </h1>
       <img
-        src="/imágenes/Logo_CIDSA2.jpg"
+        src={`${PUBLIC_URL}/imágenes/Logo_CIDSA2.jpg`}
         alt="Logo CIDSA"
         style={{ height: 60, marginRight: 16 }}
       />
@@ -210,7 +212,7 @@ function MiPaginaExistente() {
 
     // Icono personalizado para las terminales
     const terminalIcon = new L.Icon({
-      iconUrl: "iconos/terminal_py3.png",
+      iconUrl: `${PUBLIC_URL}/iconos/terminal_py3.png`,
       iconSize: [35, 60],
       iconAnchor: [20, 40],
       popupAnchor: [0, -40],
@@ -591,11 +593,11 @@ function MiPaginaExistente() {
           if (isNaN(lat) || isNaN(lng)) return;
           const busIcon = new L.Icon({
             // iconUrl: "/iconos/BUS_CID_VMT.png",
-            iconUrl: "iconos/BUS_CID_VMT.png",
+            iconUrl: `${PUBLIC_URL}/iconos/BUS_CID_VMT.png`,
             iconSize: [50, 50],
             iconAnchor: [25, 25],
             popupAnchor: [0, -25],
-            shadowUrl: "iconos/marker-shadow.png", // o una ruta local si tienes la sombra
+            shadowUrl: `${PUBLIC_URL}/iconos/marker-shadow.png`,
             shadowSize: [41, 41],
             shadowAnchor: [0, 41],
             className: 'transparent-icon', // Hace el fondo transparente
@@ -790,7 +792,7 @@ function MiPaginaExistente() {
 
       ciudades.forEach((ciudad) => {
         const municipioIcon = new L.Icon({
-          iconUrl: '/iconos/municipios.png',
+          iconUrl: `${PUBLIC_URL}/iconos/municipios.png`,
           iconSize: [25, 25],
           iconAnchor: [20, 40],
           popupAnchor: [0, -40],
@@ -983,8 +985,8 @@ function MiPaginaExistente() {
 
     // Definir icono personalizado para puntos de control usando un icono local
     const controlIcon = new L.Icon({
-      iconUrl: "/iconos/landmark-159035_1920.png",
-      shadowUrl: "/iconos/marker-shadow.png",
+      iconUrl: `${PUBLIC_URL}/iconos/landmark-159035_1920.png`,
+      shadowUrl: `${PUBLIC_URL}/iconos/marker-shadow.png`,
       iconSize: [27, 37],
       iconAnchor: [16, 32],
       popupAnchor: [0, -32],
