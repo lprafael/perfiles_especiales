@@ -1,6 +1,7 @@
 import React from "react";
 import Chart from 'chart.js/auto';
 import annotationPlugin from 'chartjs-plugin-annotation';
+import { API_BASE } from '../config';
 
 Chart.register(annotationPlugin);
 
@@ -30,7 +31,7 @@ function RegularidadBusesModal(props) {
 
   React.useEffect(function () {
     if (!empresaId) return;
-    fetch(`http://localhost:8000/empresas`)
+    fetch(`${API_BASE}/empresas`)
       .then(res => res.json())
       .then(empresas => {
         const emp = empresas.find(e => e.id_eot_vmt_hex === empresaId);
@@ -50,7 +51,7 @@ function RegularidadBusesModal(props) {
     if (modoSistema) {
       setLoading(true);
       setError(null);
-      fetch(`http://localhost:8000/sistema/buses_regularidad_por_hora_agregado?fecha=${fecha}`)
+      fetch(`${API_BASE}/sistema/buses_regularidad_por_hora_agregado?fecha=${fecha}`)
         .then(res => res.json())
         .then(json => setData(json))
         .catch(() => setError('Error al obtener datos'))
@@ -61,8 +62,8 @@ function RegularidadBusesModal(props) {
     setLoading(true);
     setError(null);
     let url = modoGremio && gremioId
-      ? `http://localhost:8000/gremios/${gremioId}/buses_regularidad_por_hora_agregado?fecha=${fecha}`
-      : `http://localhost:8000/empresas/${empresaId}/buses_regularidad_por_hora?fecha=${fecha}`;
+      ? `${API_BASE}/gremios/${gremioId}/buses_regularidad_por_hora_agregado?fecha=${fecha}`
+      : `${API_BASE}/empresas/${empresaId}/buses_regularidad_por_hora?fecha=${fecha}`;
     fetch(url)
       .then(res => res.json())
       .then(json => setData(json))

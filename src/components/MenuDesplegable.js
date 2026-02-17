@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from '../config';
 
 function MenuDesplegable() {
     const [nombres, setNombres] = useState([]);
@@ -6,9 +7,7 @@ function MenuDesplegable() {
     const [seleccionado, setSeleccionado] = useState('');
 
     useEffect(() => {
-        const API_URL = 'http://localhost:3000/nombres'; // Asegúrate de que coincida con tu backend
-
-        fetch(API_URL)
+        fetch(`${API_BASE}/nombres`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);

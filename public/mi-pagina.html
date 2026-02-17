@@ -372,7 +372,7 @@
             let currentRouteLayer = null;
 
             // Cargar el selector de empresas
-            fetch('http://localhost:3000/empresas') //Me conecto a la API
+            fetch('http://localhost:8000/empresas') //Me conecto a la API
                 .then(response => response.json())
                 .then(data => {
                     const select = document.getElementById('empresa-select'); // Selecciono el elemento
@@ -412,7 +412,7 @@
                     }
                     //document.getElementById('loader-itinerarios').style.display = 'block';
 
-                    fetch(`http://localhost:3000/empresas/${empresaId}/itinerarios`)
+                    fetch(`http://localhost:8000/empresas/${empresaId}/itinerarios`)
                         .then(response => response.json())
                         .then(itinerarios => {
                             document.getElementById('loader-itinerarios').style.display = 'none';

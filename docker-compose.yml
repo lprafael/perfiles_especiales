@@ -1,0 +1,27 @@
+# Backend: desde carpeta backend (uvicorn main:app)
+# Frontend: desde raíz (npm start → puerto 3003)
+# Levantar: docker compose up --build
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8010:8010"
+    # Variables de BD solo desde backend/.env (copiar desde backend/.env.example).
+    # Si PostgreSQL corre en tu PC, usá host.docker.internal como host (ej. DB_CID_HOST=host.docker.internal).
+    env_file:
+      - ./backend/.env
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Para servidor (ej. 172.16.222.222): REACT_APP_API_URL=http://172.16.222.222:8010
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8010}
+    ports:
+      - "3003:3003"
+    depends_on:
+      - backend

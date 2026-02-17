@@ -1,4 +1,4 @@
-
+# Levantar servidor (desde la carpeta backend): uvicorn main:app --reload --port 8010
 # --- NUEVO ENDPOINT: Servicios por hora y promedio histórico para regularidad operativa ---
 from fastapi import Query
 from datetime import datetime, timedelta

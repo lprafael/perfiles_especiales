@@ -3,6 +3,7 @@ import { Line } from 'react-chartjs-2';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Chart } from 'chart.js';
+import { API_BASE } from '../config';
 
 function unique(arr) {
   return Array.from(new Set(arr));
@@ -191,7 +192,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
       })();
       // Hacer ambas peticiones en paralelo
       const [respSel, respPrev] = await Promise.all([
-        fetch('http://localhost:8000/servicios_por_hora', {
+        fetch(`${API_BASE}/servicios_por_hora`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -200,7 +201,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
             tipo_dia: tipoDiaSel
           })
         }),
-        fetch('http://localhost:8000/servicios_por_hora', {
+        fetch(`${API_BASE}/servicios_por_hora`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -340,7 +341,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
       if (fuentePromedio === 'semanas' && fechaComparar && empresasSel.length > 0) {
         setCargandoSemanas(true);
         try {
-          const resp = await fetch('http://localhost:8000/promedio_semanas_por_hora', {
+          const resp = await fetch(`${API_BASE}/promedio_semanas_por_hora`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

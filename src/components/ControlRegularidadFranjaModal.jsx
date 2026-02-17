@@ -2,6 +2,7 @@ import React from "react";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, ShadingType } from 'docx';
+import { API_BASE } from '../config';
 import RegularidadBusesModal from './RegularidadBusesModal';
 
 function ControlRegularidadFranjaModal(props) {
@@ -63,7 +64,7 @@ function ControlRegularidadFranjaModal(props) {
   // --- Buscar nombre de empresa y gremioId al montar o cuando empresaId cambia ---
   React.useEffect(() => {
     if (!empresaId) return;
-    fetch(`http://localhost:8000/empresas`)
+    fetch(`${API_BASE}/empresas`)
       .then(res => res.json())
       .then(empresas => {
         setEmpresas(empresas);
@@ -87,16 +88,16 @@ function ControlRegularidadFranjaModal(props) {
     let url = '';
     if (modoSistema) {
       url = tipoRegularidad === 'buses'
-        ? `http://localhost:8000/sistema/regularidad_por_hora_buses?fecha=${fecha}`
-        : `http://localhost:8000/sistema/regularidad_por_hora?fecha=${fecha}`;
+        ? `${API_BASE}/sistema/regularidad_por_hora_buses?fecha=${fecha}`
+        : `${API_BASE}/sistema/regularidad_por_hora?fecha=${fecha}`;
     } else if (modoGremio && gremioId) {
       url = tipoRegularidad === 'buses'
-        ? `http://localhost:8000/gremios/${gremioId}/regularidad_por_hora_buses?fecha=${fecha}`
-        : `http://localhost:8000/gremios/${gremioId}/regularidad_por_hora?fecha=${fecha}`;
+        ? `${API_BASE}/gremios/${gremioId}/regularidad_por_hora_buses?fecha=${fecha}`
+        : `${API_BASE}/gremios/${gremioId}/regularidad_por_hora?fecha=${fecha}`;
     } else {
       url = tipoRegularidad === 'buses'
-        ? `http://localhost:8000/empresas/${empresaId}/regularidad_por_hora_buses?fecha=${fecha}`
-        : `http://localhost:8000/empresas/${empresaId}/regularidad_por_hora?fecha=${fecha}`;
+        ? `${API_BASE}/empresas/${empresaId}/regularidad_por_hora_buses?fecha=${fecha}`
+        : `${API_BASE}/empresas/${empresaId}/regularidad_por_hora?fecha=${fecha}`;
     }
     fetch(url)
       .then(res => res.json())

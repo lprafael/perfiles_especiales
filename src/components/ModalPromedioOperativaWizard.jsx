@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import * as XLSX from 'xlsx';
 import { Line } from 'react-chartjs-2';
+import { API_BASE } from '../config';
 import ReporteMaximizadoModal from './ReporteMaximizadoModal';
 import GraficoAvanzadoPromedioBuses from './GraficoAvanzadoPromedioBuses';
 
@@ -174,8 +175,8 @@ function ModalPromedioOperativaWizard({ onClose }) {
     };
     try {
       const endpoint = agruparPorMes
-        ? 'http://localhost:8000/buses_promedio_agrupado'
-        : 'http://localhost:8000/buses_promedio_global';
+        ? `${API_BASE}/buses_promedio_agrupado`
+        : `${API_BASE}/buses_promedio_global`;
       const resp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

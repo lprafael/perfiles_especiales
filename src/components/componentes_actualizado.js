@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { API_BASE } from "../config";
 // import MapaCiudades from "./mapa";
 import L from "leaflet";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -150,8 +151,6 @@ function MiPaginaExistente() {
   const autoIterarRef = useRef(null);
 
   // Configuración de la URL base del backend
-  const API_BASE = "http://localhost:8000";
-  // const API_BASE = "http://localhost:3001";
 
   // Estado para controlar la visibilidad del sidebar izquierdo
   const [mostrarSidebarIzquierdo, setMostrarSidebarIzquierdo] = useState(false);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { API_BASE } from '../config';
 import DetectorServicios, { crearDetectorDesdeBackend, CONFIG_SERVICIOS } from './ControlServicios';
 
 /**
@@ -10,7 +11,6 @@ const ControlServiciosUI = ({
   empresaId,
   fecha,
   mapInstance,
-  API_BASE = "http://localhost:8000",
   onMostrarAviso
 }) => {
   // Estados del componente

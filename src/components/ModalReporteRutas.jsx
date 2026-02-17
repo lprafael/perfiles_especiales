@@ -1,8 +1,7 @@
-
-
 import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { useReactTable, getCoreRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table';
+import { API_BASE } from '../config';
 
 function DefaultColumnFilter({ column }) {
   const columnFilterValue = column.getFilterValue() || '';
@@ -19,7 +18,6 @@ function DefaultColumnFilter({ column }) {
 export default function ModalReporteRutas({ onClose }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const API_BASE = "http://localhost:8000";
 
   useEffect(() => {
     async function cargarDatos() {

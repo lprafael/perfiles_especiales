@@ -1,4 +1,5 @@
 import React from "react";
+import { API_BASE } from '../config';
 
 function RegularidadOperativaModal(props) {
   // Desestructurar props de forma compatible con versiones antiguas de JS
@@ -32,7 +33,7 @@ function RegularidadOperativaModal(props) {
   // 2. Buscar nombre de empresa y gre_id al montar o cuando empresaId cambia
   React.useEffect(function () {
     if (!empresaId) return;
-    fetch(`http://localhost:8000/empresas`)
+    fetch(`${API_BASE}/empresas`)
       .then(res => res.json())
       .then(empresas => {
         const emp = empresas.find(e => e.id_eot_vmt_hex === empresaId);
@@ -53,7 +54,7 @@ function RegularidadOperativaModal(props) {
     if (modoSistema) {
       setLoading(true);
       setError(null);
-      fetch(`http://localhost:8000/sistema/regularidad_por_hora?fecha=${fecha}`)
+      fetch(`${API_BASE}/sistema/regularidad_por_hora?fecha=${fecha}`)
         .then(res => res.json())
         .then(json => setData(json))
         .catch(() => setError('Error al obtener datos'))
@@ -64,8 +65,8 @@ function RegularidadOperativaModal(props) {
     setLoading(true);
     setError(null);
     let url = modoGremio && gremioId
-      ? `http://localhost:8000/gremios/${gremioId}/regularidad_por_hora_agregado?fecha=${fecha}`
-      : `http://localhost:8000/empresas/${empresaId}/regularidad_por_hora?fecha=${fecha}`;
+      ? `${API_BASE}/gremios/${gremioId}/regularidad_por_hora_agregado?fecha=${fecha}`
+      : `${API_BASE}/empresas/${empresaId}/regularidad_por_hora?fecha=${fecha}`;
     fetch(url)
       .then(res => res.json())
       .then(json => setData(json))

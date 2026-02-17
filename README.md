@@ -1,15 +1,102 @@
-# Getting Started with Create React App
+# Sist. Transporte
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Frontend React (puerto 3003) + Backend FastAPI (puerto 8010).
 
-## Available Scripts
+## Requisitos
+
+- Node.js y npm (frontend, desde la raíz)
+- Python 3.12+ y pip (backend, desde `backend/`)
+- Opcional: Docker y Docker Compose
+
+## Desarrollo local
+
+### Frontend (raíz del proyecto, puerto 3003)
+
+```bash
+# Opcional: copiar .env.example a .env y poner PORT=3003 para que npm start use el puerto 3003
+cp .env.example .env
+npm install
+npm start
+```
+
+Abre [http://localhost:3003](http://localhost:3003).
+
+### Backend (carpeta backend, puerto 8010)
+
+```bash
+cd backend
+pip install -r requirements.txt
+# Configurar variables de BD en backend/.env
+uvicorn main:app --reload
+```
+
+API en [http://localhost:8010](http://localhost:8010).
+
+## Docker
+
+```bash
+# Crear backend/.env con las variables de base de datos (DB_CID_*, DB_MON_*, DB_BILL_*)
+docker compose up --build
+```
+
+- Frontend: [http://localhost:3003](http://localhost:3003)
+- Backend: [http://localhost:8010](http://localhost:8010)
+
+## Despliegue en servidor (ej. http://172.16.222.222:3003/)
+
+Para que la app funcione en un servidor, el frontend debe llamar al backend por la URL pública del servidor (no por localhost).
+
+### Opción A: Docker en el servidor
+
+1. Clonar o copiar el proyecto en el servidor (172.16.222.222).
+2. Crear `backend/.env` con las variables de las bases de datos (igual que en desarrollo).
+3. Definir la URL del API para el build del frontend. En la **raíz** del proyecto crear o editar `.env` (no confundir con `backend/.env`):
+   ```env
+   REACT_APP_API_URL=http://172.16.222.222:8010
+   ```
+4. Build y levantar:
+   ```bash
+   docker compose up --build -d
+   ```
+5. Abrir en el navegador: **http://172.16.222.222:3003/** (frontend) y **http://172.16.222.222:8010** (API).
+
+### Opción B: Sin Docker en el servidor
+
+1. **Backend:** en el servidor, en la carpeta `backend`:
+   - Crear `backend/.env` con las variables de BD.
+   - `pip install -r requirements.txt`
+   - Ejecutar: `uvicorn main:app --host 0.0.0.0 --port 8010`
+2. **Frontend:** en tu PC (o en el servidor) hacer un build apuntando al API del servidor:
+   ```bash
+   set REACT_APP_API_URL=http://172.16.222.222:8010
+   npm run build
+   ```
+   Luego copiar la carpeta `build` al servidor y servirla con nginx, Apache o `serve -s build -l 3003`.
+
+---
+
+## Subir a GitHub
+
+Repositorio: https://github.com/lprafael/sist_transporte
+
+```bash
+git remote add origin https://github.com/lprafael/sist_transporte.git
+git branch -M main
+git push -u origin main
+```
+
+Si ya tenés otro `origin`, usá `git remote set-url origin https://github.com/lprafael/sist_transporte.git` y después `git push -u origin main`.
+
+---
+
+## Available Scripts (Create React App)
 
 In the project directory, you can run:
 
 ### `npm start`
 
 Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Open [http://localhost:3003](http://localhost:3003) to view it in your browser (usa `PORT=3003` en `.env` si hace falta).
 
 The page will reload when you make changes.\
 You may also see any lint errors in the console.

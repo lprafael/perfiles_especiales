@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from '../config';
 
 function SelectorEmpresas() {
   const [empresas, setEmpresas] = useState([]);
@@ -6,10 +7,7 @@ function SelectorEmpresas() {
   const [selectedEmpresaId, setSelectedEmpresaId] = useState('');
 
   useEffect(() => {
-    // Define la URL de tu backend Express
-    const API_URL = 'http://localhost:3000/empresas'; // Ajusta si tu backend corre en otro puerto o tiene una ruta base diferente
-
-    fetch(API_URL)
+    fetch(`${API_BASE}/empresas`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
