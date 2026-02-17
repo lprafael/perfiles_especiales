@@ -16,10 +16,12 @@ ENV PUBLIC_URL=$PUBLIC_URL
 ENV PORT=3003
 RUN npm run build
 
-# Servir build en el puerto 3003
-FROM node:20-alpine
-WORKDIR /app
-RUN npm install -g serve
-COPY --from=build /app/build ./build
+# Servir build con Nginx (actuando como puente/proxy)
+FROM nginx:alpine
+# Copiar configuración de Nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copiar archivos compilados
+COPY --from=build /app/build /usr/share/nginx/html
 EXPOSE 3003
-CMD ["serve", "-s", "build", "-l", "3003"]
+CMD ["nginx", "-g", "daemon off;"]
+
