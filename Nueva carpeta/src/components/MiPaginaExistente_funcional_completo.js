@@ -49,7 +49,7 @@ function MiPaginaExistente() {
       const lista = document.getElementById('itinerarios-list');
       lista.innerHTML = '<li><em>Cargando itinerarios...</em></li>';
 
-      fetch(`http://192.168.100.191:3001/empresas/${empresaId}/itinerarios`)
+      fetch(`http://localhost:3001/empresas/${empresaId}/itinerarios`)
         .then(res => res.json())
         .then(data => {
           lista.innerHTML = '';
@@ -73,7 +73,7 @@ function MiPaginaExistente() {
     }
 
     function mostrarShape(rutaHex) {
-      fetch(`http://192.168.100.191:3001/itinerarios/${rutaHex}/shape`)
+      fetch(`http://localhost:3001/itinerarios/${rutaHex}/shape`)
         .then(res => res.json())
         .then(shape => {
           if (shapeLayer.current) {
@@ -87,7 +87,7 @@ function MiPaginaExistente() {
     }
 
     function mostrarParadas(rutaHex) {
-      fetch(`http://192.168.100.191:3001/itinerarios/${rutaHex}/paradas`)
+      fetch(`http://localhost:3001/itinerarios/${rutaHex}/paradas`)
         .then(res => res.json())
         .then(paradas => {
           if (paradasLayer.current) {
@@ -108,7 +108,7 @@ function MiPaginaExistente() {
       const { lat: lat1, lng: lng1 } = origenRef.current;
       const { lat: lat2, lng: lng2 } = destinoRef.current;
 
-      fetch(`http://192.168.100.191:3001/paradas/cercanas?lat1=${lat1}&lng1=${lng1}&lat2=${lat2}&lng2=${lng2}&empresa=${empresaId}`)
+      fetch(`http://localhost:3001/paradas/cercanas?lat1=${lat1}&lng1=${lng1}&lat2=${lat2}&lng2=${lng2}&empresa=${empresaId}`)
         .then(res => res.json())
         .then(data => {
           if (data.origen && data.destino) {
@@ -127,8 +127,8 @@ function MiPaginaExistente() {
         });
     }
 
-    fetch('http://192.168.100.191:3001/empresas')
-    // fetch('http://192.168.100.191:8000/empresas')
+    fetch('http://localhost:3001/empresas')
+      // fetch('http://localhost:8000/empresas')
       .then(res => res.json())
       .then(data => {
         const select = document.getElementById('empresa-select');

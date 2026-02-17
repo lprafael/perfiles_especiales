@@ -20,7 +20,7 @@ function ControlRegularidadFranjaModal(props) {
   const [tipoRegularidad, setTipoRegularidad] = React.useState('servicios'); // 'servicios' o 'buses'
   const [showBusesModal, setShowBusesModal] = React.useState(false);
   const [busesModalEmpresaId, setBusesModalEmpresaId] = React.useState(null);
-  const [tooltip, setTooltip] = React.useState({visible: false, x: 0, y: 0, text: ''});
+  const [tooltip, setTooltip] = React.useState({ visible: false, x: 0, y: 0, text: '' });
 
   // --- Definición de franjas horarias según el día ---
   const FRANJAS = {
@@ -63,7 +63,7 @@ function ControlRegularidadFranjaModal(props) {
   // --- Buscar nombre de empresa y gremioId al montar o cuando empresaId cambia ---
   React.useEffect(() => {
     if (!empresaId) return;
-    fetch(`http://192.168.100.191:8000/empresas`)
+    fetch(`http://localhost:8000/empresas`)
       .then(res => res.json())
       .then(empresas => {
         setEmpresas(empresas);
@@ -87,16 +87,16 @@ function ControlRegularidadFranjaModal(props) {
     let url = '';
     if (modoSistema) {
       url = tipoRegularidad === 'buses'
-        ? `http://192.168.100.191:8000/sistema/regularidad_por_hora_buses?fecha=${fecha}`
-        : `http://192.168.100.191:8000/sistema/regularidad_por_hora?fecha=${fecha}`;
+        ? `http://localhost:8000/sistema/regularidad_por_hora_buses?fecha=${fecha}`
+        : `http://localhost:8000/sistema/regularidad_por_hora?fecha=${fecha}`;
     } else if (modoGremio && gremioId) {
       url = tipoRegularidad === 'buses'
-        ? `http://192.168.100.191:8000/gremios/${gremioId}/regularidad_por_hora_buses?fecha=${fecha}`
-        : `http://192.168.100.191:8000/gremios/${gremioId}/regularidad_por_hora?fecha=${fecha}`;
+        ? `http://localhost:8000/gremios/${gremioId}/regularidad_por_hora_buses?fecha=${fecha}`
+        : `http://localhost:8000/gremios/${gremioId}/regularidad_por_hora?fecha=${fecha}`;
     } else {
       url = tipoRegularidad === 'buses'
-        ? `http://192.168.100.191:8000/empresas/${empresaId}/regularidad_por_hora_buses?fecha=${fecha}`
-        : `http://192.168.100.191:8000/empresas/${empresaId}/regularidad_por_hora?fecha=${fecha}`;
+        ? `http://localhost:8000/empresas/${empresaId}/regularidad_por_hora_buses?fecha=${fecha}`
+        : `http://localhost:8000/empresas/${empresaId}/regularidad_por_hora?fecha=${fecha}`;
     }
     fetch(url)
       .then(res => res.json())
@@ -333,7 +333,7 @@ function ControlRegularidadFranjaModal(props) {
         padding: 0,
         margin: 0,
       }}
-      onClick={() => { if (tooltip.visible) setTooltip(t => ({...t, visible: false})); }}
+      onClick={() => { if (tooltip.visible) setTooltip(t => ({ ...t, visible: false })); }}
     >
       <div style={{
         background: '#fff',
@@ -350,13 +350,13 @@ function ControlRegularidadFranjaModal(props) {
         overflowY: 'auto',
         justifyContent: 'flex-start',
       }}>
-        <button onClick={onClose} style={{position:'fixed',top:18,right:18,fontSize:32,background:'#eee',border:'none',borderRadius:20,width:48,height:48,cursor:'pointer',zIndex:3001,boxShadow:'0 2px 8px #0002'}}>
+        <button onClick={onClose} style={{ position: 'fixed', top: 18, right: 18, fontSize: 32, background: '#eee', border: 'none', borderRadius: 20, width: 48, height: 48, cursor: 'pointer', zIndex: 3001, boxShadow: '0 2px 8px #0002' }}>
           ×
         </button>
-        <h2 style={{marginTop:32, marginLeft:32, fontSize:36}}>
+        <h2 style={{ marginTop: 32, marginLeft: 32, fontSize: 36 }}>
           Control de Regularidad por Franja
         </h2>
-        <div style={{marginBottom:8, fontSize:20, color:'#555', marginLeft:32}}>
+        <div style={{ marginBottom: 8, fontSize: 20, color: '#555', marginLeft: 32 }}>
           {modoSistema
             ? (<span>Mostrando <b>todo el sistema</b>{fecha ? ` | Fecha: ${fecha}` : ''}</span>)
             : modoGremio
@@ -364,47 +364,47 @@ function ControlRegularidadFranjaModal(props) {
               : (<span>Mostrando <b>empresa</b>{empresaNombre ? `: ${empresaNombre}` : ''}{fecha ? ` | Fecha: ${fecha}` : ''}</span>)}
         </div>
         {/* Botones de modo */}
-        <div style={{display:'flex', gap:16, marginLeft:32, marginBottom:16}}>
+        <div style={{ display: 'flex', gap: 16, marginLeft: 32, marginBottom: 16 }}>
           {!modoGremio && !modoSistema && (
-            <button onClick={()=>{setModoGremio(true); setModoSistema(false);}} style={{background:'#fffde7',color:'#fbc02d',border:'1px solid #ffe082',borderRadius:8,padding:'8px 18px',fontWeight:'bold',fontSize:16,cursor:'pointer'}}>Ampliar a Gremio</button>
+            <button onClick={() => { setModoGremio(true); setModoSistema(false); }} style={{ background: '#fffde7', color: '#fbc02d', border: '1px solid #ffe082', borderRadius: 8, padding: '8px 18px', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>Ampliar a Gremio</button>
           )}
           {modoGremio && !modoSistema && (
-            <button onClick={()=>{setModoSistema(true);}} style={{background:'#e3f2fd',color:'#1976d2',border:'1px solid #90caf9',borderRadius:8,padding:'8px 18px',fontWeight:'bold',fontSize:16,cursor:'pointer'}}>Todo el sistema</button>
+            <button onClick={() => { setModoSistema(true); }} style={{ background: '#e3f2fd', color: '#1976d2', border: '1px solid #90caf9', borderRadius: 8, padding: '8px 18px', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>Todo el sistema</button>
           )}
           {(modoGremio || modoSistema) && (
-            <button onClick={()=>{setModoGremio(false); setModoSistema(false);}} style={{background:'#e0e0e0',color:'#333',border:'1px solid #bbb',borderRadius:8,padding:'8px 18px',fontWeight:'bold',fontSize:16,cursor:'pointer'}}>Volver a empresa</button>
+            <button onClick={() => { setModoGremio(false); setModoSistema(false); }} style={{ background: '#e0e0e0', color: '#333', border: '1px solid #bbb', borderRadius: 8, padding: '8px 18px', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>Volver a empresa</button>
           )}
         </div>
         {/* Nota explicativa */}
-        <div style={{maxWidth:900, margin:'0 auto', marginTop:12, marginBottom:18, background:'#fffde7', color:'#b28704', border:'1px solid #ffe082', borderRadius:8, padding:'16px 24px', fontSize:16, boxShadow:'0 2px 8px #fbc02d22'}}>
+        <div style={{ maxWidth: 900, margin: '0 auto', marginTop: 12, marginBottom: 18, background: '#fffde7', color: '#b28704', border: '1px solid #ffe082', borderRadius: 8, padding: '16px 24px', fontSize: 16, boxShadow: '0 2px 8px #fbc02d22' }}>
           <b>Nota:</b> Esta planilla muestra, para cada empresa y franja horaria, el porcentaje de servicios realizados respecto al promedio histórico de los mismos días de las 4 semanas anteriores. <br />
           <b>Alerta:</b> Si una celda está en rojo, significa que la empresa operó por debajo del 60% del promedio histórico en esa franja.<br />
           Las franjas horarias varían según el tipo de día (laboral, sábado, domingo).
         </div>
         {/* Agregar el select arriba del modal */}
-        <div style={{display:'flex',alignItems:'center',gap:16,margin:'24px 0 0 32px'}}>
-          <label htmlFor="tipo-regularidad" style={{fontWeight:'bold',fontSize:16}}>Tipo de regularidad:</label>
-          <select id="tipo-regularidad" value={tipoRegularidad} onChange={e => setTipoRegularidad(e.target.value)} style={{fontSize:16,padding:'4px 12px',borderRadius:6,border:'1px solid #bbb'}}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '24px 0 0 32px' }}>
+          <label htmlFor="tipo-regularidad" style={{ fontWeight: 'bold', fontSize: 16 }}>Tipo de regularidad:</label>
+          <select id="tipo-regularidad" value={tipoRegularidad} onChange={e => setTipoRegularidad(e.target.value)} style={{ fontSize: 16, padding: '4px 12px', borderRadius: 6, border: '1px solid #bbb' }}>
             <option value="servicios">Servicios</option>
             <option value="buses">Buses</option>
           </select>
         </div>
         {/* Espacio para la tabla de control por franja */}
         {/* Render de la tabla con formato de colores */}
-        <div style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', width:'100%', marginTop:24}}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100%', marginTop: 24 }}>
           {loading ? (
-            <div style={{margin:'32px 0', color:'#888'}}>Cargando datos...</div>
+            <div style={{ margin: '32px 0', color: '#888' }}>Cargando datos...</div>
           ) : error ? (
-            <div style={{margin:'32px 0', color:'#d84315'}}>Error al obtener datos</div>
+            <div style={{ margin: '32px 0', color: '#d84315' }}>Error al obtener datos</div>
           ) : (
-            <div style={{overflowX:'auto', width:'100%', maxWidth:1200}}>
-              <table style={{borderCollapse:'collapse', width:'100%', fontSize:18, background:'#fafafa', boxShadow:'0 2px 8px #0001', borderRadius:12, overflow:'hidden'}}>
+            <div style={{ overflowX: 'auto', width: '100%', maxWidth: 1200 }}>
+              <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 18, background: '#fafafa', boxShadow: '0 2px 8px #0001', borderRadius: 12, overflow: 'hidden' }}>
                 <thead>
-                  <tr style={{background:'#e3f2fd'}}>
+                  <tr style={{ background: '#e3f2fd' }}>
                     <th></th>
-                    <th style={{padding:'10px 18px', border:'1px solid #90caf9', fontWeight:'bold', fontSize:19, textAlign:'left'}}>Empresa</th>
+                    <th style={{ padding: '10px 18px', border: '1px solid #90caf9', fontWeight: 'bold', fontSize: 19, textAlign: 'left' }}>Empresa</th>
                     {COLUMNAS.map(col => (
-                      <th key={col.nombre} style={{padding:'10px 18px', border:'1px solid #90caf9', fontWeight:'bold', fontSize:19}}>{col.nombre}</th>
+                      <th key={col.nombre} style={{ padding: '10px 18px', border: '1px solid #90caf9', fontWeight: 'bold', fontSize: 19 }}>{col.nombre}</th>
                     ))}
                   </tr>
                 </thead>
@@ -415,14 +415,14 @@ function ControlRegularidadFranjaModal(props) {
                     return (
                       <tr key={emp.id}>
                         {/* Botón para abrir modal de regularidad de buses */}
-                        <td style={{padding:'0 8px', textAlign:'center'}}>
+                        <td style={{ padding: '0 8px', textAlign: 'center' }}>
                           <button
                             title="Ver regularidad de buses"
-                            style={{background:'#e3f2fd',border:'1px solid #90caf9',borderRadius:8,padding:'6px 10px',cursor:'pointer'}}
+                            style={{ background: '#e3f2fd', border: '1px solid #90caf9', borderRadius: 8, padding: '6px 10px', cursor: 'pointer' }}
                             onClick={() => { setBusesModalEmpresaId(emp.id); setShowBusesModal(true); }}
                           >🚌</button>
                         </td>
-                        <td style={{padding:'10px 18px', border:'1px solid #eee', fontWeight:'bold', fontSize:18, background:'#f5f5f5'}}>{emp.nombre}</td>
+                        <td style={{ padding: '10px 18px', border: '1px solid #eee', fontWeight: 'bold', fontSize: 18, background: '#f5f5f5' }}>{emp.nombre}</td>
                         {COLUMNAS.map(col => {
                           const val = agrupados[col.nombre];
                           let bg = '#fff', color = '#1976d2';
@@ -434,12 +434,12 @@ function ControlRegularidadFranjaModal(props) {
                           // Buscar datos crudos de la franja para tooltip
                           const franja = col.keys[0];
                           // Filtrar datos crudos de esa franja
-                          const serviciosFranja = (emp.servicios_dia||[]).filter(d => getFranjaParaHora(d.hora, tipoDia) === franja);
-                          const promedioFranja = (emp.promedio_horas||[]).filter(d => getFranjaParaHora(d.hora, tipoDia) === franja);
+                          const serviciosFranja = (emp.servicios_dia || []).filter(d => getFranjaParaHora(d.hora, tipoDia) === franja);
+                          const promedioFranja = (emp.promedio_horas || []).filter(d => getFranjaParaHora(d.hora, tipoDia) === franja);
                           return (
                             <td
                               key={col.nombre}
-                              style={{padding:'10px 18px', border:'1px solid #eee', color, fontWeight:'bold', background:bg, cursor:'context-menu'}}
+                              style={{ padding: '10px 18px', border: '1px solid #eee', color, fontWeight: 'bold', background: bg, cursor: 'context-menu' }}
                               onContextMenu={e => {
                                 e.preventDefault();
                                 setTooltip({
@@ -488,9 +488,9 @@ function ControlRegularidadFranjaModal(props) {
           )}
         </div>
         {/* Botón para exportar a Excel y Word */}
-        <div style={{width:'100%', display:'flex', justifyContent:'center', gap:16, marginBottom:32}}>
-          <button onClick={exportarExcel} style={{background:'#e8f5e9',color:'#43a047',border:'2px solid #a5d6a7',borderRadius:8,padding:'12px 32px',fontWeight:'bold',fontSize:18,cursor:'pointer'}}>Exportar a Excel</button>
-          <button onClick={exportarWord} style={{background:'#e3f2fd',color:'#1976d2',border:'2px solid #90caf9',borderRadius:8,padding:'12px 32px',fontWeight:'bold',fontSize:18,cursor:'pointer'}}>Exportar a Word</button>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 32 }}>
+          <button onClick={exportarExcel} style={{ background: '#e8f5e9', color: '#43a047', border: '2px solid #a5d6a7', borderRadius: 8, padding: '12px 32px', fontWeight: 'bold', fontSize: 18, cursor: 'pointer' }}>Exportar a Excel</button>
+          <button onClick={exportarWord} style={{ background: '#e3f2fd', color: '#1976d2', border: '2px solid #90caf9', borderRadius: 8, padding: '12px 32px', fontWeight: 'bold', fontSize: 18, cursor: 'pointer' }}>Exportar a Word</button>
         </div>
         {/* Modal de regularidad de buses */}
         {showBusesModal && busesModalEmpresaId && (

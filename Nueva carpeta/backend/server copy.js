@@ -108,5 +108,5 @@ app.get('/itinerarios/:rutaHex/paradas', async (req, res) => {
 // });
 
 app.listen(port, () => {
-    console.log(`Servidor backend escuchando en http://192.168.100.191:${port}`);
+  console.log(`Servidor backend escuchando en http://localhost:${port}`);
 });

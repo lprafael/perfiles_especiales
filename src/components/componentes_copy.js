@@ -36,7 +36,7 @@ function MiPaginaExistente() {
     function mostrarItinerarios(empresaId) {
       const lista = document.getElementById("itinerarios-list");
       lista.innerHTML = "<li><em>Cargando itinerarios...</em></li>";
-      fetch(`http://192.168.100.191:3001/empresas/${empresaId}/itinerarios`)
+      fetch(`http://localhost:3001/empresas/${empresaId}/itinerarios`)
         .then((res) => res.json())
         .then((data) => {
           lista.innerHTML = "";
@@ -46,9 +46,8 @@ function MiPaginaExistente() {
           }
           data.forEach((it) => {
             const li = document.createElement("li");
-            li.textContent = `Línea ${it.linea ?? "N/D"} - Ramal ${
-              it.ramal ?? ""
-            }: ${it.origen ?? ""} → ${it.destino ?? ""}`;
+            li.textContent = `Línea ${it.linea ?? "N/D"} - Ramal ${it.ramal ?? ""
+              }: ${it.origen ?? ""} → ${it.destino ?? ""}`;
             li.className = "list-item";
             li.onclick = () => {
               document
@@ -64,7 +63,7 @@ function MiPaginaExistente() {
     }
 
     function mostrarShape(rutaHex) {
-      fetch(`http://192.168.100.191:3001/itinerarios/${rutaHex}/shape`)
+      fetch(`http://localhost:3001/itinerarios/${rutaHex}/shape`)
         .then((res) => res.json())
         .then((shape) => {
           if (shapeLayer) map.removeLayer(shapeLayer);
@@ -77,7 +76,7 @@ function MiPaginaExistente() {
     }
 
     function mostrarParadas(rutaHex) {
-      fetch(`http://192.168.100.191:3001/itinerarios/${rutaHex}/paradas`)
+      fetch(`http://localhost:3001/itinerarios/${rutaHex}/paradas`)
         .then((res) => res.json())
         .then((paradas) => {
           if (paradasLayer) map.removeLayer(paradasLayer);
@@ -91,7 +90,7 @@ function MiPaginaExistente() {
     }
 
     // Cargar empresas
-    fetch("http://192.168.100.191:3001/empresas")
+    fetch("http://localhost:3001/empresas")
       .then((res) => res.json())
       .then((data) => {
         const select = document.getElementById("empresa-select");

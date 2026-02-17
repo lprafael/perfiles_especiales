@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,10 +13,11 @@
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         body {
             background-color: #f5f7fa;
         }
+
         .alert {
             position: fixed;
             top: 20px;
@@ -28,12 +30,13 @@
             display: none;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
+
         .container {
             display: flex;
             flex-direction: column;
             height: 100vh;
         }
-        
+
         header {
             background-color: #1e40af;
             color: white;
@@ -42,24 +45,24 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         header h1 {
             font-size: 1.5rem;
         }
-        
+
         .content {
             display: flex;
             flex: 1;
             flex-direction: column;
             overflow: hidden;
         }
-        
+
         @media (min-width: 768px) {
             .content {
                 flex-direction: row;
             }
         }
-        
+
         .sidebar {
             background: white;
             width: 100%;
@@ -68,7 +71,7 @@
             padding: 15px;
             border-right: 1px solid #cbd5e1;
         }
-        
+
         @media (min-width: 768px) {
             .sidebar {
                 width: 320px;
@@ -76,28 +79,29 @@
                 overflow-y: auto;
             }
         }
-        
+
         .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
         }
-        
+
         .map-container {
             flex: 1;
             position: relative;
         }
-        
+
         #map {
             width: 100%;
             height: 100%;
         }
-        
+
         .selector {
             margin-bottom: 15px;
         }
-        
-        select, input {
+
+        select,
+        input {
             width: 100%;
             padding: 10px;
             border: 1px solid #cbd5e1;
@@ -105,11 +109,11 @@
             background-color: #f1f5f9;
             margin-bottom: 10px;
         }
-        
+
         .search-box {
             position: relative;
         }
-        
+
         .search-button {
             position: absolute;
             right: 0;
@@ -123,18 +127,18 @@
             border-bottom-right-radius: 5px;
             cursor: pointer;
         }
-        
+
         .list-container {
             margin-bottom: 15px;
         }
-        
+
         .list-header {
             font-weight: bold;
             margin-bottom: 5px;
             padding-bottom: 5px;
             border-bottom: 1px solid #cbd5e1;
         }
-        
+
         .list-item {
             padding: 8px;
             border: 1px solid #cbd5e1;
@@ -143,42 +147,42 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        
+
         .list-item:hover {
             background-color: #e5edff;
         }
-        
+
         .list-item.active {
             background-color: #e5edff;
         }
-        
+
         .origin-destination {
             background: white;
             padding: 15px;
             border-top: 1px solid #cbd5e1;
         }
-        
+
         .origin-destination h3 {
             margin-bottom: 10px;
         }
-        
+
         .origin-destination-inputs {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
         }
-        
+
         .input-group {
             flex: 1;
             min-width: 200px;
         }
-        
+
         .input-group label {
             display: block;
             margin-bottom: 5px;
             color: #64748b;
         }
-        
+
         .search-route-btn {
             background-color: #1e40af;
             color: white;
@@ -188,37 +192,37 @@
             cursor: pointer;
             margin-top: 10px;
         }
-        
+
         .search-route-btn:hover {
             background-color: #1e3a8a;
         }
-        
+
         /* Estilos para modo móvil */
         .mobile-tabs {
             display: flex;
             background: #e5edff;
             border-bottom: 1px solid #cbd5e1;
         }
-        
+
         @media (min-width: 768px) {
             .mobile-tabs {
                 display: none;
             }
         }
-        
+
         .mobile-tab {
             flex: 1;
             text-align: center;
             padding: 10px;
             cursor: pointer;
         }
-        
+
         .mobile-tab.active {
             background: white;
             border-bottom: 2px solid #1e40af;
             font-weight: bold;
         }
-        
+
         /* Loader */
         .loader {
             border: 4px solid #f3f3f3;
@@ -230,24 +234,30 @@
             margin: 20px auto;
             display: none;
         }
-        
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
             <h1>Sistema de Transporte Urbano - Gran Asunción - Viceministerio de Transporte(MOPC)</h1>
         </header>
-        
+
         <div class="mobile-tabs">
             <div class="mobile-tab active" data-tab="info">Información</div>
             <div class="mobile-tab" data-tab="map">Mapa</div>
         </div>
-        
+
         <div class="content">
             <div class="sidebar">
                 <div class="selector">
@@ -256,7 +266,7 @@
                         <option value="">Cargando empresas...</option>
                     </select>
                 </div>
-                
+
                 <div class="search-box">
                     <input type="text" id="search-line" placeholder="Buscar por línea...">
                     <button class="search-button">🔍</button>
@@ -266,15 +276,15 @@
                     <ul id="itinerarios-list">
                         <li><em>Seleccione una empresa para ver sus itinerarios</em></li>
                     </ul>
-                    </div>
+                </div>
                 <!-- <div class="list-container">
                     <div class="list-header">Itinerarios</div>
                     <div id="itinerarios-list"> -->
-                        <!-- Los itinerarios se cargarán dinámicamente -->
+                <!-- Los itinerarios se cargarán dinámicamente -->
                 <!--         <div class="loader" id="loader-itinerarios"></div>
                     </div>
                 </div> -->
-                
+
                 <div class="list-container">
                     <div class="list-header">Paradas</div>
                     <div id="paradas-list">
@@ -283,12 +293,12 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="main-content">
                 <div class="map-container">
                     <div id="map"></div>
                 </div>
-                
+
                 <div class="origin-destination">
                     <h3>Buscar Conexión</h3>
                     <div class="origin-destination-inputs">
@@ -310,7 +320,7 @@
 
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    
+
     <script>
         // Función para mostrar mensajes de error
         const empresaSelect = document.getElementById('empresa-select');
@@ -326,7 +336,7 @@
                 alerta.style.display = 'none';
             }, 5000); // se oculta luego de 3 segundos
         }
-        
+
         // Coordenadas de las ciudades
         const ciudades = [
             { nombre: "Asunción", lat: -25.2944, lng: -57.6324 },
@@ -342,10 +352,10 @@
         ];
 
         // Inicialización del mapa y marcadores
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Inicializar el mapa
             var map = L.map('map').setView([-25.2944, -57.6324], 11);
-            
+
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
@@ -362,24 +372,24 @@
             let currentRouteLayer = null;
 
             // Cargar el selector de empresas
-            fetch('http://192.168.100.191:3000/empresas') //Me conecto a la API
-            //fetch('http://192.168.100.191:8000/empresas') //Me conecto a la API
+            fetch('http://localhost:3000/empresas') //Me conecto a la API
+                //fetch('http://localhost:8000/empresas') //Me conecto a la API
                 .then(response => response.json())
                 .then(data => {
                     const select = document.getElementById('empresa-select'); // Selecciono el elemento
                     select.innerHTML = '<option value="">Seleccione una empresa</option>'; // Limpio el select
                     data.forEach(empresa => {  // Recorro los datos
-                    const option = document.createElement('option') // Creo una opción;
-                    option.value = empresa.id_eot_vmt_hex || 'sin_id'; // Asigno el id
-                    option.textContent = empresa.eot_nombre || 'Sin nombre'; // Asigno el nombre
+                        const option = document.createElement('option') // Creo una opción;
+                        option.value = empresa.id_eot_vmt_hex || 'sin_id'; // Asigno el id
+                        option.textContent = empresa.eot_nombre || 'Sin nombre'; // Asigno el nombre
 
-                    select.appendChild(option); // Agrego la opción al select
+                        select.appendChild(option); // Agrego la opción al select
                     });
                 })
                 .catch(err => {
                     console.error('Error al cargar empresas:', err);
                     document.getElementById('empresa-select').innerHTML = '<option>Error al cargar</option>';
-            });
+                });
             document.getElementById('empresa-select').addEventListener('change', (e) => {
                 if (e.target.value) {
                     mostrarAviso("Empresa seleccionada correctamente", "success");
@@ -400,10 +410,10 @@
                     }
                     if (mapContainer) {
                         mapContainer.style.display = 'none';
-                    }    
+                    }
                     //document.getElementById('loader-itinerarios').style.display = 'block';
 
-                    fetch(`http://192.168.100.191:3000/empresas/${empresaId}/itinerarios`)
+                    fetch(`http://localhost:3000/empresas/${empresaId}/itinerarios`)
                         .then(response => response.json())
                         .then(itinerarios => {
                             document.getElementById('loader-itinerarios').style.display = 'none';
@@ -420,7 +430,7 @@
                                     div.textContent = `Línea ${itinerario.linea ?? 'N/D'} - Ramal ${itinerario.ramal ?? ''}: ${itinerario.origen ?? ''} → ${itinerario.destino ?? ''}`;
                                     div.dataset.id = itinerario.ruta_hex;
 
-                                    div.addEventListener('click', function() {
+                                    div.addEventListener('click', function () {
                                         document.querySelectorAll('#itinerarios-list .list-item').forEach(item => {
                                             item.classList.remove('active');
                                         });
@@ -447,25 +457,25 @@
             function mostrarParadas(itinerarioId) {
                 const paradasList = document.getElementById('paradas-list');
                 paradasList.innerHTML = '';
-                
+
                 document.getElementById('loader-paradas').style.display = 'block';
-                
+
                 // Limpiar rutas y paradas anteriores del mapa
                 if (currentParadasLayer) {
                     map.removeLayer(currentParadasLayer);
                 }
-                
+
                 if (currentRouteLayer) {
                     map.removeLayer(currentRouteLayer);
                 }
-                
+
                 setTimeout(() => {
                     document.getElementById('loader-paradas').style.display = 'none';
-                    
+
                     const paradas = paradasData[itinerarioId] || [];
                     const markers = [];
                     const points = [];
-                    
+
                     paradas.forEach(parada => {
                         // Agregar a la lista
                         const div = document.createElement('div');
@@ -474,26 +484,26 @@
                         div.dataset.id = parada.id;
                         div.dataset.lat = parada.lat;
                         div.dataset.lng = parada.lng;
-                        
-                        div.addEventListener('click', function() {
+
+                        div.addEventListener('click', function () {
                             // Centrar mapa en esta parada
                             map.setView([parada.lat, parada.lng], 15);
                         });
-                        
+
                         paradasList.appendChild(div);
-                        
+
                         // Guardar coordenadas para el marcador y la ruta
                         markers.push(L.marker([parada.lat, parada.lng])
                             .bindPopup(parada.nombre));
                         points.push([parada.lat, parada.lng]);
                     });
-                    
+
                     // Agregar marcadores de paradas al mapa
                     currentParadasLayer = L.layerGroup(markers).addTo(map);
-                    
+
                     // Dibujar ruta entre paradas
                     if (points.length > 1) {
-                        currentRouteLayer = L.polyline(points, {color: 'blue'}).addTo(map);
+                        currentRouteLayer = L.polyline(points, { color: 'blue' }).addTo(map);
                         // Zoom para ver toda la ruta
                         map.fitBounds(currentRouteLayer.getBounds());
                     }
@@ -503,30 +513,30 @@
             // Buscador de líneas
             const searchButton = document.querySelector('.search-button');
             const searchInput = document.getElementById('search-line');
-            
+
             searchButton.addEventListener('click', buscarLinea);
-            searchInput.addEventListener('keypress', function(e) {
+            searchInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     buscarLinea();
                 }
             });
-            
+
             function buscarLinea() {
                 const searchTerm = searchInput.value.toLowerCase();
                 if (!searchTerm) return;
-                
+
                 let found = false;
-                
+
                 // Buscar en todas las empresas
                 for (const empresaId in itinerariosData) {
                     const itinerarios = itinerariosData[empresaId];
-                    
+
                     for (const itinerario of itinerarios) {
                         if (itinerario.nombre.toLowerCase().includes(searchTerm)) {
                             // Seleccionar empresa
                             empresaSelect.value = empresaId;
                             empresaSelect.dispatchEvent(new Event('change'));
-                            
+
                             // Esperar a que se carguen los itinerarios
                             setTimeout(() => {
                                 // Seleccionar itinerario
@@ -536,15 +546,15 @@
                                     found = true;
                                 }
                             }, 600);
-                            
+
                             // Solo seleccionamos el primer resultado que encontremos
                             break;
                         }
                     }
-                    
+
                     if (found) break;
                 }
-                
+
                 if (!found) {
                     alert('No se encontraron líneas que coincidan con la búsqueda.');
                 }
@@ -552,20 +562,20 @@
 
             // Funcionalidad para buscar rutas entre origen y destino
             const buscarRutaBtn = document.querySelector('.search-route-btn');
-            
-            buscarRutaBtn.addEventListener('click', function() {
+
+            buscarRutaBtn.addEventListener('click', function () {
                 const origen = document.getElementById('origen').value;
                 const destino = document.getElementById('destino').value;
-                
+
                 if (!origen || !destino) {
                     alert('Por favor ingrese tanto origen como destino.');
                     return;
                 }
-                
+
                 // Esta es una simulación simple. En producción, habría que consultar una API
                 // que calcule la ruta óptima según las paradas más cercanas.
                 alert(`Buscando ruta desde ${origen} hasta ${destino}.\n\nEsta funcionalidad requiere implementación del backend para encontrar paradas cercanas y rutas óptimas.`);
-                
+
                 // Aquí iría la lógica real de búsqueda de rutas
                 // 1. Encontrar coordenadas de origen y destino (geocodificación)
                 // 2. Encontrar paradas cercanas a origen y destino
@@ -577,12 +587,12 @@
             const mobileTabs = document.querySelectorAll('.mobile-tab');
             const sidebar = document.querySelector('.sidebar');
             const mapContainer = document.querySelector('.map-container');
-            
+
             mobileTabs.forEach(tab => {
-                tab.addEventListener('click', function() {
+                tab.addEventListener('click', function () {
                     mobileTabs.forEach(t => t.classList.remove('active'));
                     this.classList.add('active');
-                    
+
                     if (this.dataset.tab === 'info') {
                         sidebar.style.display = 'block';
                         mapContainer.style.display = 'none';
@@ -594,7 +604,7 @@
                     }
                 });
             });
-            
+
             // En escritorio, ambos son visibles
             function checkWidth() {
                 if (window.innerWidth >= 768) {
@@ -614,11 +624,12 @@
                     }
                 }
             }
-            
+
             // Verificar al cargar y al cambiar el tamaño
             checkWidth();
             window.addEventListener('resize', checkWidth);
         });
     </script>
 </body>
+
 </html>

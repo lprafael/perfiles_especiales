@@ -3,7 +3,7 @@ const { Client } = require('pg');
 const cors = require('cors');
 
 const app = express();
-const port = 3001;
+const port = 8000;
 
 app.use(cors());
 
@@ -108,5 +108,5 @@ app.get('/itinerarios/:rutaHex/paradas', async (req, res) => {
 // });
 
 app.listen(port, () => {
-    console.log(`Servidor backend escuchando en http://192.168.100.191:${port}`);
+  console.log(`Servidor backend escuchando en http://localhost:${port}`);
 });

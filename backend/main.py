@@ -18,18 +18,6 @@ from pydantic import BaseModel
 app = FastAPI()
 
 
-# Ejecutar con: uvicorn main:app --reload
-from fastapi import FastAPI, HTTPException, Request, Body
-from fastapi.middleware.cors import CORSMiddleware
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from dotenv import load_dotenv
-load_dotenv()
-import os
-from math import radians, sin, cos, sqrt, atan2
-from typing import List, Dict, Any
-
-
 
 # Habilitar CORS
 app.add_middleware(
@@ -39,6 +27,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/test-verification-ping")
+def ping():
+    return {"message": "pong"}
+
+
 
 # Configuración de la base de datos (usar variables de entorno si existen)
 db_config = {
@@ -74,6 +68,7 @@ def get_conn_monitoreo():
 def get_conn_billing():
     return psycopg2.connect(**db_billing)
    
+
 # --- ENDPOINTS EXISTENTES ---
 @app.get("/empresas")
 def obtener_empresas():
@@ -92,6 +87,40 @@ def obtener_empresas():
     except Exception as e:
         print("Error al obtener empresas:", e)
         raise HTTPException(status_code=500, detail="Error al obtener empresas")
+
+# NUEVO: Resumen de shapes total
+@app.get("/shapes/total")
+def obtener_total_shapes():
+    try:
+        with get_conn_CID() as conn:
+            with conn.cursor() as cursor:
+                # Contar total de rutas con geometría
+                cursor.execute("SELECT COUNT(*) FROM catalogo_rutas WHERE geom IS NOT NULL")
+                row = cursor.fetchone()
+                total = row[0] if row else 0
+                return {"total": total, "max": total}
+    except Exception as e:
+        print("Error al obtener total shapes:", e)
+        raise HTTPException(status_code=500, detail="Error al obtener total shapes")
+
+# NUEVO: Resumen de shapes por empresa (usando cod_catalogo)
+@app.get("/empresas/{cod_catalogo}/shapes/total")
+def obtener_total_shapes_empresa(cod_catalogo: str):
+    try:
+        with get_conn_CID() as conn:
+            with conn.cursor() as cursor:
+                # Contar rutas de la empresa especifica
+                cursor.execute("""
+                    SELECT COUNT(*) 
+                    FROM catalogo_rutas 
+                    WHERE id_eot_catalogo = %s AND geom IS NOT NULL
+                """, (cod_catalogo,))
+                row = cursor.fetchone()
+                total = row[0] if row else 0
+                return {"total": total, "max": total}
+    except Exception as e:
+        print(f"Error al obtener shapes empresa {cod_catalogo}:", e)
+        raise HTTPException(status_code=500, detail="Error al obtener shapes empresa")
 
 # --- ENDPOINTS EXISTENTES ---
 @app.get("/empresas/{empresa_id}/detalles")

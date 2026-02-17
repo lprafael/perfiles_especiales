@@ -77,7 +77,7 @@ function getPicoAnnotations(tipoDiaSel, franjasSel, nombreFranjaMap, horas) {
 function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
   // Extraer valores únicos para los selectores
   const gremios = unique(data.map(d => d.gre_nombre).filter(Boolean)).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-  const meses = unique(data.map(d => `${String(d.mes).padStart(2,'0')}/${d.anio}`));
+  const meses = unique(data.map(d => `${String(d.mes).padStart(2, '0')}/${d.anio}`));
   const tipoDias = unique(data.map(d => d.tipo_dia));
   const franjas = unique(data.map(d => d.franja));
 
@@ -110,13 +110,13 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
   const datosFiltrados = data.filter(d =>
     gremiosSel.includes(d.gre_nombre) &&
     empresasSel.includes(d.empresa_nombre) &&
-    mesesSel.includes(`${String(d.mes).padStart(2,'0')}/${d.anio}`) &&
+    mesesSel.includes(`${String(d.mes).padStart(2, '0')}/${d.anio}`) &&
     d.tipo_dia === tipoDiaSel &&
     franjasSel.includes(d.franja)
   );
 
   // Determinar el eje X (horas)
-  const horas = unique(datosFiltrados.map(d => d.hora)).sort((a,b)=>a-b);
+  const horas = unique(datosFiltrados.map(d => d.hora)).sort((a, b) => a - b);
 
   // Calcular la suma de promedios mensuales por empresa para cada hora (default)
   const sumaPromediosPorHora = horas.map(hora => {
@@ -172,7 +172,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
   // Línea de esencialidad
   let esencialidadPorHora = null;
   if (verificarEsencialidad && porcentajeEsencialidad > 0) {
-    esencialidadPorHora = lineaAzulPorHora.map(v => v !== null && v !== undefined ? v * (porcentajeEsencialidad/100) : null);
+    esencialidadPorHora = lineaAzulPorHora.map(v => v !== null && v !== undefined ? v * (porcentajeEsencialidad / 100) : null);
   }
 
   // Handler para comparar
@@ -182,7 +182,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
     setErrorComparar(null);
     setDatosComparar(null);
     try {
-      const resp = await fetch('http://192.168.100.191:8000/servicios_por_hora', {
+      const resp = await fetch('http://localhost:8000/servicios_por_hora', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -219,7 +219,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
       data: referencia290,
       borderColor: 'red',
       backgroundColor: 'red',
-      borderDash: [8,4],
+      borderDash: [8, 4],
       fill: false,
       pointRadius: 0,
       tension: 0,
@@ -232,7 +232,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
       data: esencialidadPorHora,
       borderColor: 'orange',
       backgroundColor: 'orange',
-      borderDash: [4,4],
+      borderDash: [4, 4],
       fill: false,
       pointRadius: 0,
       tension: 0.2,
@@ -269,13 +269,13 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
   function handleMultiSelect(setter) {
     return e => {
       const options = Array.from(e.target.options);
-      setter(options.filter(o=>o.selected).map(o=>o.value));
+      setter(options.filter(o => o.selected).map(o => o.value));
     };
   }
   // Handler para gremios: al cambiar, actualizar empresas seleccionadas
   function handleGremiosChange(e) {
     const options = Array.from(e.target.options);
-    const nuevosGremios = options.filter(o=>o.selected).map(o=>o.value);
+    const nuevosGremios = options.filter(o => o.selected).map(o => o.value);
     setGremiosSel(nuevosGremios);
     // Actualizar empresas seleccionadas para reflejar solo las del gremio seleccionado
     const nuevasEmpresas = unique(data.filter(d => nuevosGremios.includes(d.gre_nombre)).map(d => d.empresa_nombre));
@@ -308,7 +308,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
       if (fuentePromedio === 'semanas' && fechaComparar && empresasSel.length > 0) {
         setCargandoSemanas(true);
         try {
-          const resp = await fetch('http://192.168.100.191:8000/promedio_semanas_por_hora', {
+          const resp = await fetch('http://localhost:8000/promedio_semanas_por_hora', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -337,95 +337,95 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
   Chart.register(ChartDataLabels);
 
   return (
-    <div style={{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.45)',zIndex:5000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <div style={{background:'#fff',borderRadius:12,padding:0,minWidth:'unset',maxWidth:'unset',boxShadow:'0 4px 24px #0003',position:'relative',width:'98vw',height:'98vh',overflow:'hidden',display:'flex',flexDirection:'column'}}>
-        <button onClick={onClose} style={{position:'absolute',top:18,right:18,fontSize:22,background:'#e3f2fd',color:'#1976d2',border:'2px solid #90caf9',borderRadius:20,width:'auto',height:48,padding:'0 24px',cursor:'pointer',zIndex:3001,fontWeight:'bold',display:'flex',alignItems:'center',gap:8}}>
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.45)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: 12, padding: 0, minWidth: 'unset', maxWidth: 'unset', boxShadow: '0 4px 24px #0003', position: 'relative', width: '98vw', height: '98vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 18, right: 18, fontSize: 22, background: '#e3f2fd', color: '#1976d2', border: '2px solid #90caf9', borderRadius: 20, width: 'auto', height: 48, padding: '0 24px', cursor: 'pointer', zIndex: 3001, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 8 }}>
           Cerrar
         </button>
-        <div style={{padding:'32px 32px 0 32px'}}>
-          <h2 style={{marginTop:0}}>Gráfico Avanzado de Promedio de Buses</h2>
-          <div style={{display:'flex',gap:16,marginBottom:18,flexWrap:'wrap',alignItems:'end'}}>
+        <div style={{ padding: '32px 32px 0 32px' }}>
+          <h2 style={{ marginTop: 0 }}>Gráfico Avanzado de Promedio de Buses</h2>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 18, flexWrap: 'wrap', alignItems: 'end' }}>
             <div>
-              <label><b>Gremios:</b></label><br/>
-              <select multiple value={gremiosSel} onChange={handleGremiosChange} style={{minWidth:120,height:80}}>
-                {gremios.map(g=><option key={g} value={g}>{g}</option>)}
+              <label><b>Gremios:</b></label><br />
+              <select multiple value={gremiosSel} onChange={handleGremiosChange} style={{ minWidth: 120, height: 80 }}>
+                {gremios.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
             <div>
-              <label>Empresas:</label><br/>
-              <select multiple value={empresasSel} onChange={handleMultiSelect(setEmpresasSel)} style={{minWidth:120,height:80}}>
-                {empresas.map(e=><option key={e} value={e}>{e}</option>)}
+              <label>Empresas:</label><br />
+              <select multiple value={empresasSel} onChange={handleMultiSelect(setEmpresasSel)} style={{ minWidth: 120, height: 80 }}>
+                {empresas.map(e => <option key={e} value={e}>{e}</option>)}
               </select>
             </div>
             <div>
-              <label>Meses:</label><br/>
-              <select multiple value={mesesSel} onChange={handleMultiSelect(setMesesSel)} style={{minWidth:100,height:80}}>
-                {meses.map(m=><option key={m} value={m}>{m}</option>)}
+              <label>Meses:</label><br />
+              <select multiple value={mesesSel} onChange={handleMultiSelect(setMesesSel)} style={{ minWidth: 100, height: 80 }}>
+                {meses.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             <div>
-              <label>Tipo de Día:</label><br/>
-              <select value={tipoDiaSel} onChange={e=>setTipoDiaSel(e.target.value)} style={{minWidth:120,height:36}}>
-                {tipoDias.map(t=><option key={t} value={t}>{t}</option>)}
+              <label>Tipo de Día:</label><br />
+              <select value={tipoDiaSel} onChange={e => setTipoDiaSel(e.target.value)} style={{ minWidth: 120, height: 36 }}>
+                {tipoDias.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label>Franjas:</label><br/>
-              <select multiple value={franjasSel} onChange={handleMultiSelect(setFranjasSel)} style={{minWidth:120,height:80}}>
-                {franjas.map(f=><option key={f} value={f}>{nombreFranjaMap[f]||f}</option>)}
+              <label>Franjas:</label><br />
+              <select multiple value={franjasSel} onChange={handleMultiSelect(setFranjasSel)} style={{ minWidth: 120, height: 80 }}>
+                {franjas.map(f => <option key={f} value={f}>{nombreFranjaMap[f] || f}</option>)}
               </select>
             </div>
-            <div style={{display:'flex',flexDirection:'column',justifyContent:'center',marginLeft:16,gap:2}}>
-              <div style={{display:'flex',alignItems:'center',height:32}}>
-                <input type="checkbox" id="verif290" checked={verificar290} onChange={e=>setVerificar290(e.target.checked)} style={{marginRight:6}} />
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginLeft: 16, gap: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', height: 32 }}>
+                <input type="checkbox" id="verif290" checked={verificar290} onChange={e => setVerificar290(e.target.checked)} style={{ marginRight: 6 }} />
                 <label htmlFor="verif290">Verificar Res. GVMT N° 290</label>
               </div>
-              <div style={{display:'flex',alignItems:'center',height:32}}>
-                <input type="checkbox" id="verifEsencialidad" checked={verificarEsencialidad} onChange={e=>setVerificarEsencialidad(e.target.checked)} style={{marginRight:6}} />
+              <div style={{ display: 'flex', alignItems: 'center', height: 32 }}>
+                <input type="checkbox" id="verifEsencialidad" checked={verificarEsencialidad} onChange={e => setVerificarEsencialidad(e.target.checked)} style={{ marginRight: 6 }} />
                 <label htmlFor="verifEsencialidad">Verificar Esencialidad</label>
                 {verificarEsencialidad && (
-                  <input type="number" min={1} max={100} value={porcentajeEsencialidad} onChange={e=>setPorcentajeEsencialidad(Number(e.target.value))} style={{width:90,marginLeft:8}} />
+                  <input type="number" min={1} max={100} value={porcentajeEsencialidad} onChange={e => setPorcentajeEsencialidad(Number(e.target.value))} style={{ width: 90, marginLeft: 8 }} />
                 )}
-                {verificarEsencialidad && <span style={{marginLeft:4}}>%</span>}
+                {verificarEsencialidad && <span style={{ marginLeft: 4 }}>%</span>}
               </div>
             </div>
-            <div style={{display:'flex',flexDirection:'column',justifyContent:'center',marginLeft:16,gap:2}}>
-              <div style={{fontWeight:'bold',marginBottom:2}}>Fuente Promedio:</div>
-              <div style={{display:'flex',flexDirection:'column',gap:2}}>
-                <label><input type="radio" name="fuentePromedio" value="meses" checked={fuentePromedio==='meses'} onChange={()=>setFuentePromedio('meses')} /> Meses seleccionados</label>
-                <label><input type="radio" name="fuentePromedio" value="semanas" checked={fuentePromedio==='semanas'} onChange={()=>setFuentePromedio('semanas')} /> X semanas anteriores</label>
-                {fuentePromedio==='semanas' && (
-                  <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}>
-                    <input type="number" min={1} max={12} value={numSemanas} onChange={e=>setNumSemanas(Number(e.target.value))} style={{width:50}} />
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginLeft: 16, gap: 2 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: 2 }}>Fuente Promedio:</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <label><input type="radio" name="fuentePromedio" value="meses" checked={fuentePromedio === 'meses'} onChange={() => setFuentePromedio('meses')} /> Meses seleccionados</label>
+                <label><input type="radio" name="fuentePromedio" value="semanas" checked={fuentePromedio === 'semanas'} onChange={() => setFuentePromedio('semanas')} /> X semanas anteriores</label>
+                {fuentePromedio === 'semanas' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    <input type="number" min={1} max={12} value={numSemanas} onChange={e => setNumSemanas(Number(e.target.value))} style={{ width: 50 }} />
                     <span>semanas</span>
-                    {cargandoSemanas && <span style={{marginLeft:8,color:'#1976d2'}}>Cargando...</span>}
+                    {cargandoSemanas && <span style={{ marginLeft: 8, color: '#1976d2' }}>Cargando...</span>}
                   </div>
                 )}
               </div>
             </div>
-            <div style={{display:'flex',flexDirection:'column',alignItems:'start',gap:4}}>
-              <button onClick={handleToggleComparar} style={{background:'#388e3c',color:'#fff',fontWeight:'bold',padding:'6px 18px',borderRadius:8,border:'none',fontSize:15,cursor:'pointer',marginBottom:2}}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: 4 }}>
+              <button onClick={handleToggleComparar} style={{ background: '#388e3c', color: '#fff', fontWeight: 'bold', padding: '6px 18px', borderRadius: 8, border: 'none', fontSize: 15, cursor: 'pointer', marginBottom: 2 }}>
                 {mostrarComparar ? 'Ocultar Comparar' : 'Comparar'}
               </button>
               {mostrarComparar && (
-                <div style={{display:'flex',alignItems:'center',gap:6}}>
-                  <input type="date" value={fechaComparar} onChange={e=>setFechaComparar(e.target.value)} style={{fontSize:15}} />
-                  <button onClick={handleComparar} disabled={!fechaComparar || cargandoComparar} style={{background:'#1976d2',color:'#fff',fontWeight:'bold',padding:'4px 12px',borderRadius:6,border:'none',fontSize:14,cursor:(!fechaComparar||cargandoComparar)?'not-allowed':'pointer'}}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input type="date" value={fechaComparar} onChange={e => setFechaComparar(e.target.value)} style={{ fontSize: 15 }} />
+                  <button onClick={handleComparar} disabled={!fechaComparar || cargandoComparar} style={{ background: '#1976d2', color: '#fff', fontWeight: 'bold', padding: '4px 12px', borderRadius: 6, border: 'none', fontSize: 14, cursor: (!fechaComparar || cargandoComparar) ? 'not-allowed' : 'pointer' }}>
                     {cargandoComparar ? 'Cargando...' : 'Graficar'}
                   </button>
                 </div>
               )}
-              {errorComparar && <div style={{color:'#d84315',fontSize:13}}>{errorComparar}</div>}
+              {errorComparar && <div style={{ color: '#d84315', fontSize: 13 }}>{errorComparar}</div>}
             </div>
           </div>
         </div>
-        <div style={{flex:1, width:'100%', minHeight:0, padding:'0 32px 32px 32px', boxSizing:'border-box', display:'flex', flexDirection:'column'}}>
+        <div style={{ flex: 1, width: '100%', minHeight: 0, padding: '0 32px 32px 32px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
           {noData ? (
-            <div style={{color:'#d84315',fontWeight:'bold',fontSize:18,padding:32,textAlign:'center'}}>
+            <div style={{ color: '#d84315', fontWeight: 'bold', fontSize: 18, padding: 32, textAlign: 'center' }}>
               No hay datos para graficar con los filtros seleccionados.
             </div>
           ) : (
-            <div style={{flex:1, minHeight:0, height:'100%'}}>
+            <div style={{ flex: 1, minHeight: 0, height: '100%' }}>
               <Line
                 data={chartData}
                 options={{
@@ -441,28 +441,28 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
                       annotations: getPicoAnnotations(tipoDiaSel, franjasSel, nombreFranjaMap, horas)
                     },
                     datalabels: {
-                      display: function(context) {
+                      display: function (context) {
                         // No mostrar etiquetas para la línea de la Resolución 290 ni para esencialidad
                         return !((context.dataset.label && context.dataset.label.startsWith('Mínimo Res.')) || (context.dataset.label && context.dataset.label.startsWith('Esencialidad')));
                       },
                       color: '#222',
                       font: { weight: 'bold', size: 13 },
                       align: 'top',
-                      formatter: function(value, context) {
+                      formatter: function (value, context) {
                         // Solo mostrar hasta dos decimales
                         return value !== null && value !== undefined ? Number(value).toFixed(2) : '';
                       }
                     },
                     tooltip: {
                       callbacks: {
-                        title: function(context) {
+                        title: function (context) {
                           // Mostrar la hora como título
                           if (context && context.length > 0) {
                             return `Hora: ${context[0].label}`;
                           }
                           return '';
                         },
-                        label: function(context) {
+                        label: function (context) {
                           const idx = context.dataIndex;
                           const label = context.dataset.label || '';
                           let value = context.parsed.y;
@@ -495,7 +495,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
                     }
                   }
                 }}
-                style={{width:'100%', height:'100%', background:'#fff'}} // fondo claro
+                style={{ width: '100%', height: '100%', background: '#fff' }} // fondo claro
                 plugins={[ChartDataLabels]}
               />
             </div>

@@ -83,8 +83,8 @@ function MiPaginaExistente() {
   const autoIterarRef = useRef(null);
 
   // Configuración de la URL base del backend
-  const API_BASE = "http://192.168.100.191:8000";
-  //const API_BASE = "http://192.168.100.191:3001";
+  const API_BASE = "http://localhost:8000";
+  //const API_BASE = "http://localhost:3001";
 
   function mostrarItinerarios(empresaId) {
     const lista = document.getElementById("itinerarios-list");
@@ -124,11 +124,9 @@ function MiPaginaExistente() {
 
         data.forEach((it, index) => {
           const li = document.createElement("li");
-          li.textContent = `Cód. Ruta: ${it.ruta_hex ?? "N/D"} - Línea ${
-            it.linea ?? "N/D"
-          } - Ramal ${it.ramal ?? ""}: ${it.origen ?? ""} → ${
-            it.destino ?? ""
-          }`;
+          li.textContent = `Cód. Ruta: ${it.ruta_hex ?? "N/D"} - Línea ${it.linea ?? "N/D"
+            } - Ramal ${it.ramal ?? ""}: ${it.origen ?? ""} → ${it.destino ?? ""
+            }`;
           li.className =
             "list-item " +
             (it.shape_points && it.shape_points.length > 1
@@ -415,7 +413,7 @@ function MiPaginaExistente() {
           }
         });
       }
-      
+
       // 2. Obtener los shapes (rutas) actualmente dibujados en el mapa
       let shapes = [];
       if (shapeLayer.current) {
@@ -576,7 +574,7 @@ function MiPaginaExistente() {
               <input
                 type="checkbox"
                 name="auto-iterar"
-                title ="Iterar automáticamente"
+                title="Iterar automáticamente"
                 id="auto-iterar"
                 checked={autoIterar}
                 onChange={(e) => setAutoIterar(e.target.checked)}

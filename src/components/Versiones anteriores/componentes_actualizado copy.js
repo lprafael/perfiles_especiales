@@ -84,8 +84,8 @@ function MiPaginaExistente() {
   const autoIterarRef = useRef(null);
 
   // Configuración de la URL base del backend
-  const API_BASE = "http://192.168.100.191:8000";
-  //const API_BASE = "http://192.168.100.191:3001";
+  const API_BASE = "http://localhost:8000";
+  //const API_BASE = "http://localhost:3001";
 
   // Estado para controlar la visibilidad del sidebar izquierdo
   const [mostrarSidebarIzquierdo, setMostrarSidebarIzquierdo] = useState(true);
@@ -649,7 +649,7 @@ function MiPaginaExistente() {
               <input
                 type="checkbox"
                 name="auto-iterar"
-                title ="Iterar automáticamente"
+                title="Iterar automáticamente"
                 id="auto-iterar"
                 checked={autoIterar}
                 onChange={(e) => setAutoIterar(e.target.checked)}
@@ -883,24 +883,24 @@ function MiPaginaExistente() {
                 {/* Renderizar selección de buses solo si está pausada la simulación o no hay simulación */}
                 {infoServicios && infoServicios.tipo === 'buses' && (!simulacionEstado || (simulacionEstado && !simulacionEstado.corriendo)) ? (
                   <div>
-                    <h2 style={{fontSize:22, marginBottom:8}}>Buses detectados</h2>
+                    <h2 style={{ fontSize: 22, marginBottom: 8 }}>Buses detectados</h2>
                     <div><b>Empresa:</b> {empresas.find(e => e.id_eot_vmt_hex === infoServicios.empresaId)?.eot_nombre || infoServicios.empresaId}</div>
                     <div><b>Fecha:</b> {infoServicios.fecha}</div>
-                    <div style={{marginTop:8, marginBottom:8, display:'flex', gap:8}}>
-                      <button style={{flex:1, background:'#e0ffe0', border:'1px solid #aaa', borderRadius:4, cursor:'pointer'}}
-                        onClick={() => setInfoServicios({...infoServicios, busesSeleccionados: infoServicios.buses.map(b=>b.mean_id)})}>
+                    <div style={{ marginTop: 8, marginBottom: 8, display: 'flex', gap: 8 }}>
+                      <button style={{ flex: 1, background: '#e0ffe0', border: '1px solid #aaa', borderRadius: 4, cursor: 'pointer' }}
+                        onClick={() => setInfoServicios({ ...infoServicios, busesSeleccionados: infoServicios.buses.map(b => b.mean_id) })}>
                         Marcar todos
                       </button>
-                      <button style={{flex:1, background:'#ffe0e0', border:'1px solid #aaa', borderRadius:4, cursor:'pointer'}}
-                        onClick={() => setInfoServicios({...infoServicios, busesSeleccionados: []})}>
+                      <button style={{ flex: 1, background: '#ffe0e0', border: '1px solid #aaa', borderRadius: 4, cursor: 'pointer' }}
+                        onClick={() => setInfoServicios({ ...infoServicios, busesSeleccionados: [] })}>
                         Desmarcar todos
                       </button>
                     </div>
-                    <div style={{marginTop:8}}>
+                    <div style={{ marginTop: 8 }}>
                       <b>Buses ({infoServicios.buses.length}):</b>
-                      <ul style={{maxHeight:180, overflowY:'auto', marginTop:6, marginBottom:6, border:'1px solid #ccc', borderRadius:4, padding:8, background:'#f8f8ff'}}>
+                      <ul style={{ maxHeight: 180, overflowY: 'auto', marginTop: 6, marginBottom: 6, border: '1px solid #ccc', borderRadius: 4, padding: 8, background: '#f8f8ff' }}>
                         {infoServicios.buses.map((bus, idx) => (
-                          <li key={bus.mean_id} style={{marginBottom:4}}>
+                          <li key={bus.mean_id} style={{ marginBottom: 4 }}>
                             <input
                               type="checkbox"
                               checked={infoServicios.busesSeleccionados?.includes(bus.mean_id)}
@@ -908,9 +908,9 @@ function MiPaginaExistente() {
                                 const nuevos = e.target.checked
                                   ? [...infoServicios.busesSeleccionados, bus.mean_id]
                                   : infoServicios.busesSeleccionados.filter(id => id !== bus.mean_id);
-                                setInfoServicios({...infoServicios, busesSeleccionados: nuevos});
+                                setInfoServicios({ ...infoServicios, busesSeleccionados: nuevos });
                               }}
-                              style={{marginRight:8}}
+                              style={{ marginRight: 8 }}
                             />
                             <b>{bus.mean_id}</b> ({bus.recorrido.length} puntos)
                           </li>
@@ -918,7 +918,7 @@ function MiPaginaExistente() {
                       </ul>
                     </div>
                     <button
-                      style={{width:'100%', background:'#d0ffe0', color:'#222', fontWeight:'bold', marginTop:8}} 
+                      style={{ width: '100%', background: '#d0ffe0', color: '#222', fontWeight: 'bold', marginTop: 8 }}
                       disabled={!!simulacionEstado} // Deshabilita si ya hay simulación activa
                       onClick={e => {
                         e.target.disabled = true; // Deshabilita inmediatamente para evitar doble click/recursión
@@ -934,11 +934,11 @@ function MiPaginaExistente() {
                         const busesSim = infoServicios.buses.filter(b => infoServicios.busesSeleccionados.includes(b.mean_id));
                         let puntos = [];
                         busesSim.forEach(bus => {
-                          bus.recorrido.forEach(p => puntos.push({...p, mean_id: bus.mean_id}));
+                          bus.recorrido.forEach(p => puntos.push({ ...p, mean_id: bus.mean_id }));
                         });
-                        puntos.sort((a,b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
-                        const timestamps = puntos.map(p => Math.floor(new Date(p.fecha_hora).getTime()/1000));
-                        const fechaBase = infoServicios.fecha || (busesSim[0]?.recorrido[0]?.fecha_hora?.slice(0,10));
+                        puntos.sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
+                        const timestamps = puntos.map(p => Math.floor(new Date(p.fecha_hora).getTime() / 1000));
+                        const fechaBase = infoServicios.fecha || (busesSim[0]?.recorrido[0]?.fecha_hora?.slice(0, 10));
                         const inicioDia = new Date(fechaBase + 'T00:00:00').getTime() / 1000;
                         const finDia = new Date(fechaBase + 'T23:59:59').getTime() / 1000;
                         setSimulacionEstado({
@@ -946,11 +946,11 @@ function MiPaginaExistente() {
                           actual: 0,
                           velocidad: simulacionEstado?.velocidad || 350,
                           corriendo: true,
-                          puntos: puntos.map((p,i) => ({...p, ts: timestamps[i]})),
+                          puntos: puntos.map((p, i) => ({ ...p, ts: timestamps[i] })),
                           minTimestamp: inicioDia,
                           maxTimestamp: finDia,
                           horaActual: inicioDia,
-                          horaActualStr: new Date(inicioDia*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})
+                          horaActualStr: new Date(inicioDia * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                         });
                         setTimeout(() => setInfoServicios(null), 0); // Limpia infoServicios tras iniciar simulación
                         mostrarAviso('Simulación iniciada', 'success');
@@ -961,35 +961,35 @@ function MiPaginaExistente() {
                   </div>
                 ) : infoServicios && (!simulacionEstado || (simulacionEstado && !simulacionEstado.corriendo)) ? (
                   <div>
-                    <h2 style={{fontSize:22, marginBottom:8}}>Resumen de Servicios</h2>
+                    <h2 style={{ fontSize: 22, marginBottom: 8 }}>Resumen de Servicios</h2>
                     <div><b>Empresa:</b> {infoServicios.empresaNombre}</div>
                     <div><b>Fecha:</b> {infoServicios.fecha}</div>
-                    <div style={{marginTop:8}}><b>{infoServicios.mensaje}</b></div>
-                    <hr style={{margin: '10px 0'}}/>
+                    <div style={{ marginTop: 8 }}><b>{infoServicios.mensaje}</b></div>
+                    <hr style={{ margin: '10px 0' }} />
                     <div><b>Rutas asignadas:</b> {infoServicios.rutas_asignadas}</div>
                     <div><b>Shapes cargados:</b> {infoServicios.shapes_cargados}</div>
                     <div><b>Buses detectados:</b> {infoServicios.buses_detectados}</div>
                     <div><b>Servicios detectados:</b></div>
-                    <ul style={{marginLeft:18}}>
+                    <ul style={{ marginLeft: 18 }}>
                       <li><b>Directos:</b> {infoServicios.servicios_detectados?.directos}</li>
                       <li><b>Circulares:</b> {infoServicios.servicios_detectados?.circulares}</li>
                       <li><b>Total:</b> {infoServicios.servicios_detectados?.total}</li>
                     </ul>
                     <div><b>Puntos de control:</b></div>
-                    <ul style={{marginLeft:18}}>
+                    <ul style={{ marginLeft: 18 }}>
                       <li><b>Total:</b> {infoServicios.puntos_control?.total}</li>
                       <li><b>Terminales:</b> {infoServicios.puntos_control?.terminales}</li>
                       <li><b>Intermedios:</b> {infoServicios.puntos_control?.intermedios}</li>
                     </ul>
-                    <div style={{marginTop:8}}>
+                    <div style={{ marginTop: 8 }}>
                       <b>Detalle de puntos de control:</b>
-                      <pre style={{fontSize:14, background:'#f4f4f4', padding:8, borderRadius:4, maxHeight:120, overflowY:'auto'}}>
+                      <pre style={{ fontSize: 14, background: '#f4f4f4', padding: 8, borderRadius: 4, maxHeight: 120, overflowY: 'auto' }}>
                         {JSON.stringify(infoServicios.puntos_control?.detalle, null, 2)}
                       </pre>
                     </div>
                   </div>
                 ) : (
-                  <div style={{textAlign:'center', color:'#888'}}>No hay datos para mostrar.</div>
+                  <div style={{ textAlign: 'center', color: '#888' }}>No hay datos para mostrar.</div>
                 )}
               </div>
             </div>
@@ -1020,7 +1020,7 @@ function avanzarSimulacion(ts, historico, simulacionTimer, setSimulacionEstado, 
     let nuevoTs = ts;
     if (nuevoTs > maxTimestamp) {
       simulacionTimer.current = null;
-      return { ...s, horaActual: maxTimestamp, horaActualStr: new Date(maxTimestamp*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}), corriendo: false };
+      return { ...s, horaActual: maxTimestamp, horaActualStr: new Date(maxTimestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), corriendo: false };
     }
     // El renderizado lo hace el useEffect
     if (nuevoTs < maxTimestamp && s.corriendo) {
@@ -1028,7 +1028,7 @@ function avanzarSimulacion(ts, historico, simulacionTimer, setSimulacionEstado, 
     } else {
       simulacionTimer.current = null;
     }
-    return { ...s, horaActual: nuevoTs, horaActualStr: new Date(nuevoTs*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}) };
+    return { ...s, horaActual: nuevoTs, horaActualStr: new Date(nuevoTs * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) };
   });
 }
 

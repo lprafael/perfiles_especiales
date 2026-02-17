@@ -6,7 +6,7 @@ function MenuDesplegable() {
     const [seleccionado, setSeleccionado] = useState('');
 
     useEffect(() => {
-        const API_URL = 'http://192.168.100.191:3000/nombres'; // Asegúrate de que coincida con tu backend
+        const API_URL = 'http://localhost:3000/nombres'; // Asegúrate de que coincida con tu backend
 
         fetch(API_URL)
             .then(response => {

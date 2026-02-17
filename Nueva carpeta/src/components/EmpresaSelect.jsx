@@ -5,8 +5,8 @@ const EmpresaSelect = () => {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
 
   useEffect(() => {
-    fetch('http://192.168.100.191:3001/empresas')
-    // fetch('http://192.168.100.191:8000/empresas')
+    fetch('http://localhost:3001/empresas')
+      // fetch('http://localhost:8000/empresas')
       .then(response => response.json())
       .then(data => setEmpresas(data))
       .catch(error => console.error('Error al cargar empresas:', error));

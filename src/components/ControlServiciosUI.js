@@ -6,12 +6,12 @@ import DetectorServicios, { crearDetectorDesdeBackend, CONFIG_SERVICIOS } from '
  * Integra la lógica de detección de servicios con la UI existente
  */
 
-const ControlServiciosUI = ({ 
-  empresaId, 
-  fecha, 
-  mapInstance, 
-  API_BASE = "http://192.168.100.191:8000",
-  onMostrarAviso 
+const ControlServiciosUI = ({
+  empresaId,
+  fecha,
+  mapInstance,
+  API_BASE = "http://localhost:8000",
+  onMostrarAviso
 }) => {
   // Estados del componente
   const [detector, setDetector] = useState(null);
@@ -21,11 +21,11 @@ const ControlServiciosUI = ({
   const [procesandoPuntos, setProcesandoPuntos] = useState(false);
   const [reporteDiario, setReporteDiario] = useState(null);
   const [mostrarReporte, setMostrarReporte] = useState(false);
-  
+
   // Referencias para layers del mapa
   const serviciosLayer = useRef(null);
   const puntosControlLayer = useRef(null);
-  
+
   // Configuración de procesamiento
   const [configuracion, setConfiguracion] = useState({
     radioProximidad: CONFIG_SERVICIOS.RADIO_PROXIMIDAD_PUNTO,
@@ -84,7 +84,7 @@ const ControlServiciosUI = ({
     }
 
     setProcesandoPuntos(true);
-    
+
     try {
       // Obtener datos GPS del día seleccionado
       const response = await fetch(`${API_BASE}/empresas/${empresaId}/gps-data?fecha=${fecha}`);
@@ -98,10 +98,10 @@ const ControlServiciosUI = ({
 
       // Procesar datos GPS para identificar puntos de control
       const puntosControl = await procesarPuntosControl(datosGPS);
-      
+
       setPuntosControlCalculados(puntosControl);
       mostrarPuntosControlEnMapa(puntosControl);
-      
+
       onMostrarAviso?.(`Calculados ${puntosControl.length} puntos de control`, "success");
 
     } catch (error) {
@@ -114,7 +114,7 @@ const ControlServiciosUI = ({
 
   const procesarPuntosControl = async (datosGPS) => {
     const puntosControl = new Map();
-    
+
     // Agrupar datos por bus
     const datosPorBus = new Map();
     datosGPS.forEach(dato => {
@@ -128,10 +128,10 @@ const ControlServiciosUI = ({
     for (const [busId, datos] of datosPorBus.entries()) {
       // Ordenar por timestamp
       datos.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      
+
       // Identificar paradas y puntos de control
       const puntosControlBus = identificarPuntosControlBus(datos, busId);
-      
+
       puntosControlBus.forEach(punto => {
         const key = `${punto.lat.toFixed(6)}_${punto.lng.toFixed(6)}`;
         if (!puntosControl.has(key)) {
@@ -144,7 +144,7 @@ const ControlServiciosUI = ({
             tipo: punto.tipo || 'INTERMEDIO'
           });
         }
-        
+
         const puntoExistente = puntosControl.get(key);
         puntoExistente.frecuencia++;
         puntoExistente.buses.add(busId);
@@ -158,8 +158,8 @@ const ControlServiciosUI = ({
     return Array.from(puntosControl.values()).map(punto => ({
       ...punto,
       buses: Array.from(punto.buses),
-      tiempoPromedioParada: punto.tiemposPromedio.length > 0 
-        ? punto.tiemposPromedio.reduce((a, b) => a + b, 0) / punto.tiemposPromedio.length 
+      tiempoPromedioParada: punto.tiemposPromedio.length > 0
+        ? punto.tiemposPromedio.reduce((a, b) => a + b, 0) / punto.tiemposPromedio.length
         : 0
     }));
   };
@@ -171,13 +171,13 @@ const ControlServiciosUI = ({
 
     for (let i = 0; i < datos.length; i++) {
       const puntoActual = datos[i];
-      
+
       if (puntoAnterior) {
         const distancia = calcularDistancia(
           puntoAnterior.lat, puntoAnterior.lng,
           puntoActual.lat, puntoActual.lng
         );
-        
+
         const tiempoDiff = (new Date(puntoActual.timestamp) - new Date(puntoAnterior.timestamp)) / 1000;
         const velocidad = distancia > 0 ? (distancia / tiempoDiff) * 3.6 : 0; // km/h
 
@@ -189,7 +189,7 @@ const ControlServiciosUI = ({
         } else if (tiempoParadaInicio && velocidad >= 5) {
           // Fin de parada
           const tiempoParada = (new Date(puntoAnterior.timestamp) - tiempoParadaInicio) / 1000;
-          
+
           if (tiempoParada >= configuracion.tiempoMinimoPermanencia) {
             puntosControl.push({
               lat: puntoAnterior.lat,
@@ -200,11 +200,11 @@ const ControlServiciosUI = ({
               tipo: determinarTipoPunto(puntoAnterior, i, datos.length)
             });
           }
-          
+
           tiempoParadaInicio = null;
         }
       }
-      
+
       puntoAnterior = puntoActual;
     }
 
@@ -224,7 +224,7 @@ const ControlServiciosUI = ({
     }
 
     setProcesandoServicios(true);
-    
+
     try {
       // Obtener datos GPS del día seleccionado
       const response = await fetch(`${API_BASE}/empresas/${empresaId}/gps-data?fecha=${fecha}`);
@@ -238,15 +238,15 @@ const ControlServiciosUI = ({
 
       // Procesar datos GPS con el detector
       await procesarDatosGPSParaServicios(datosGPS);
-      
+
       // Generar reporte diario
       const reporte = detector.generarReporteDiario(empresaId, fecha);
       setReporteDiario(reporte);
       setServiciosCalculados(reporte.serviciosDetalle);
-      
+
       // Mostrar servicios en el mapa
       mostrarServiciosEnMapa(reporte.serviciosDetalle);
-      
+
       onMostrarAviso?.(`Calculados ${reporte.totalServicios} servicios`, "success");
       setMostrarReporte(true);
 
@@ -271,7 +271,7 @@ const ControlServiciosUI = ({
     // Procesar cada bus secuencialmente
     for (const [busId, datos] of datosPorBus.entries()) {
       datos.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      
+
       // Procesar eventos GPS uno por uno
       for (const dato of datos) {
         detector.procesarEventoGPS(
@@ -297,9 +297,9 @@ const ControlServiciosUI = ({
     puntosControlLayer.current = L.layerGroup();
 
     puntosControl.forEach(punto => {
-      const color = punto.tipo === 'INICIO' ? 'green' : 
-                   punto.tipo === 'FIN' ? 'red' : 'blue';
-      
+      const color = punto.tipo === 'INICIO' ? 'green' :
+        punto.tipo === 'FIN' ? 'red' : 'blue';
+
       const marker = L.circleMarker([punto.lat, punto.lng], {
         radius: Math.min(8 + punto.frecuencia / 2, 15),
         fillColor: color,
@@ -339,11 +339,11 @@ const ControlServiciosUI = ({
       if (servicio.puntosRecorridos.length < 2) return;
 
       const color = servicio.tipoServicio === 'IDA' ? 'blue' :
-                   servicio.tipoServicio === 'VUELTA' ? 'red' : 'purple';
+        servicio.tipoServicio === 'VUELTA' ? 'red' : 'purple';
 
       // Crear línea del recorrido
       const coordenadas = servicio.puntosRecorridos.map(p => [p.coordenadas.lat, p.coordenadas.lng]);
-      
+
       const polyline = L.polyline(coordenadas, {
         color: color,
         weight: 3,
@@ -409,8 +409,8 @@ const ControlServiciosUI = ({
     const toRad = (v) => (v * Math.PI) / 180;
     const dLat = toRad(lat2 - lat1);
     const dLng = toRad(lng2 - lng1);
-    const a = Math.sin(dLat / 2) ** 2 + 
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
@@ -432,7 +432,7 @@ const ControlServiciosUI = ({
 
   const generarCSVReporte = (reporte) => {
     const headers = [
-      'Bus', 'Itinerario', 'Tipo Servicio', 'Hora Inicio', 'Hora Fin', 
+      'Bus', 'Itinerario', 'Tipo Servicio', 'Hora Inicio', 'Hora Fin',
       'Duración (min)', 'Velocidad Promedio (km/h)', 'Estado', 'Puntos Recorridos'
     ];
 
@@ -459,37 +459,37 @@ const ControlServiciosUI = ({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
           <div>
             <label>Radio Proximidad (m):</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={configuracion.radioProximidad}
-              onChange={(e) => setConfiguracion({...configuracion, radioProximidad: parseInt(e.target.value)})}
+              onChange={(e) => setConfiguracion({ ...configuracion, radioProximidad: parseInt(e.target.value) })}
               min="10" max="500"
             />
           </div>
           <div>
             <label>Tiempo Mín. Permanencia (s):</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={configuracion.tiempoMinimoPermanencia}
-              onChange={(e) => setConfiguracion({...configuracion, tiempoMinimoPermanencia: parseInt(e.target.value)})}
+              onChange={(e) => setConfiguracion({ ...configuracion, tiempoMinimoPermanencia: parseInt(e.target.value) })}
               min="5" max="300"
             />
           </div>
           <div>
             <label>Velocidad Máxima (km/h):</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={configuracion.velocidadMaxima}
-              onChange={(e) => setConfiguracion({...configuracion, velocidadMaxima: parseInt(e.target.value)})}
+              onChange={(e) => setConfiguracion({ ...configuracion, velocidadMaxima: parseInt(e.target.value) })}
               min="20" max="120"
             />
           </div>
           <div>
             <label>Completitud Mínima (%):</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={configuracion.completitudMinima}
-              onChange={(e) => setConfiguracion({...configuracion, completitudMinima: parseInt(e.target.value)})}
+              onChange={(e) => setConfiguracion({ ...configuracion, completitudMinima: parseInt(e.target.value) })}
               min="50" max="100"
             />
           </div>
@@ -498,11 +498,11 @@ const ControlServiciosUI = ({
 
       {/* Botones de acción */}
       <div className="botones-accion" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <button 
+        <button
           onClick={calcularPuntosControl}
           disabled={procesandoPuntos || !empresaId || !fecha}
-          style={{ 
-            padding: '10px 20px', 
+          style={{
+            padding: '10px 20px',
             backgroundColor: procesandoPuntos ? '#ccc' : '#007bff',
             color: 'white',
             border: 'none',
@@ -513,11 +513,11 @@ const ControlServiciosUI = ({
           {procesandoPuntos ? 'Calculando...' : 'Calcular Puntos de Control'}
         </button>
 
-        <button 
+        <button
           onClick={calcularServicios}
           disabled={procesandoServicios || !empresaId || !fecha}
-          style={{ 
-            padding: '10px 20px', 
+          style={{
+            padding: '10px 20px',
             backgroundColor: procesandoServicios ? '#ccc' : '#28a745',
             color: 'white',
             border: 'none',
@@ -528,10 +528,10 @@ const ControlServiciosUI = ({
           {procesandoServicios ? 'Calculando...' : 'Calcular Servicios'}
         </button>
 
-        <button 
+        <button
           onClick={limpiarLayers}
-          style={{ 
-            padding: '10px 20px', 
+          style={{
+            padding: '10px 20px',
             backgroundColor: '#dc3545',
             color: 'white',
             border: 'none',
@@ -543,10 +543,10 @@ const ControlServiciosUI = ({
         </button>
 
         {reporteDiario && (
-          <button 
+          <button
             onClick={exportarReporte}
-            style={{ 
-              padding: '10px 20px', 
+            style={{
+              padding: '10px 20px',
               backgroundColor: '#17a2b8',
               color: 'white',
               border: 'none',
@@ -564,8 +564,8 @@ const ControlServiciosUI = ({
         <div className="resumen-puntos" style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
           <h5>Puntos de Control Calculados: {puntosControlCalculados.length}</h5>
           <div style={{ fontSize: '14px' }}>
-            Inicio: {puntosControlCalculados.filter(p => p.tipo === 'INICIO').length} | 
-            Intermedios: {puntosControlCalculados.filter(p => p.tipo === 'INTERMEDIO').length} | 
+            Inicio: {puntosControlCalculados.filter(p => p.tipo === 'INICIO').length} |
+            Intermedios: {puntosControlCalculados.filter(p => p.tipo === 'INTERMEDIO').length} |
             Fin: {puntosControlCalculados.filter(p => p.tipo === 'FIN').length}
           </div>
         </div>
@@ -575,8 +575,8 @@ const ControlServiciosUI = ({
         <div className="resumen-servicios" style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
           <h5>Servicios Calculados: {serviciosCalculados.length}</h5>
           <div style={{ fontSize: '14px' }}>
-            Completados: {serviciosCalculados.filter(s => s.estado === 'COMPLETADO').length} | 
-            En curso: {serviciosCalculados.filter(s => s.estado === 'EN_CURSO').length} | 
+            Completados: {serviciosCalculados.filter(s => s.estado === 'COMPLETADO').length} |
+            En curso: {serviciosCalculados.filter(s => s.estado === 'EN_CURSO').length} |
             Cancelados: {serviciosCalculados.filter(s => s.estado === 'CANCELADO').length}
           </div>
         </div>
@@ -595,7 +595,7 @@ const ControlServiciosUI = ({
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3>Reporte Diario de Servicios</h3>
-              <button 
+              <button
                 onClick={() => setMostrarReporte(false)}
                 style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
               >

@@ -41,7 +41,7 @@ function MiPaginaExistente() {
       const lista = document.getElementById('itinerarios-list');
       lista.innerHTML = '<li><em>Cargando itinerarios...</em></li>';
 
-      fetch(`http://192.168.100.191:3001/empresas/${empresaId}/itinerarios`)
+      fetch(`http://localhost:3001/empresas/${empresaId}/itinerarios`)
         .then(res => res.json())
         .then(data => {
           lista.innerHTML = '';
@@ -69,7 +69,7 @@ function MiPaginaExistente() {
     }
 
     function mostrarShape(rutaHex) {
-      fetch(`http://192.168.100.191:3001/itinerarios/${rutaHex}/shape`)
+      fetch(`http://localhost:3001/itinerarios/${rutaHex}/shape`)
         .then(res => res.json())
         .then(shape => {
           if (shapeLayer.current) {
@@ -86,7 +86,7 @@ function MiPaginaExistente() {
     }
 
     function mostrarParadas(rutaHex) {
-      fetch(`http://192.168.100.191:3001/itinerarios/${rutaHex}/paradas`)
+      fetch(`http://localhost:3001/itinerarios/${rutaHex}/paradas`)
         .then(res => res.json())
         .then(paradas => {
           if (paradasLayer.current) {
@@ -104,7 +104,7 @@ function MiPaginaExistente() {
         });
     }
 
-    fetch('http://192.168.100.191:3001/empresas')
+    fetch('http://localhost:3001/empresas')
       .then(res => res.json())
       .then(data => {
         const select = document.getElementById('empresa-select');

@@ -150,8 +150,8 @@ function MiPaginaExistente() {
   const autoIterarRef = useRef(null);
 
   // Configuración de la URL base del backend
-  const API_BASE = "http://192.168.100.191:8000";
-  //const API_BASE = "http://192.168.100.191:3001";
+  const API_BASE = "http://localhost:8000";
+  // const API_BASE = "http://localhost:3001";
 
   // Estado para controlar la visibilidad del sidebar izquierdo
   const [mostrarSidebarIzquierdo, setMostrarSidebarIzquierdo] = useState(false);
@@ -180,11 +180,11 @@ function MiPaginaExistente() {
   const [mostrarPanelRegularidad, setMostrarPanelRegularidad] = useState(false);
   const [mostrarPanelControlFranja, setMostrarPanelControlFranja] = useState(false);
   const [mostrarPanelRegularidadBuses, setMostrarPanelRegularidadBuses] = useState(false);
-  
+
   // Forzar reset de estado del modal de regularidad al cambiar empresa o fecha
   const prevEmpresaId = useRef("");
   const prevFecha = useRef("");
-  
+
   useEffect(() => {
     // Si cambia la empresa o la fecha, cerrar y reabrir el modal para forzar reset
     if (mostrarPanelRegularidad && (empresaId !== prevEmpresaId.current || fecha !== prevFecha.current)) {
@@ -222,8 +222,8 @@ function MiPaginaExistente() {
       .then((terminales) => {
         terminales.forEach((terminal) => {
           // Crear marcador para la terminal
-          const marker = L.marker([terminal.lat, terminal.lng], { 
-            icon: terminalIcon 
+          const marker = L.marker([terminal.lat, terminal.lng], {
+            icon: terminalIcon
           }).addTo(terminalesLayer.current);
 
           // Agregar evento de clic al marcador
@@ -277,15 +277,15 @@ function MiPaginaExistente() {
       });
     const listaTerminales = document.getElementById("terminales-list");
     if (!listaTerminales) return;
-    
+
     listaTerminales.innerHTML = "<li><em>Cargando terminales...</em></li>";
-    
+
     // Limpiar capa anterior de terminales si existe
     if (window.terminalesLayer && mapInstance.current) {
       mapInstance.current.removeLayer(window.terminalesLayer);
       window.terminalesLayer = null;
     }
-    
+
     window.terminalesLayer = L.layerGroup().addTo(mapInstance.current);
 
     fetch(`${API_BASE}/empresas/${empresaId}/terminales`)
@@ -343,10 +343,10 @@ function MiPaginaExistente() {
 
   function mostrarItinerarios(empresaId) {
     setMostrarSidebarIzquierdo(true); // Mostrar el sidebar izquierdo al cargar itinerarios
-    
+
     // Cargar terminales después de itinerarios
     mostrarTerminales(empresaId);
-    
+
     // Esperar a que el DOM esté listo para buscar el elemento
     setTimeout(() => {
       const lista = document.getElementById("itinerarios-list");
@@ -644,7 +644,7 @@ function MiPaginaExistente() {
     setInfoServicios({
       tipo: 'buses-tiempo-real',
       empresaId,
-      fecha: ahora.toISOString().slice(0,10),
+      fecha: ahora.toISOString().slice(0, 10),
       buses,
       busesSeleccionados: buses.map(b => b.mean_id)
     });
@@ -1095,7 +1095,7 @@ function MiPaginaExistente() {
         setInfoServicios({
           tipo: 'buses-tiempo-real',
           empresaId,
-          fecha: ahora.toISOString().slice(0,10),
+          fecha: ahora.toISOString().slice(0, 10),
           buses,
           busesSeleccionados: buses.map(b => b.mean_id)
         });
@@ -1264,7 +1264,7 @@ function MiPaginaExistente() {
 
   // --- Función para cargar y mostrar validaciones en el mapa ---
   async function cargarValidaciones(empresaId, fecha, modoTiempoReal) {
-    console.log('[VALIDACIONES] llamada a cargarValidaciones', {empresaId, fecha, modoTiempoReal});
+    console.log('[VALIDACIONES] llamada a cargarValidaciones', { empresaId, fecha, modoTiempoReal });
     if (!empresaId) return;
     // Construir la URL
     let url = `${API_BASE}/validaciones?empresa_id=${empresaId}`;
@@ -1360,7 +1360,7 @@ function MiPaginaExistente() {
       header: true,
       skipEmptyLines: true,
       delimiter: ';',
-      complete: function(results) {
+      complete: function (results) {
         // Validar columnas requeridas
         const requiredCols = ['Coche', 'Tiempo', 'Latitud', 'Longitud'];
         const headers = results.meta.fields || [];
@@ -1393,7 +1393,7 @@ function MiPaginaExistente() {
         // Formato esperado por SimulacionRecorrido: array de buses con {mean_id, recorrido: [{lat, lng, fecha_hora}]}
         const busesArr = Object.entries(buses).map(([mean_id, puntos]) => ({
           mean_id,
-          recorrido: puntos.sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora))
+          recorrido: puntos.sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora))
         }));
         setRecorridoPrueba(busesArr);
         setSimulacionEstado({
@@ -1402,7 +1402,7 @@ function MiPaginaExistente() {
           corriendo: false
         });
         setMostrarSidebarDerecho(true);
-        mostrarAviso('Recorrido de prueba cargado correctamente','success');
+        mostrarAviso('Recorrido de prueba cargado correctamente', 'success');
       }
     });
   }
@@ -1571,8 +1571,8 @@ function MiPaginaExistente() {
               ))}
             </select>
             <button
-              style={{marginTop:'10px', width:'100%', background:'#e3f2fd', color:'#1976d2', fontWeight:'bold', borderRadius:6, border:'none', padding:'8px 0', fontSize:16}}
-              onClick={()=>setMostrarModalReporteRutas(true)}
+              style={{ marginTop: '10px', width: '100%', background: '#e3f2fd', color: '#1976d2', fontWeight: 'bold', borderRadius: 6, border: 'none', padding: '8px 0', fontSize: 16 }}
+              onClick={() => setMostrarModalReporteRutas(true)}
             >
               Generar reporte rutas
             </button>
@@ -1583,7 +1583,7 @@ function MiPaginaExistente() {
               <input
                 type="checkbox"
                 name="auto-iterar"
-                title ="Iterar automáticamente"
+                title="Iterar automáticamente"
                 id="auto-iterar"
                 checked={autoIterar}
                 onChange={(e) => setAutoIterar(e.target.checked)}
@@ -1945,10 +1945,10 @@ function MiPaginaExistente() {
                 setMostrarSidebarDerecho(true);
                 mostrarAviso(`Se detectaron ${trayectosConShape.length} trayectos entre puntos de control.`, "success");
               }}
-            style={{ width: "100%" }}
-          >
-            <b>Calcular servicios</b>
-          </button>
+              style={{ width: "100%" }}
+            >
+              <b>Calcular servicios</b>
+            </button>
             <button
               onClick={() => {
                 // Nueva funcionalidad: Verificar recorrido
@@ -1993,99 +1993,99 @@ function MiPaginaExistente() {
               {busesTiempoRealActivo ? 'Detener visualización tiempo real' : 'Visualizar buses en tiempo real'}
             </button>
             {/* Checkbox para incluir validaciones */}
-            <label style={{marginTop:4, display:'flex', alignItems:'center', gap:8}}>
+            <label style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"
                 checked={incluirValidaciones}
                 onChange={e => setIncluirValidaciones(e.target.checked)}
-                style={{marginRight:6}}
+                style={{ marginRight: 6 }}
               />
               Incluir validaciones
             </label>
-      <button
-        className="btn-regularidad"
-        onClick={() => {
-          if (window._regularidadChart) {
-            try { window._regularidadChart.destroy(); } catch(e){}
-            window._regularidadChart = null;
-          }
-          window._regularidadPctMenos = undefined;
-          window._regularidadPctMas = undefined;
-          window._regularidadPromedio = undefined;
-          setMostrarPanelRegularidad(true);
-        }}
-        style={{ width: "100%", backgroundColor: '#e0f7fa', color: '#00796b', fontWeight: 'bold' }}
-      >
-        Índice de Regularidad Operativa
-      </button>
-      <button
-        className="btn-regularidad-buses"
-        onClick={() => setMostrarPanelRegularidadBuses(true)}
-        style={{ width: "100%", backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold', marginTop: 8 }}
-      >
-        Índice de Regularidad de Buses
-      </button>
-      <button
-        className="btn-control-franja"
-        onClick={() => setMostrarPanelControlFranja(true)}
-        style={{ width: "100%", backgroundColor: '#fffde7', color: '#fbc02d', fontWeight: 'bold', marginTop: 8 }}
-      >
-        Control de Regularidad por Franja
-      </button>
-      {/* Nuevo botón para análisis avanzado de demanda y promedios */}
-      <button
-        className="btn-promedio-operativa"
-        onClick={() => setMostrarPanelPromedioOperativa(true)}
-        style={{ width: "100%", backgroundColor: '#e8f5e9', color: '#388e3c', fontWeight: 'bold', marginTop: 8 }}
-      >
-        Verificar promedio de operativa
-      </button>
-      {/* Modal wizard para análisis avanzado (placeholder) */}
-      {mostrarPanelPromedioOperativa && (
-        <ModalPromedioOperativaWizard onClose={() => setMostrarPanelPromedioOperativa(false)} />
-      )}
-      <div style={{display:'flex',gap:8,marginTop:8}}>
-        <button
-          className="btn-shape-prueba"
-          onClick={() => {
-            if (shapePrueba) {
-              // Eliminar shape de prueba
-              if (shapePruebaLayer && mapInstance.current) {
-                mapInstance.current.removeLayer(shapePruebaLayer);
-                setShapePruebaLayer(null);
-              }
-              setShapePrueba(null);
-              mostrarAviso("Shape de prueba eliminado", "success");
-            } else {
-              // Lógica de cargar shape de prueba existente
-              document.getElementById('input-shape-prueba').click();
-            }
-          }}
-          style={{ width: "100%", backgroundColor: shapePrueba ? '#ffe0e0' : '#e0ffe0', color: '#222', fontWeight: 'bold', marginTop: '8px' }}
-        >
-          {shapePrueba ? 'Eliminar shape de prueba' : 'Cargar shape de prueba'}
-        </button>
-        <input id="input-shape-prueba" type="file" accept=".json,.geojson" style={{display:'none'}} onChange={handleCargarShapePrueba} />
-        <button
-          className="btn-recorrido-prueba"
-          onClick={() => document.getElementById('input-recorrido-prueba').click()}
-          style={{ width: "100%", backgroundColor: recorridoPrueba ? '#ffe0e0' : '#e0ffe0', color: '#222', fontWeight: 'bold', marginTop: '8px' }}
-        >
-          {recorridoPrueba ? 'Eliminar recorrido de prueba' : 'Cargar recorrido de prueba'}
-        </button>
-        <input id="input-recorrido-prueba" type="file" accept=".csv" style={{display:'none'}} onChange={handleCargarRecorridoPrueba} />
-      </div>
+            <button
+              className="btn-regularidad"
+              onClick={() => {
+                if (window._regularidadChart) {
+                  try { window._regularidadChart.destroy(); } catch (e) { }
+                  window._regularidadChart = null;
+                }
+                window._regularidadPctMenos = undefined;
+                window._regularidadPctMas = undefined;
+                window._regularidadPromedio = undefined;
+                setMostrarPanelRegularidad(true);
+              }}
+              style={{ width: "100%", backgroundColor: '#e0f7fa', color: '#00796b', fontWeight: 'bold' }}
+            >
+              Índice de Regularidad Operativa
+            </button>
+            <button
+              className="btn-regularidad-buses"
+              onClick={() => setMostrarPanelRegularidadBuses(true)}
+              style={{ width: "100%", backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold', marginTop: 8 }}
+            >
+              Índice de Regularidad de Buses
+            </button>
+            <button
+              className="btn-control-franja"
+              onClick={() => setMostrarPanelControlFranja(true)}
+              style={{ width: "100%", backgroundColor: '#fffde7', color: '#fbc02d', fontWeight: 'bold', marginTop: 8 }}
+            >
+              Control de Regularidad por Franja
+            </button>
+            {/* Nuevo botón para análisis avanzado de demanda y promedios */}
+            <button
+              className="btn-promedio-operativa"
+              onClick={() => setMostrarPanelPromedioOperativa(true)}
+              style={{ width: "100%", backgroundColor: '#e8f5e9', color: '#388e3c', fontWeight: 'bold', marginTop: 8 }}
+            >
+              Verificar promedio de operativa
+            </button>
+            {/* Modal wizard para análisis avanzado (placeholder) */}
+            {mostrarPanelPromedioOperativa && (
+              <ModalPromedioOperativaWizard onClose={() => setMostrarPanelPromedioOperativa(false)} />
+            )}
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button
+                className="btn-shape-prueba"
+                onClick={() => {
+                  if (shapePrueba) {
+                    // Eliminar shape de prueba
+                    if (shapePruebaLayer && mapInstance.current) {
+                      mapInstance.current.removeLayer(shapePruebaLayer);
+                      setShapePruebaLayer(null);
+                    }
+                    setShapePrueba(null);
+                    mostrarAviso("Shape de prueba eliminado", "success");
+                  } else {
+                    // Lógica de cargar shape de prueba existente
+                    document.getElementById('input-shape-prueba').click();
+                  }
+                }}
+                style={{ width: "100%", backgroundColor: shapePrueba ? '#ffe0e0' : '#e0ffe0', color: '#222', fontWeight: 'bold', marginTop: '8px' }}
+              >
+                {shapePrueba ? 'Eliminar shape de prueba' : 'Cargar shape de prueba'}
+              </button>
+              <input id="input-shape-prueba" type="file" accept=".json,.geojson" style={{ display: 'none' }} onChange={handleCargarShapePrueba} />
+              <button
+                className="btn-recorrido-prueba"
+                onClick={() => document.getElementById('input-recorrido-prueba').click()}
+                style={{ width: "100%", backgroundColor: recorridoPrueba ? '#ffe0e0' : '#e0ffe0', color: '#222', fontWeight: 'bold', marginTop: '8px' }}
+              >
+                {recorridoPrueba ? 'Eliminar recorrido de prueba' : 'Cargar recorrido de prueba'}
+              </button>
+              <input id="input-recorrido-prueba" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleCargarRecorridoPrueba} />
+            </div>
           </div>
 
           {/* Control deslizante para parámetros de puntos de control */}
           <div
-            // style={{
-            //   margin: "20px 0",
-            //   padding: "10px",
-            //   border: "1px solid #aaa",
-            //   borderRadius: "8px",
-            //   background: "#f8f8f8",
-            // }}
+          // style={{
+          //   margin: "20px 0",
+          //   padding: "10px",
+          //   border: "1px solid #aaa",
+          //   borderRadius: "8px",
+          //   background: "#f8f8f8",
+          // }}
           >
             <label htmlFor="slider-radio">
               <b>Radio de geocerca:</b> {geocercaRadio} m
@@ -2164,7 +2164,7 @@ function MiPaginaExistente() {
                 : 'Seleccione una empresa para ver shapes'}
             </div>
           </div>
-  {/* NOTA: Se eliminó del resumen la sección de 'Shapes utilizados en trayectos' para evitar duplicidad e incongruencias. Solo se muestra el bloque detallado arriba. */}
+          {/* NOTA: Se eliminó del resumen la sección de 'Shapes utilizados en trayectos' para evitar duplicidad e incongruencias. Solo se muestra el bloque detallado arriba. */}
           {/* Sidebar izquierdo flotante dentro del panel del mapa */}
           {mostrarSidebarIzquierdo && (
             <div
@@ -2280,37 +2280,37 @@ function MiPaginaExistente() {
               <div style={{ padding: 16, width: "100%" }}>
                 {/* Bloque de detalles de itinerarios por shape usado */}
                 {infoServicios && infoServicios.shapesUsados && infoServicios.shapesDetalles && (
-                  <div style={{marginBottom:18}}>
-                    <h3 style={{fontSize:18,margin:'8px 0 8px 0'}}>Shapes utilizados en trayectos:</h3>
-                    <ul style={{margin:'0 0 0 12px',padding:0}}>
+                  <div style={{ marginBottom: 18 }}>
+                    <h3 style={{ fontSize: 18, margin: '8px 0 8px 0' }}>Shapes utilizados en trayectos:</h3>
+                    <ul style={{ margin: '0 0 0 12px', padding: 0 }}>
                       {Array.isArray(itinerariosEmpresa) && itinerariosEmpresa.map((it, idx) => (
-                        <li key={idx} style={{marginBottom:10}}>
-                          <b>Shape #{idx+1}</b> &rarr; {(infoServicios.shapesUsados && infoServicios.shapesUsados[idx]) ? infoServicios.shapesUsados[idx] : 0} trayectos
+                        <li key={idx} style={{ marginBottom: 10 }}>
+                          <b>Shape #{idx + 1}</b> &rarr; {(infoServicios.shapesUsados && infoServicios.shapesUsados[idx]) ? infoServicios.shapesUsados[idx] : 0} trayectos
                           {infoServicios.shapesDetalles && infoServicios.shapesDetalles[idx] ? (
-                            <table style={{marginTop:4, marginLeft:12, fontSize:13, borderCollapse:'collapse', background:'#f8f8ff'}}>
+                            <table style={{ marginTop: 4, marginLeft: 12, fontSize: 13, borderCollapse: 'collapse', background: '#f8f8ff' }}>
                               <thead>
-                                <tr style={{background:'#e0e0e0'}}>
-                                  <th style={{padding:'2px 6px', border:'1px solid #bbb'}}>Código</th>
-                                  <th style={{padding:'2px 6px', border:'1px solid #bbb'}}>Línea</th>
-                                  <th style={{padding:'2px 6px', border:'1px solid #bbb'}}>Ramal</th>
-                                  <th style={{padding:'2px 6px', border:'1px solid #bbb'}}>Identificación</th>
-                                  <th style={{padding:'2px 6px', border:'1px solid #bbb'}}>Distancia (km)</th>
-                                  <th style={{padding:'2px 6px', border:'1px solid #bbb'}}>Tipo</th>
+                                <tr style={{ background: '#e0e0e0' }}>
+                                  <th style={{ padding: '2px 6px', border: '1px solid #bbb' }}>Código</th>
+                                  <th style={{ padding: '2px 6px', border: '1px solid #bbb' }}>Línea</th>
+                                  <th style={{ padding: '2px 6px', border: '1px solid #bbb' }}>Ramal</th>
+                                  <th style={{ padding: '2px 6px', border: '1px solid #bbb' }}>Identificación</th>
+                                  <th style={{ padding: '2px 6px', border: '1px solid #bbb' }}>Distancia (km)</th>
+                                  <th style={{ padding: '2px 6px', border: '1px solid #bbb' }}>Tipo</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 <tr>
-                                  <td style={{padding:'2px 6px', border:'1px solid #ccc'}}>{infoServicios.shapesDetalles[idx].codigo}</td>
-                                  <td style={{padding:'2px 6px', border:'1px solid #ccc'}}>{infoServicios.shapesDetalles[idx].linea}</td>
-                                  <td style={{padding:'2px 6px', border:'1px solid #ccc'}}>{infoServicios.shapesDetalles[idx].ramal}</td>
-                                  <td style={{padding:'2px 6px', border:'1px solid #ccc'}}>{infoServicios.shapesDetalles[idx].identificacion}</td>
-                                  <td style={{padding:'2px 6px', border:'1px solid #ccc'}}>{infoServicios.shapesDetalles[idx].distancia}</td>
-                                  <td style={{padding:'2px 6px', border:'1px solid #ccc'}}>{infoServicios.shapesDetalles[idx].tipo}</td>
+                                  <td style={{ padding: '2px 6px', border: '1px solid #ccc' }}>{infoServicios.shapesDetalles[idx].codigo}</td>
+                                  <td style={{ padding: '2px 6px', border: '1px solid #ccc' }}>{infoServicios.shapesDetalles[idx].linea}</td>
+                                  <td style={{ padding: '2px 6px', border: '1px solid #ccc' }}>{infoServicios.shapesDetalles[idx].ramal}</td>
+                                  <td style={{ padding: '2px 6px', border: '1px solid #ccc' }}>{infoServicios.shapesDetalles[idx].identificacion}</td>
+                                  <td style={{ padding: '2px 6px', border: '1px solid #ccc' }}>{infoServicios.shapesDetalles[idx].distancia}</td>
+                                  <td style={{ padding: '2px 6px', border: '1px solid #ccc' }}>{infoServicios.shapesDetalles[idx].tipo}</td>
                                 </tr>
                               </tbody>
                             </table>
                           ) : (
-                            <div style={{marginLeft:12, color:'#888', fontSize:12}}>(Sin detalles de itinerario)</div>
+                            <div style={{ marginLeft: 12, color: '#888', fontSize: 12 }}>(Sin detalles de itinerario)</div>
                           )}
                         </li>
                       ))}
@@ -2334,24 +2334,24 @@ function MiPaginaExistente() {
                 {/* Renderizar selección de buses solo si está pausada la simulación o no hay simulación */}
                 {(infoServicios && (infoServicios.tipo === 'buses' || infoServicios.tipo === 'buses-tiempo-real') && (!simulacionEstado || (simulacionEstado && !simulacionEstado.corriendo))) ? (
                   <div>
-                    <h2 style={{fontSize:22, marginBottom:8}}>Buses detectados</h2>
+                    <h2 style={{ fontSize: 22, marginBottom: 8 }}>Buses detectados</h2>
                     <div><b>Empresa:</b> {empresas.find(e => e.id_eot_vmt_hex === infoServicios.empresaId)?.eot_nombre || infoServicios.empresaId}</div>
                     <div><b>Fecha:</b> {infoServicios.fecha}</div>
-                    <div style={{marginTop:8, marginBottom:8, display:'flex', gap:8}}>
-                      <button style={{flex:1, background:'#e0ffe0', border:'1px solid #aaa', borderRadius:4, cursor:'pointer'}}
-                        onClick={() => setInfoServicios({...infoServicios, busesSeleccionados: infoServicios.buses.map(b=>b.mean_id)})}>
+                    <div style={{ marginTop: 8, marginBottom: 8, display: 'flex', gap: 8 }}>
+                      <button style={{ flex: 1, background: '#e0ffe0', border: '1px solid #aaa', borderRadius: 4, cursor: 'pointer' }}
+                        onClick={() => setInfoServicios({ ...infoServicios, busesSeleccionados: infoServicios.buses.map(b => b.mean_id) })}>
                         Marcar todos
                       </button>
-                      <button style={{flex:1, background:'#ffe0e0', border:'1px solid #aaa', borderRadius:4, cursor:'pointer'}}
-                        onClick={() => setInfoServicios({...infoServicios, busesSeleccionados: []})}>
+                      <button style={{ flex: 1, background: '#ffe0e0', border: '1px solid #aaa', borderRadius: 4, cursor: 'pointer' }}
+                        onClick={() => setInfoServicios({ ...infoServicios, busesSeleccionados: [] })}>
                         Desmarcar todos
                       </button>
                     </div>
-                    <div style={{marginTop:8}}>
+                    <div style={{ marginTop: 8 }}>
                       <b>Buses ({infoServicios.buses.length}):</b>
-                      <ul style={{maxHeight:180, overflowY:'auto', marginTop:6, marginBottom:6, border:'1px solid #ccc', borderRadius:4, padding:8, background:'#f8f8ff'}}>
+                      <ul style={{ maxHeight: 180, overflowY: 'auto', marginTop: 6, marginBottom: 6, border: '1px solid #ccc', borderRadius: 4, padding: 8, background: '#f8f8ff' }}>
                         {infoServicios.buses.map((bus, idx) => (
-                          <li key={bus.mean_id} style={{marginBottom:4}}>
+                          <li key={bus.mean_id} style={{ marginBottom: 4 }}>
                             <input
                               type="checkbox"
                               checked={infoServicios.busesSeleccionados?.includes(bus.mean_id)}
@@ -2359,15 +2359,15 @@ function MiPaginaExistente() {
                                 const nuevos = e.target.checked
                                   ? [...infoServicios.busesSeleccionados, bus.mean_id]
                                   : infoServicios.busesSeleccionados.filter(id => id !== bus.mean_id);
-                                setInfoServicios({...infoServicios, busesSeleccionados: nuevos});
+                                setInfoServicios({ ...infoServicios, busesSeleccionados: nuevos });
                                 // Si es tiempo real, también filtrar en el mapa
                                 if (infoServicios.tipo === 'buses-tiempo-real') {
                                   setBusesTiempoRealSeleccionados(nuevos);
                                 }
                               }}
-                              style={{marginRight:8}}
+                              style={{ marginRight: 8 }}
                             />
-                            <b>{bus.mean_id}</b>{!isNaN(parseInt(bus.mean_id,16)) ? ` (${parseInt(bus.mean_id,16)}) - ` : ''}{bus.recorrido ? ` (${bus.recorrido.length} puntos)` : ''}
+                            <b>{bus.mean_id}</b>{!isNaN(parseInt(bus.mean_id, 16)) ? ` (${parseInt(bus.mean_id, 16)}) - ` : ''}{bus.recorrido ? ` (${bus.recorrido.length} puntos)` : ''}
                           </li>
                         ))}
                       </ul>
@@ -2375,7 +2375,7 @@ function MiPaginaExistente() {
                     {/* Solo mostrar botón de simulación si es tipo 'buses' */}
                     {infoServicios.tipo === 'buses' && (
                       <button
-                        style={{width:'100%', background:'#d0ffe0', color:'#222', fontWeight:'bold', marginTop:8}} 
+                        style={{ width: '100%', background: '#d0ffe0', color: '#222', fontWeight: 'bold', marginTop: 8 }}
                         disabled={!!simulacionEstado} // Deshabilita si ya hay simulación activa
                         onClick={e => {
                           e.target.disabled = true;
@@ -2391,11 +2391,11 @@ function MiPaginaExistente() {
                           const busesSim = infoServicios.buses.filter(b => infoServicios.busesSeleccionados.includes(b.mean_id));
                           let puntos = [];
                           busesSim.forEach(bus => {
-                            bus.recorrido.forEach(p => puntos.push({...p, mean_id: bus.mean_id}));
+                            bus.recorrido.forEach(p => puntos.push({ ...p, mean_id: bus.mean_id }));
                           });
-                          puntos.sort((a,b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
-                          const timestamps = puntos.map(p => Math.floor(new Date(p.fecha_hora).getTime()/1000));
-                          const fechaBase = infoServicios.fecha || (busesSim[0]?.recorrido[0]?.fecha_hora?.slice(0,10));
+                          puntos.sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
+                          const timestamps = puntos.map(p => Math.floor(new Date(p.fecha_hora).getTime() / 1000));
+                          const fechaBase = infoServicios.fecha || (busesSim[0]?.recorrido[0]?.fecha_hora?.slice(0, 10));
                           const inicioDia = new Date(fechaBase + 'T00:00:00').getTime() / 1000;
                           const finDia = new Date(fechaBase + 'T23:59:59').getTime() / 1000;
                           setSimulacionEstado({
@@ -2403,11 +2403,11 @@ function MiPaginaExistente() {
                             actual: 0,
                             velocidad: simulacionEstado?.velocidad || 350,
                             corriendo: true,
-                            puntos: puntos.map((p,i) => ({...p, ts: timestamps[i]})),
+                            puntos: puntos.map((p, i) => ({ ...p, ts: timestamps[i] })),
                             minTimestamp: inicioDia,
                             maxTimestamp: finDia,
                             horaActual: inicioDia,
-                            horaActualStr: new Date(inicioDia*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})
+                            horaActualStr: new Date(inicioDia * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                           });
                           setTimeout(() => setInfoServicios(null), 0); // Limpia infoServicios tras iniciar simulación
                           mostrarAviso('Simulación iniciada', 'success');
@@ -2420,23 +2420,23 @@ function MiPaginaExistente() {
                 ) : busesTiempoRealActivo && busesTiempoReal.length > 0 ? (
                   <div>
 
-                    <h2 style={{fontSize:22, marginBottom:8}}>Buses en tiempo real</h2>
+                    <h2 style={{ fontSize: 22, marginBottom: 8 }}>Buses en tiempo real</h2>
                     <div><b>Empresa:</b> {empresas.find(e => e.id_eot_vmt_hex === empresaId)?.eot_nombre || empresaId}</div>
-                    <div style={{marginTop:8, marginBottom:8, display:'flex', gap:8}}>
-                      <button style={{flex:1, background:'#e0ffe0', border:'1px solid #aaa', borderRadius:4, cursor:'pointer'}}
-                        onClick={() => setBusesTiempoRealSeleccionados(busesTiempoReal.map(b=>b.mean_id))}>
+                    <div style={{ marginTop: 8, marginBottom: 8, display: 'flex', gap: 8 }}>
+                      <button style={{ flex: 1, background: '#e0ffe0', border: '1px solid #aaa', borderRadius: 4, cursor: 'pointer' }}
+                        onClick={() => setBusesTiempoRealSeleccionados(busesTiempoReal.map(b => b.mean_id))}>
                         Marcar todos
                       </button>
-                      <button style={{flex:1, background:'#e0e0e0', border:'1px solid #aaa', borderRadius:4, cursor:'pointer'}}
+                      <button style={{ flex: 1, background: '#e0e0e0', border: '1px solid #aaa', borderRadius: 4, cursor: 'pointer' }}
                         onClick={() => setBusesTiempoRealSeleccionados([])}>
                         Desmarcar todos
                       </button>
                     </div>
-                    <div style={{marginTop:8}}>
+                    <div style={{ marginTop: 8 }}>
                       <b>Buses ({busesTiempoReal.length}):</b>
-                      <ul style={{maxHeight:180, overflowY:'auto', marginTop:6, marginBottom:6, border:'1px solid #ccc', borderRadius:4, padding:8, background:'#f8f8ff'}}>
+                      <ul style={{ maxHeight: 180, overflowY: 'auto', marginTop: 6, marginBottom: 6, border: '1px solid #ccc', borderRadius: 4, padding: 8, background: '#f8f8ff' }}>
                         {busesTiempoReal.map((bus, idx) => (
-                          <li key={bus.mean_id} style={{marginBottom:4}}>
+                          <li key={bus.mean_id} style={{ marginBottom: 4 }}>
                             <input
                               type="checkbox"
                               checked={busesTiempoRealSeleccionados.includes(bus.mean_id)}
@@ -2446,117 +2446,117 @@ function MiPaginaExistente() {
                                   : busesTiempoRealSeleccionados.filter(id => id !== bus.mean_id);
                                 setBusesTiempoRealSeleccionados(nuevos);
                               }}
-                              style={{marginRight:8}}
+                              style={{ marginRight: 8 }}
                             />
-                            <b>{bus.mean_id}</b> <span style={{fontSize:14, color:'#888'}}>{bus.fecha_hora?.slice(11,19) || ''}</span>
+                            <b>{bus.mean_id}</b> <span style={{ fontSize: 14, color: '#888' }}>{bus.fecha_hora?.slice(11, 19) || ''}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
-                    <div style={{marginTop:8, color:'#888', fontSize:15}}>
+                    <div style={{ marginTop: 8, color: '#888', fontSize: 15 }}>
                       Solo los buses seleccionados se mostrarán en el mapa.
                     </div>
                   </div>
                 ) : infoServicios && (!simulacionEstado || (simulacionEstado && !simulacionEstado.corriendo)) ? (
                   <div>
-                    <h2 style={{fontSize:22, marginBottom:8}}>Resumen de Servicios</h2>
+                    <h2 style={{ fontSize: 22, marginBottom: 8 }}>Resumen de Servicios</h2>
                     <div><b>Empresa:</b> {infoServicios.empresaNombre}</div>
                     <div><b>Fecha:</b> {infoServicios.fecha}</div>
-                    <div style={{marginTop:8}}><b>{infoServicios.mensaje}</b></div>
-                    <hr style={{margin: '10px 0'}}/>
+                    <div style={{ marginTop: 8 }}><b>{infoServicios.mensaje}</b></div>
+                    <hr style={{ margin: '10px 0' }} />
                     <div><b>Shapes cargados:</b> {infoServicios.shapes?.length}</div>
                     <div><b>Servicios detectados:</b></div>
-                    <ul style={{marginLeft:18}}>
+                    <ul style={{ marginLeft: 18 }}>
                       <li><b>Directos:</b> {infoServicios.servicios_detectados?.directos}</li>
                       <li><b>Circulares:</b> {infoServicios.servicios_detectados?.circulares}</li>
                       <li><b>Total:</b> {infoServicios.servicios_detectados?.total}</li>
                     </ul>
                     <div><b>Puntos de control:</b></div>
-                    <ul style={{marginLeft:18}}>
+                    <ul style={{ marginLeft: 18 }}>
                       <li><b>Total:</b> {infoServicios.puntos_control?.total}</li>
                       <li><b>Terminales:</b> {infoServicios.puntos_control?.terminales}</li>
                       <li><b>Intermedios:</b> {infoServicios.puntos_control?.intermedios}</li>
                     </ul>
-                    <div style={{marginTop:8}}>
+                    <div style={{ marginTop: 8 }}>
                       <b>Shapes utilizados en trayectos:</b>
-                      <ul style={{marginLeft:18}}>
+                      <ul style={{ marginLeft: 18 }}>
                         {infoServicios.shapes && Object.keys(infoServicios.shapesUsados || {}).map(idx => (
-                          <li key={idx}>Shape #{parseInt(idx)+1} &rarr; {infoServicios.shapesUsados[idx]} trayectos</li>
+                          <li key={idx}>Shape #{parseInt(idx) + 1} &rarr; {infoServicios.shapesUsados[idx]} trayectos</li>
                         ))}
                       </ul>
                     </div>
-                    <div style={{marginTop:8}}>
+                    <div style={{ marginTop: 8 }}>
                       <b>Detalle de trayectos detectados:</b>
-                      <div style={{maxHeight:220, overflowY:'auto', background:'#f8f8f8', borderRadius:4, padding:8}}>
+                      <div style={{ maxHeight: 220, overflowY: 'auto', background: '#f8f8f8', borderRadius: 4, padding: 8 }}>
                         {Array.isArray(infoServicios.trayectos) && infoServicios.trayectos.length > 0 ? (
-                          <table style={{width:'100%', fontSize:13, borderCollapse:'collapse'}}>
+                          <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                             <thead>
-                              <tr style={{background:'#e0e0e0'}}>
-                                <th style={{padding:'4px', border:'1px solid #ccc'}}>Bus</th>
-                                <th style={{padding:'4px', border:'1px solid #ccc'}}>Inicio</th>
-                                <th style={{padding:'4px', border:'1px solid #ccc'}}>Fin</th>
-                                <th style={{padding:'4px', border:'1px solid #ccc'}}>Shape</th>
-                                <th style={{padding:'4px', border:'1px solid #ccc'}}>Puntos</th>
+                              <tr style={{ background: '#e0e0e0' }}>
+                                <th style={{ padding: '4px', border: '1px solid #ccc' }}>Bus</th>
+                                <th style={{ padding: '4px', border: '1px solid #ccc' }}>Inicio</th>
+                                <th style={{ padding: '4px', border: '1px solid #ccc' }}>Fin</th>
+                                <th style={{ padding: '4px', border: '1px solid #ccc' }}>Shape</th>
+                                <th style={{ padding: '4px', border: '1px solid #ccc' }}>Puntos</th>
                               </tr>
                             </thead>
                             <tbody>
                               {infoServicios.trayectos.map((t, i) => (
                                 <tr key={i}>
-                                  <td style={{padding:'4px', border:'1px solid #ccc'}}>{t.bus_id}</td>
-                                  <td style={{padding:'4px', border:'1px solid #ccc'}}>
-                                    {t.inicio?.fecha_hora ? new Date(t.inicio.fecha_hora).toLocaleTimeString() : ''}<br/>
-                                    <span style={{fontSize:11, color:'#888'}}>{t.idxGeocercaInicio !== undefined ? `PC#${t.idxGeocercaInicio+1}` : ''}</span>
+                                  <td style={{ padding: '4px', border: '1px solid #ccc' }}>{t.bus_id}</td>
+                                  <td style={{ padding: '4px', border: '1px solid #ccc' }}>
+                                    {t.inicio?.fecha_hora ? new Date(t.inicio.fecha_hora).toLocaleTimeString() : ''}<br />
+                                    <span style={{ fontSize: 11, color: '#888' }}>{t.idxGeocercaInicio !== undefined ? `PC#${t.idxGeocercaInicio + 1}` : ''}</span>
                                   </td>
-                                  <td style={{padding:'4px', border:'1px solid #ccc'}}>
-                                    {t.fin?.fecha_hora ? new Date(t.fin.fecha_hora).toLocaleTimeString() : ''}<br/>
-                                    <span style={{fontSize:11, color:'#888'}}>{t.idxGeocercaFin !== undefined ? `PC#${t.idxGeocercaFin+1}` : ''}</span>
+                                  <td style={{ padding: '4px', border: '1px solid #ccc' }}>
+                                    {t.fin?.fecha_hora ? new Date(t.fin.fecha_hora).toLocaleTimeString() : ''}<br />
+                                    <span style={{ fontSize: 11, color: '#888' }}>{t.idxGeocercaFin !== undefined ? `PC#${t.idxGeocercaFin + 1}` : ''}</span>
                                   </td>
-                                  <td style={{padding:'4px', border:'1px solid #ccc'}}>
-                                    {t.shapePredominante !== undefined && t.shapePredominante !== null ? `#${t.shapePredominante+1}` : '-'}
+                                  <td style={{ padding: '4px', border: '1px solid #ccc' }}>
+                                    {t.shapePredominante !== undefined && t.shapePredominante !== null ? `#${t.shapePredominante + 1}` : '-'}
                                   </td>
-                                  <td style={{padding:'4px', border:'1px solid #ccc'}}>{t.recorrido?.length || 0}</td>
+                                  <td style={{ padding: '4px', border: '1px solid #ccc' }}>{t.recorrido?.length || 0}</td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
                         ) : (
-                          <div style={{color:'#888'}}>No hay trayectos detectados.</div>
+                          <div style={{ color: '#888' }}>No hay trayectos detectados.</div>
                         )}
                       </div>
                     </div>
                     {/* Botón para generar reporte usando modal ReactTable */}
-<div style={{marginTop:16, textAlign:'center'}}>
-  <button
-    style={{padding:'8px 18px', background:'#1976d2', color:'#fff', border:'none', borderRadius:5, fontWeight:'bold', fontSize:16, cursor:'pointer'}}
-    onClick={() => setMostrarModalReporteServicios(true)}
-  >
-    Generar reporte
-  </button>
-  <ReporteServiciosModal
-    open={mostrarModalReporteServicios}
-    onClose={() => setMostrarModalReporteServicios(false)}
-    resumen={{
-      empresaNombre: infoServicios.empresaNombre,
-      fecha: infoServicios.fecha,
-      shapes: infoServicios.shapes,
-      servicios_detectados: infoServicios.servicios_detectados,
-      puntos_control: infoServicios.puntos_control,
-      shapesUsados: infoServicios.shapesUsados
-    }}
-    servicios={(infoServicios.trayectos || []).map(t => ({
-      busNumero: t.bus_id,
-      itinerarioNombre: t.shapePredominante !== undefined ? `Shape #${t.shapePredominante+1}` : '-',
-      tipoServicio: t.tipoServicio || '-',
-      horaInicio: t.inicio?.fecha_hora ? new Date(t.inicio.fecha_hora) : null,
-      horaFin: t.fin?.fecha_hora ? new Date(t.fin.fecha_hora) : null,
-      estado: t.estado || '-',
-      puntosRecorridos: t.recorrido || []
-    }))}
-  />
-</div>
+                    <div style={{ marginTop: 16, textAlign: 'center' }}>
+                      <button
+                        style={{ padding: '8px 18px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 5, fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}
+                        onClick={() => setMostrarModalReporteServicios(true)}
+                      >
+                        Generar reporte
+                      </button>
+                      <ReporteServiciosModal
+                        open={mostrarModalReporteServicios}
+                        onClose={() => setMostrarModalReporteServicios(false)}
+                        resumen={{
+                          empresaNombre: infoServicios.empresaNombre,
+                          fecha: infoServicios.fecha,
+                          shapes: infoServicios.shapes,
+                          servicios_detectados: infoServicios.servicios_detectados,
+                          puntos_control: infoServicios.puntos_control,
+                          shapesUsados: infoServicios.shapesUsados
+                        }}
+                        servicios={(infoServicios.trayectos || []).map(t => ({
+                          busNumero: t.bus_id,
+                          itinerarioNombre: t.shapePredominante !== undefined ? `Shape #${t.shapePredominante + 1}` : '-',
+                          tipoServicio: t.tipoServicio || '-',
+                          horaInicio: t.inicio?.fecha_hora ? new Date(t.inicio.fecha_hora) : null,
+                          horaFin: t.fin?.fecha_hora ? new Date(t.fin.fecha_hora) : null,
+                          estado: t.estado || '-',
+                          puntosRecorridos: t.recorrido || []
+                        }))}
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <div style={{textAlign:'center', color:'#888'}}>No hay datos para mostrar.</div>
+                  <div style={{ textAlign: 'center', color: '#888' }}>No hay datos para mostrar.</div>
                 )}
               </div>
             </div>
@@ -2577,7 +2577,7 @@ function MiPaginaExistente() {
       <div id="alerta" className="alert" style={{ display: "none" }}></div>
       {mostrarModalReporteRutas && (
         <ModalReporteRutas
-          onClose={()=>setMostrarModalReporteRutas(false)}
+          onClose={() => setMostrarModalReporteRutas(false)}
         />
       )}
 
@@ -2603,7 +2603,7 @@ function avanzarSimulacion(ts, historico, simulacionTimer, setSimulacionEstado, 
     let nuevoTs = ts;
     if (nuevoTs > maxTimestamp) {
       simulacionTimer.current = null;
-      return { ...s, horaActual: maxTimestamp, horaActualStr: new Date(maxTimestamp*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}), corriendo: false };
+      return { ...s, horaActual: maxTimestamp, horaActualStr: new Date(maxTimestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), corriendo: false };
     }
     // El renderizado lo hace el useEffect
     if (nuevoTs < maxTimestamp && s.corriendo) {
@@ -2611,7 +2611,7 @@ function avanzarSimulacion(ts, historico, simulacionTimer, setSimulacionEstado, 
     } else {
       simulacionTimer.current = null;
     }
-    return { ...s, horaActual: nuevoTs, horaActualStr: new Date(nuevoTs*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}) };
+    return { ...s, horaActual: nuevoTs, horaActualStr: new Date(nuevoTs * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) };
   });
 }
 

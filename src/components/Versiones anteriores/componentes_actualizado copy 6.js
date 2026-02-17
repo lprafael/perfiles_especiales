@@ -83,8 +83,8 @@ function MiPaginaExistente() {
   const autoIterarRef = useRef(null);
 
   // Configuración de la URL base del backend
-  const API_BASE = "http://192.168.100.191:8000";
-  //const API_BASE = "http://192.168.100.191:3001";
+  const API_BASE = "http://localhost:8000";
+  //const API_BASE = "http://localhost:3001";
 
   function mostrarItinerarios(empresaId) {
     const lista = document.getElementById("itinerarios-list");
@@ -124,11 +124,9 @@ function MiPaginaExistente() {
 
         data.forEach((it, index) => {
           const li = document.createElement("li");
-          li.textContent = `Cód. Ruta: ${it.ruta_hex ?? "N/D"} - Línea ${
-            it.linea ?? "N/D"
-          } - Ramal ${it.ramal ?? ""}: ${it.origen ?? ""} → ${
-            it.destino ?? ""
-          }`;
+          li.textContent = `Cód. Ruta: ${it.ruta_hex ?? "N/D"} - Línea ${it.linea ?? "N/D"
+            } - Ramal ${it.ramal ?? ""}: ${it.origen ?? ""} → ${it.destino ?? ""
+            }`;
           li.className =
             "list-item " +
             (it.shape_points && it.shape_points.length > 1
@@ -571,7 +569,7 @@ function MiPaginaExistente() {
               <input
                 type="checkbox"
                 name="auto-iterar"
-                title ="Iterar automáticamente"
+                title="Iterar automáticamente"
                 id="auto-iterar"
                 checked={autoIterar}
                 onChange={(e) => setAutoIterar(e.target.checked)}
@@ -723,35 +721,35 @@ function MiPaginaExistente() {
               <div style={{ padding: 16, width: "100%" }}>
                 {infoServicios ? (
                   <div>
-                    <h2 style={{fontSize:22, marginBottom:8}}>Resumen de Servicios</h2>
+                    <h2 style={{ fontSize: 22, marginBottom: 8 }}>Resumen de Servicios</h2>
                     <div><b>Empresa:</b> {infoServicios.empresaNombre}</div>
                     <div><b>Fecha:</b> {infoServicios.fecha}</div>
-                    <div style={{marginTop:8}}><b>{infoServicios.mensaje}</b></div>
-                    <hr style={{margin: '10px 0'}}/>
+                    <div style={{ marginTop: 8 }}><b>{infoServicios.mensaje}</b></div>
+                    <hr style={{ margin: '10px 0' }} />
                     <div><b>Rutas asignadas:</b> {infoServicios.rutas_asignadas}</div>
                     <div><b>Shapes cargados:</b> {infoServicios.shapes_cargados}</div>
                     <div><b>Buses detectados:</b> {infoServicios.buses_detectados}</div>
                     <div><b>Servicios detectados:</b></div>
-                    <ul style={{marginLeft:18}}>
+                    <ul style={{ marginLeft: 18 }}>
                       <li><b>Directos:</b> {infoServicios.servicios_detectados?.directos}</li>
                       <li><b>Circulares:</b> {infoServicios.servicios_detectados?.circulares}</li>
                       <li><b>Total:</b> {infoServicios.servicios_detectados?.total}</li>
                     </ul>
                     <div><b>Puntos de control:</b></div>
-                    <ul style={{marginLeft:18}}>
+                    <ul style={{ marginLeft: 18 }}>
                       <li><b>Total:</b> {infoServicios.puntos_control?.total}</li>
                       <li><b>Terminales:</b> {infoServicios.puntos_control?.terminales}</li>
                       <li><b>Intermedios:</b> {infoServicios.puntos_control?.intermedios}</li>
                     </ul>
-                    <div style={{marginTop:8}}>
+                    <div style={{ marginTop: 8 }}>
                       <b>Detalle de puntos de control:</b>
-                      <pre style={{fontSize:14, background:'#f4f4f4', padding:8, borderRadius:4, maxHeight:120, overflowY:'auto'}}>
+                      <pre style={{ fontSize: 14, background: '#f4f4f4', padding: 8, borderRadius: 4, maxHeight: 120, overflowY: 'auto' }}>
                         {JSON.stringify(infoServicios.puntos_control?.detalle, null, 2)}
                       </pre>
                     </div>
                   </div>
                 ) : (
-                  <div style={{textAlign:'center', color:'#888'}}>No hay datos para mostrar.</div>
+                  <div style={{ textAlign: 'center', color: '#888' }}>No hay datos para mostrar.</div>
                 )}
               </div>
             </div>

@@ -82,14 +82,14 @@ function ModalPromedioOperativaWizard({ onClose }) {
   const [openGroup, setOpenGroup] = useState('lv');
   // Paso 2: Meses de baja y alta demanda
   const [mesesBaja, setMesesBaja] = useState([12, 1, 2]);
-  const [mesesAlta, setMesesAlta] = useState([3,4,5,6,7,8,9,10,11]);
+  const [mesesAlta, setMesesAlta] = useState([3, 4, 5, 6, 7, 8, 9, 10, 11]);
   // Validación de meses solapados
   const mesesSolapados = mesesBaja.filter(m => mesesAlta.includes(m));
   const errorMeses = mesesSolapados.length > 0 ? 'Un mes no puede estar en baja y alta demanda a la vez.' : null;
   // Paso 3: Rango de fechas y días de la semana para el informe
   const [fechaInicio, setFechaInicio] = useState(''); // formato: 'YYYY-MM-DD'
   const [fechaFin, setFechaFin] = useState(''); // formato: 'YYYY-MM-DD'
-  const [diasSeleccionados, setDiasSeleccionados] = useState([1,2,3,4,5,6,7]); // 1=Lunes ... 7=Domingo
+  const [diasSeleccionados, setDiasSeleccionados] = useState([1, 2, 3, 4, 5, 6, 7]); // 1=Lunes ... 7=Domingo
   const [agruparPorMes, setAgruparPorMes] = useState(true);
   const DIAS_SEMANA = [
     { key: 1, label: 'Lunes' },
@@ -106,7 +106,7 @@ function ModalPromedioOperativaWizard({ onClose }) {
     if (fechaInicio > fechaFin) {
       errorRangoFechas = 'La fecha de inicio no puede ser posterior a la de fin.';
     }
-    const hoy = new Date().toISOString().slice(0,10);
+    const hoy = new Date().toISOString().slice(0, 10);
     if (fechaFin >= hoy) {
       errorRangoFechas = 'La fecha de fin no puede ser igual ni mayor a hoy.';
     }
@@ -131,14 +131,14 @@ function ModalPromedioOperativaWizard({ onClose }) {
   // Mapear franja (rango) a nombre amigable
   function construirNombreFranjaMap() {
     const map = {};
-    franjasLV.filter(f=>f.checked).forEach(f => {
-      map[`${Number(f.inicio).toString().padStart(2,'0')}-${Number(f.fin).toString().padStart(2,'0')}`] = f.label;
+    franjasLV.filter(f => f.checked).forEach(f => {
+      map[`${Number(f.inicio).toString().padStart(2, '0')}-${Number(f.fin).toString().padStart(2, '0')}`] = f.label;
     });
-    franjasSab.filter(f=>f.checked).forEach(f => {
-      map[`${Number(f.inicio).toString().padStart(2,'0')}-${Number(f.fin).toString().padStart(2,'0')}`] = f.label;
+    franjasSab.filter(f => f.checked).forEach(f => {
+      map[`${Number(f.inicio).toString().padStart(2, '0')}-${Number(f.fin).toString().padStart(2, '0')}`] = f.label;
     });
     if (franjaDom.checked) {
-      map[`${Number(franjaDom.inicio).toString().padStart(2,'0')}-${Number(franjaDom.fin).toString().padStart(2,'0')}`] = franjaDom.label;
+      map[`${Number(franjaDom.inicio).toString().padStart(2, '0')}-${Number(franjaDom.fin).toString().padStart(2, '0')}`] = franjaDom.label;
     }
     setNombreFranjaMap(map);
   }
@@ -156,8 +156,8 @@ function ModalPromedioOperativaWizard({ onClose }) {
     setReporte(null);
     // Armar franjas para el backend
     const franjas = {
-      'LunVie': franjasLV.filter(f=>f.checked).map(f=>[Number(f.inicio), Number(f.fin)]),
-      'Sab': franjasSab.filter(f=>f.checked).map(f=>[Number(f.inicio), Number(f.fin)]),
+      'LunVie': franjasLV.filter(f => f.checked).map(f => [Number(f.inicio), Number(f.fin)]),
+      'Sab': franjasSab.filter(f => f.checked).map(f => [Number(f.inicio), Number(f.fin)]),
       'DomFeriado': franjaDom.checked ? [[Number(franjaDom.inicio), Number(franjaDom.fin)]] : []
     };
     // Usar fechas y días seleccionados
@@ -174,8 +174,8 @@ function ModalPromedioOperativaWizard({ onClose }) {
     };
     try {
       const endpoint = agruparPorMes
-        ? 'http://192.168.100.191:8000/buses_promedio_agrupado'
-        : 'http://192.168.100.191:8000/buses_promedio_global';
+        ? 'http://localhost:8000/buses_promedio_agrupado'
+        : 'http://localhost:8000/buses_promedio_global';
       const resp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -220,9 +220,9 @@ function ModalPromedioOperativaWizard({ onClose }) {
     };
     // Mapear franjas seleccionadas a sus rangos por tipo de día (usando los nombres exactos del backend)
     const franjasSeleccionadas = {
-      'Lunes a Viernes': franjasLV.filter(f=>f.checked).map(f => ({ key: `${Number(f.inicio).toString().padStart(2,'0')}-${Number(f.fin).toString().padStart(2,'0')}`, inicio: Number(f.inicio), fin: Number(f.fin), label: f.label })),
-      'Sábados': franjasSab.filter(f=>f.checked).map(f => ({ key: `${Number(f.inicio).toString().padStart(2,'0')}-${Number(f.fin).toString().padStart(2,'0')}`, inicio: Number(f.inicio), fin: Number(f.fin), label: f.label })),
-      'Domingos y Feriados': franjaDom.checked ? [{ key: `${Number(franjaDom.inicio).toString().padStart(2,'0')}-${Number(franjaDom.fin).toString().padStart(2,'0')}`, inicio: Number(franjaDom.inicio), fin: Number(franjaDom.fin), label: franjaDom.label }] : []
+      'Lunes a Viernes': franjasLV.filter(f => f.checked).map(f => ({ key: `${Number(f.inicio).toString().padStart(2, '0')}-${Number(f.fin).toString().padStart(2, '0')}`, inicio: Number(f.inicio), fin: Number(f.fin), label: f.label })),
+      'Sábados': franjasSab.filter(f => f.checked).map(f => ({ key: `${Number(f.inicio).toString().padStart(2, '0')}-${Number(f.fin).toString().padStart(2, '0')}`, inicio: Number(f.inicio), fin: Number(f.fin), label: f.label })),
+      'Domingos y Feriados': franjaDom.checked ? [{ key: `${Number(franjaDom.inicio).toString().padStart(2, '0')}-${Number(franjaDom.fin).toString().padStart(2, '0')}`, inicio: Number(franjaDom.inicio), fin: Number(franjaDom.fin), label: franjaDom.label }] : []
     };
     // Generar filas para todas las horas de cada franja definida
     let data = [];
@@ -250,7 +250,7 @@ function ModalPromedioOperativaWizard({ onClose }) {
               'GREMIO': gre_nombre || (registro && registro.gre_nombre) || '',
               'CÓDIGO EMPRESA': empresa_id,
               'EMPRESA': empresa_nombre,
-              'MES': `${MESES_ABREV[(Number(mes)-1)] || mes}-${String(anio).slice(-2)}`,
+              'MES': `${MESES_ABREV[(Number(mes) - 1)] || mes}-${String(anio).slice(-2)}`,
               'MES_NUM': Number(mes),
               'ANIO': Number(anio),
               'PERIODO': periodo,
@@ -286,7 +286,7 @@ function ModalPromedioOperativaWizard({ onClose }) {
     if (!reporte || !reporte.data) return;
     const data = generarDatosReporteCompleto();
     // Ordenar columnas según formato solicitado
-    const cols = ['GREMIO','CÓDIGO EMPRESA','EMPRESA','MES','PERIODO','DÍA','FRANJA','HORA','PROMEDIO'];
+    const cols = ['GREMIO', 'CÓDIGO EMPRESA', 'EMPRESA', 'MES', 'PERIODO', 'DÍA', 'FRANJA', 'HORA', 'PROMEDIO'];
     const ws = XLSX.utils.json_to_sheet(data.map(d => {
       // Solo las columnas requeridas
       return cols.reduce((acc, k) => { acc[k] = d[k]; return acc; }, {});
@@ -312,11 +312,11 @@ function ModalPromedioOperativaWizard({ onClose }) {
     // Hoja de parámetros igual que antes
     const parametros = [];
     parametros.push(['Lunes a Viernes']);
-    franjasLV.filter(f=>f.checked).forEach(f => {
+    franjasLV.filter(f => f.checked).forEach(f => {
       parametros.push([`${f.label}: de ${f.inicio} a ${f.fin} hs`]);
     });
     parametros.push(['Sábados']);
-    franjasSab.filter(f=>f.checked).forEach(f => {
+    franjasSab.filter(f => f.checked).forEach(f => {
       parametros.push([`${f.label}: de ${f.inicio} a ${f.fin} hs`]);
     });
     parametros.push(['Domingos y Feriados']);
@@ -324,8 +324,8 @@ function ModalPromedioOperativaWizard({ onClose }) {
       parametros.push([`${franjaDom.label}: de ${franjaDom.inicio} a ${franjaDom.fin} hs`]);
     }
     parametros.push(['']);
-    parametros.push([`Meses de baja demanda:`, mesesBaja.map(m=>MESES.find(mm=>mm.key===m)?.label).join(', ') || '---']);
-    parametros.push([`Meses de alta demanda:`, mesesAlta.map(m=>MESES.find(mm=>mm.key===m)?.label).join(', ') || '---']);
+    parametros.push([`Meses de baja demanda:`, mesesBaja.map(m => MESES.find(mm => mm.key === m)?.label).join(', ') || '---']);
+    parametros.push([`Meses de alta demanda:`, mesesAlta.map(m => MESES.find(mm => mm.key === m)?.label).join(', ') || '---']);
     parametros.push([`Rango de informe:`, `${fechaInicio || '---'} a ${fechaFin || '---'}`]);
     const wsParams = XLSX.utils.aoa_to_sheet(parametros);
     XLSX.utils.book_append_sheet(wb, wsParams, 'Parámetros');
@@ -371,25 +371,25 @@ function ModalPromedioOperativaWizard({ onClose }) {
       contenido: (
         <div>
           {/* Lunes a Viernes */}
-          <div style={{marginBottom:8}}>
+          <div style={{ marginBottom: 8 }}>
             <div
-              style={{cursor:'pointer',fontWeight:'bold',fontSize:17,background:openGroup==='lv'?'#e3f2fd':'#f5f5f5',padding:'8px 12px',borderRadius:8,marginBottom:4}}
-              onClick={()=>setOpenGroup(openGroup==='lv'?null:'lv')}
+              style={{ cursor: 'pointer', fontWeight: 'bold', fontSize: 17, background: openGroup === 'lv' ? '#e3f2fd' : '#f5f5f5', padding: '8px 12px', borderRadius: 8, marginBottom: 4 }}
+              onClick={() => setOpenGroup(openGroup === 'lv' ? null : 'lv')}
             >
-              {openGroup==='lv' ? '▼' : '►'} Lunes a Viernes
+              {openGroup === 'lv' ? '▼' : '►'} Lunes a Viernes
             </div>
-            {openGroup==='lv' && (
-              <div style={{padding:'8px 0 0 12px'}}>
+            {openGroup === 'lv' && (
+              <div style={{ padding: '8px 0 0 12px' }}>
                 {franjasLV.map((f, idx) => (
-                  <div key={f.key} style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
+                  <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                     <input
                       type="checkbox"
                       checked={f.checked}
                       onChange={e => {
-                        setFranjasLV(arr => arr.map((fr,i) => i===idx ? { ...fr, checked: e.target.checked } : fr));
+                        setFranjasLV(arr => arr.map((fr, i) => i === idx ? { ...fr, checked: e.target.checked } : fr));
                       }}
                     />
-                    <span style={{minWidth:140}}>{f.label}</span>
+                    <span style={{ minWidth: 140 }}>{f.label}</span>
                     <span>de</span>
                     <input
                       type="number"
@@ -398,9 +398,9 @@ function ModalPromedioOperativaWizard({ onClose }) {
                       value={f.inicio}
                       onChange={e => {
                         let v = e.target.value;
-                        setFranjasLV(arr => arr.map((fr,i) => i===idx ? { ...fr, inicio: v } : fr));
+                        setFranjasLV(arr => arr.map((fr, i) => i === idx ? { ...fr, inicio: v } : fr));
                       }}
-                      style={{width:50}}
+                      style={{ width: 50 }}
                       disabled={!f.checked}
                     />
                     <span>a</span>
@@ -411,38 +411,38 @@ function ModalPromedioOperativaWizard({ onClose }) {
                       value={f.fin}
                       onChange={e => {
                         let v = e.target.value;
-                        setFranjasLV(arr => arr.map((fr,i) => i===idx ? { ...fr, fin: v } : fr));
+                        setFranjasLV(arr => arr.map((fr, i) => i === idx ? { ...fr, fin: v } : fr));
                       }}
-                      style={{width:50}}
+                      style={{ width: 50 }}
                       disabled={!f.checked}
                     />
                     <span>hs</span>
                   </div>
                 ))}
-                {errorLV && <div style={{color:'#d84315',marginTop:8}}>{errorLV}</div>}
+                {errorLV && <div style={{ color: '#d84315', marginTop: 8 }}>{errorLV}</div>}
               </div>
             )}
           </div>
           {/* Sábados */}
-          <div style={{marginBottom:8}}>
+          <div style={{ marginBottom: 8 }}>
             <div
-              style={{cursor:'pointer',fontWeight:'bold',fontSize:17,background:openGroup==='sab'?'#e3f2fd':'#f5f5f5',padding:'8px 12px',borderRadius:8,marginBottom:4}}
-              onClick={()=>setOpenGroup(openGroup==='sab'?null:'sab')}
+              style={{ cursor: 'pointer', fontWeight: 'bold', fontSize: 17, background: openGroup === 'sab' ? '#e3f2fd' : '#f5f5f5', padding: '8px 12px', borderRadius: 8, marginBottom: 4 }}
+              onClick={() => setOpenGroup(openGroup === 'sab' ? null : 'sab')}
             >
-              {openGroup==='sab' ? '▼' : '►'} Sábados
+              {openGroup === 'sab' ? '▼' : '►'} Sábados
             </div>
-            {openGroup==='sab' && (
-              <div style={{padding:'8px 0 0 12px'}}>
+            {openGroup === 'sab' && (
+              <div style={{ padding: '8px 0 0 12px' }}>
                 {franjasSab.map((f, idx) => (
-                  <div key={f.key} style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
+                  <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                     <input
                       type="checkbox"
                       checked={f.checked}
                       onChange={e => {
-                        setFranjasSab(arr => arr.map((fr,i) => i===idx ? { ...fr, checked: e.target.checked } : fr));
+                        setFranjasSab(arr => arr.map((fr, i) => i === idx ? { ...fr, checked: e.target.checked } : fr));
                       }}
                     />
-                    <span style={{minWidth:140}}>{f.label}</span>
+                    <span style={{ minWidth: 140 }}>{f.label}</span>
                     <span>de</span>
                     <input
                       type="number"
@@ -451,9 +451,9 @@ function ModalPromedioOperativaWizard({ onClose }) {
                       value={f.inicio}
                       onChange={e => {
                         let v = e.target.value;
-                        setFranjasSab(arr => arr.map((fr,i) => i===idx ? { ...fr, inicio: v } : fr));
+                        setFranjasSab(arr => arr.map((fr, i) => i === idx ? { ...fr, inicio: v } : fr));
                       }}
-                      style={{width:50}}
+                      style={{ width: 50 }}
                       disabled={!f.checked}
                     />
                     <span>a</span>
@@ -464,35 +464,35 @@ function ModalPromedioOperativaWizard({ onClose }) {
                       value={f.fin}
                       onChange={e => {
                         let v = e.target.value;
-                        setFranjasSab(arr => arr.map((fr,i) => i===idx ? { ...fr, fin: v } : fr));
+                        setFranjasSab(arr => arr.map((fr, i) => i === idx ? { ...fr, fin: v } : fr));
                       }}
-                      style={{width:50}}
+                      style={{ width: 50 }}
                       disabled={!f.checked}
                     />
                     <span>hs</span>
                   </div>
                 ))}
-                {errorSab && <div style={{color:'#d84315',marginTop:8}}>{errorSab}</div>}
+                {errorSab && <div style={{ color: '#d84315', marginTop: 8 }}>{errorSab}</div>}
               </div>
             )}
           </div>
           {/* Domingos y Feriados */}
-          <div style={{marginBottom:8}}>
+          <div style={{ marginBottom: 8 }}>
             <div
-              style={{cursor:'pointer',fontWeight:'bold',fontSize:17,background:openGroup==='dom'?'#e3f2fd':'#f5f5f5',padding:'8px 12px',borderRadius:8,marginBottom:4}}
-              onClick={()=>setOpenGroup(openGroup==='dom'?null:'dom')}
+              style={{ cursor: 'pointer', fontWeight: 'bold', fontSize: 17, background: openGroup === 'dom' ? '#e3f2fd' : '#f5f5f5', padding: '8px 12px', borderRadius: 8, marginBottom: 4 }}
+              onClick={() => setOpenGroup(openGroup === 'dom' ? null : 'dom')}
             >
-              {openGroup==='dom' ? '▼' : '►'} Domingos y Feriados
+              {openGroup === 'dom' ? '▼' : '►'} Domingos y Feriados
             </div>
-            {openGroup==='dom' && (
-              <div style={{padding:'8px 0 0 12px'}}>
-                <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
+            {openGroup === 'dom' && (
+              <div style={{ padding: '8px 0 0 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                   <input
                     type="checkbox"
                     checked={franjaDom.checked}
                     onChange={e => setFranjaDom(fr => ({ ...fr, checked: e.target.checked }))}
                   />
-                  <span style={{minWidth:140}}>{franjaDom.label}</span>
+                  <span style={{ minWidth: 140 }}>{franjaDom.label}</span>
                   <span>de</span>
                   <input
                     type="number"
@@ -500,7 +500,7 @@ function ModalPromedioOperativaWizard({ onClose }) {
                     max={23}
                     value={franjaDom.inicio}
                     onChange={e => setFranjaDom(fr => ({ ...fr, inicio: e.target.value }))}
-                    style={{width:50}}
+                    style={{ width: 50 }}
                     disabled={!franjaDom.checked}
                   />
                   <span>a</span>
@@ -510,12 +510,12 @@ function ModalPromedioOperativaWizard({ onClose }) {
                     max={23}
                     value={franjaDom.fin}
                     onChange={e => setFranjaDom(fr => ({ ...fr, fin: e.target.value }))}
-                    style={{width:50}}
+                    style={{ width: 50 }}
                     disabled={!franjaDom.checked}
                   />
                   <span>hs</span>
                 </div>
-                {errorDom && <div style={{color:'#d84315',marginTop:8}}>{errorDom}</div>}
+                {errorDom && <div style={{ color: '#d84315', marginTop: 8 }}>{errorDom}</div>}
               </div>
             )}
           </div>
@@ -525,11 +525,11 @@ function ModalPromedioOperativaWizard({ onClose }) {
     {
       titulo: "Seleccionar meses de baja y alta demanda",
       contenido: (
-        <div style={{display:'flex',gap:32}}>
+        <div style={{ display: 'flex', gap: 32 }}>
           <div>
-            <div style={{fontWeight:'bold',marginBottom:6}}>Meses de baja demanda</div>
+            <div style={{ fontWeight: 'bold', marginBottom: 6 }}>Meses de baja demanda</div>
             {MESES.map(m => (
-              <label key={m.key} style={{display:'block',marginBottom:2}}>
+              <label key={m.key} style={{ display: 'block', marginBottom: 2 }}>
                 <input
                   type="checkbox"
                   checked={mesesBaja.includes(m.key)}
@@ -547,9 +547,9 @@ function ModalPromedioOperativaWizard({ onClose }) {
             ))}
           </div>
           <div>
-            <div style={{fontWeight:'bold',marginBottom:6}}>Meses de alta demanda</div>
+            <div style={{ fontWeight: 'bold', marginBottom: 6 }}>Meses de alta demanda</div>
             {MESES.map(m => (
-              <label key={m.key} style={{display:'block',marginBottom:2}}>
+              <label key={m.key} style={{ display: 'block', marginBottom: 2 }}>
                 <input
                   type="checkbox"
                   checked={mesesAlta.includes(m.key)}
@@ -566,17 +566,17 @@ function ModalPromedioOperativaWizard({ onClose }) {
               </label>
             ))}
           </div>
-          {errorMeses && <div style={{color:'#d84315',marginTop:12,fontWeight:'bold',width:'100%'}}>{errorMeses}</div>}
+          {errorMeses && <div style={{ color: '#d84315', marginTop: 12, fontWeight: 'bold', width: '100%' }}>{errorMeses}</div>}
         </div>
       )
     },
     {
       titulo: "Seleccionar rango de fechas y días para el informe",
       contenido: (
-        <div style={{display:'flex',flexDirection:'column',gap:24}}>
-          <div style={{display:'flex',gap:32,alignItems:'center'}}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
             <div>
-              <label style={{fontWeight:'bold'}}>Fecha de inicio: </label>
+              <label style={{ fontWeight: 'bold' }}>Fecha de inicio: </label>
               <input
                 type="date"
                 value={fechaInicio}
@@ -585,22 +585,22 @@ function ModalPromedioOperativaWizard({ onClose }) {
               />
             </div>
             <div>
-              <label style={{fontWeight:'bold'}}>Fecha de fin: </label>
+              <label style={{ fontWeight: 'bold' }}>Fecha de fin: </label>
               <input
                 type="date"
                 value={fechaFin}
                 onChange={e => setFechaFin(e.target.value)}
                 min={fechaInicio || undefined}
-                max={(() => { const hoy = new Date().toISOString().slice(0,10); return hoy; })()}
+                max={(() => { const hoy = new Date().toISOString().slice(0, 10); return hoy; })()}
               />
             </div>
           </div>
-          {errorRangoFechas && <div style={{color:'#d84315',marginTop:12,fontWeight:'bold',width:'100%'}}>{errorRangoFechas}</div>}
+          {errorRangoFechas && <div style={{ color: '#d84315', marginTop: 12, fontWeight: 'bold', width: '100%' }}>{errorRangoFechas}</div>}
           <div>
-            <label style={{fontWeight:'bold',marginBottom:8,display:'block'}}>Días de la semana a incluir:</label>
-            <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+            <label style={{ fontWeight: 'bold', marginBottom: 8, display: 'block' }}>Días de la semana a incluir:</label>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
               {DIAS_SEMANA.map(dia => (
-                <label key={dia.key} style={{display:'flex',alignItems:'center',gap:4}}>
+                <label key={dia.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <input
                     type="checkbox"
                     checked={diasSeleccionados.includes(dia.key)}
@@ -617,7 +617,7 @@ function ModalPromedioOperativaWizard({ onClose }) {
             </div>
           </div>
           <div>
-            <label style={{fontWeight:'bold',marginTop:8,display:'flex',alignItems:'center',gap:8}}>
+            <label style={{ fontWeight: 'bold', marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"
                 checked={agruparPorMes}
@@ -633,61 +633,61 @@ function ModalPromedioOperativaWizard({ onClose }) {
       titulo: "Generar reporte de promedio de buses operando",
       contenido: (
         <div>
-          <div style={{marginBottom:16}}>
-            <b>Resumen de selección:</b><br/>
+          <div style={{ marginBottom: 16 }}>
+            <b>Resumen de selección:</b><br />
             <b>Lunes a Viernes:</b>
-            <ul style={{margin:'4px 0 8px 18px',padding:0}}>
-              {franjasLV.filter(f=>f.checked).map(f=>(
+            <ul style={{ margin: '4px 0 8px 18px', padding: 0 }}>
+              {franjasLV.filter(f => f.checked).map(f => (
                 <li key={f.key}>{f.label}: de {f.inicio} a {f.fin} hs</li>
               ))}
             </ul>
             <b>Sábados:</b>
-            <ul style={{margin:'4px 0 8px 18px',padding:0}}>
-              {franjasSab.filter(f=>f.checked).map(f=>(
+            <ul style={{ margin: '4px 0 8px 18px', padding: 0 }}>
+              {franjasSab.filter(f => f.checked).map(f => (
                 <li key={f.key}>{f.label}: de {f.inicio} a {f.fin} hs</li>
               ))}
             </ul>
             <b>Domingos y Feriados:</b>
-            <ul style={{margin:'4px 0 8px 18px',padding:0}}>
+            <ul style={{ margin: '4px 0 8px 18px', padding: 0 }}>
               {franjaDom.checked && (
                 <li>{franjaDom.label}: de {franjaDom.inicio} a {franjaDom.fin} hs</li>
               )}
             </ul>
-            <b>Rango de informe:</b> {fechaInicio || '---'} a {fechaFin || '---'}<br/>
-            <b>Días seleccionados:</b> {diasSeleccionados.length > 0 ? diasSeleccionados.map(d => DIAS_SEMANA.find(x=>x.key===d)?.label).join(', ') : '---'}<br/>
-            <br/>
-            Meses de baja demanda: {mesesBaja.map(m=>MESES.find(mm=>mm.key===m)?.label).join(', ') || '---'}<br/>
-            Meses de alta demanda: {mesesAlta.map(m=>MESES.find(mm=>mm.key===m)?.label).join(', ') || '---'}<br/>
-            <b>El reporte será el promedio de buses operando, por fecha, por franja, por hora, y diferenciando:</b><br/>
-            - Lunes a Viernes<br/>
-            - Sábados<br/>
+            <b>Rango de informe:</b> {fechaInicio || '---'} a {fechaFin || '---'}<br />
+            <b>Días seleccionados:</b> {diasSeleccionados.length > 0 ? diasSeleccionados.map(d => DIAS_SEMANA.find(x => x.key === d)?.label).join(', ') : '---'}<br />
+            <br />
+            Meses de baja demanda: {mesesBaja.map(m => MESES.find(mm => mm.key === m)?.label).join(', ') || '---'}<br />
+            Meses de alta demanda: {mesesAlta.map(m => MESES.find(mm => mm.key === m)?.label).join(', ') || '---'}<br />
+            <b>El reporte será el promedio de buses operando, por fecha, por franja, por hora, y diferenciando:</b><br />
+            - Lunes a Viernes<br />
+            - Sábados<br />
             - Domingos y Feriados
           </div>
-          <div style={{margin:'16px 0 12px 0'}}>
+          <div style={{ margin: '16px 0 12px 0' }}>
             {/* Formato de respuesta eliminado */}
           </div>
-          <div style={{display:'flex',gap:16}}>
+          <div style={{ display: 'flex', gap: 16 }}>
             <button
               onClick={generarReporte}
-              style={{background:'#388e3c',color:'#fff',fontWeight:'bold',padding:'10px 28px',borderRadius:8,border:'none',fontSize:18,cursor:'pointer'}}
+              style={{ background: '#388e3c', color: '#fff', fontWeight: 'bold', padding: '10px 28px', borderRadius: 8, border: 'none', fontSize: 18, cursor: 'pointer' }}
               disabled={generando}
             >
               {generando ? 'Generando...' : 'Generar Reporte'}
             </button>
             <button
               onClick={() => setMostrarGraficoAvanzado(true)}
-              style={{background:'#1976d2',color:'#fff',fontWeight:'bold',padding:'10px 28px',borderRadius:8,border:'none',fontSize:18,cursor:(!reporte||!reporte.data)?'not-allowed':'pointer'}}
+              style={{ background: '#1976d2', color: '#fff', fontWeight: 'bold', padding: '10px 28px', borderRadius: 8, border: 'none', fontSize: 18, cursor: (!reporte || !reporte.data) ? 'not-allowed' : 'pointer' }}
               disabled={!reporte || !reporte.data}
             >
               Generar Gráfico
             </button>
             {(reporte && !reporte.data) && (
-              <div style={{color:'#d84315',marginTop:8}}>
+              <div style={{ color: '#d84315', marginTop: 8 }}>
                 Debe generar el reporte antes de poder visualizar el gráfico.
               </div>
             )}
           </div>
-          {errorReporte && <div style={{color:'#d84315',marginTop:12}}>{errorReporte}</div>}
+          {errorReporte && <div style={{ color: '#d84315', marginTop: 12 }}>{errorReporte}</div>}
           {/* Reporte solo se muestra en el modal maximizado */}
         </div>
       )
@@ -696,47 +696,47 @@ function ModalPromedioOperativaWizard({ onClose }) {
       titulo: 'Reporte generado',
       contenido: (
         <div>
-          <div style={{marginBottom:16}}>
-            <b>Resumen de selección:</b><br/>
+          <div style={{ marginBottom: 16 }}>
+            <b>Resumen de selección:</b><br />
             <b>Lunes a Viernes:</b>
-            <ul style={{margin:'4px 0 8px 18px',padding:0}}>
-              {franjasLV.filter(f=>f.checked).map(f=>(
+            <ul style={{ margin: '4px 0 8px 18px', padding: 0 }}>
+              {franjasLV.filter(f => f.checked).map(f => (
                 <li key={f.key}>{f.label}: de {f.inicio} a {f.fin} hs</li>
               ))}
             </ul>
             <b>Sábados:</b>
-            <ul style={{margin:'4px 0 8px 18px',padding:0}}>
-              {franjasSab.filter(f=>f.checked).map(f=>(
+            <ul style={{ margin: '4px 0 8px 18px', padding: 0 }}>
+              {franjasSab.filter(f => f.checked).map(f => (
                 <li key={f.key}>{f.label}: de {f.inicio} a {f.fin} hs</li>
               ))}
             </ul>
             <b>Domingos y Feriados:</b>
-            <ul style={{margin:'4px 0 8px 18px',padding:0}}>
+            <ul style={{ margin: '4px 0 8px 18px', padding: 0 }}>
               {franjaDom.checked && (
                 <li>{franjaDom.label}: de {franjaDom.inicio} a {franjaDom.fin} hs</li>
               )}
             </ul>
-            Meses de baja demanda: {mesesBaja.map(m=>MESES.find(mm=>mm.key===m)?.label).join(', ') || '---'}<br/>
-            Meses de alta demanda: {mesesAlta.map(m=>MESES.find(mm=>mm.key===m)?.label).join(', ') || '---'}<br/>
-            <b>Rango de informe:</b> {fechaInicio || '---'} a {fechaFin || '---'}<br/>
+            Meses de baja demanda: {mesesBaja.map(m => MESES.find(mm => mm.key === m)?.label).join(', ') || '---'}<br />
+            Meses de alta demanda: {mesesAlta.map(m => MESES.find(mm => mm.key === m)?.label).join(', ') || '---'}<br />
+            <b>Rango de informe:</b> {fechaInicio || '---'} a {fechaFin || '---'}<br />
           </div>
-          <div style={{margin:'16px 0 12px 0'}}>
+          <div style={{ margin: '16px 0 12px 0' }}>
             <button
               onClick={exportarExcel}
-              style={{background:'#388e3c',color:'#fff',fontWeight:'bold',padding:'10px 28px',borderRadius:8,border:'none',fontSize:18,cursor:'pointer'}}
+              style={{ background: '#388e3c', color: '#fff', fontWeight: 'bold', padding: '10px 28px', borderRadius: 8, border: 'none', fontSize: 18, cursor: 'pointer' }}
             >Guardar en Excel</button>
           </div>
           {reporte && reporte.formato === 'tabular' ? (
-            <div style={{marginTop:18,background:'#f3f3f3',padding:16,borderRadius:8,color:'#333',maxHeight:350,overflow:'auto'}}>
-              <b>Reporte:</b><br/>
-              <table style={{width:'100%',fontSize:14,marginTop:8,borderCollapse:'collapse'}}>
+            <div style={{ marginTop: 18, background: '#f3f3f3', padding: 16, borderRadius: 8, color: '#333', maxHeight: 350, overflow: 'auto' }}>
+              <b>Reporte:</b><br />
+              <table style={{ width: '100%', fontSize: 14, marginTop: 8, borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{background:'#e3f2fd'}}>
+                  <tr style={{ background: '#e3f2fd' }}>
                     <th>Código Empresa</th><th>Empresa</th><th>Mes/Año</th><th>Tipo Día</th><th>Demanda</th><th>Franja</th><th>Hora</th><th>Promedio Buses</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {generarDatosReporteCompleto().map((r,i)=>(
+                  {generarDatosReporteCompleto().map((r, i) => (
                     <tr key={i}>
                       <td>{r['CÓDIGO EMPRESA']}</td>
                       <td>{r['EMPRESA']}</td>
@@ -752,7 +752,7 @@ function ModalPromedioOperativaWizard({ onClose }) {
               </table>
             </div>
           ) : reporte && (
-            <pre style={{fontSize:12,marginTop:8,whiteSpace:'pre-wrap'}}>{JSON.stringify(reporte.data,null,2)}</pre>
+            <pre style={{ fontSize: 12, marginTop: 8, whiteSpace: 'pre-wrap' }}>{JSON.stringify(reporte.data, null, 2)}</pre>
           )}
         </div>
       )
@@ -760,23 +760,23 @@ function ModalPromedioOperativaWizard({ onClose }) {
   ];
 
   return (
-    <div style={{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.35)',zIndex:3000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <div style={{background:'#fff',borderRadius:12,padding:32,minWidth:420,maxWidth:600,boxShadow:'0 4px 24px #0003',position:'relative'}}>
-        <button onClick={onClose} style={{position:'absolute',top:18,right:18,fontSize:22,background:'#e3f2fd',color:'#1976d2',border:'2px solid #90caf9',borderRadius:20,width:'auto',height:48,padding:'0 24px',cursor:'pointer',zIndex:3001,fontWeight:'bold',display:'flex',alignItems:'center',gap:8}}>
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.35)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: 12, padding: 32, minWidth: 420, maxWidth: 600, boxShadow: '0 4px 24px #0003', position: 'relative' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 18, right: 18, fontSize: 22, background: '#e3f2fd', color: '#1976d2', border: '2px solid #90caf9', borderRadius: 20, width: 'auto', height: 48, padding: '0 24px', cursor: 'pointer', zIndex: 3001, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 8 }}>
           ← Volver
         </button>
-        <h2 style={{marginTop:0,marginBottom:24,fontSize:28}}>{pasos[step].titulo}</h2>
-        <div style={{minHeight:120}}>{pasos[step].contenido}</div>
-        <div style={{display:'flex',justifyContent:'space-between',marginTop:32}}>
+        <h2 style={{ marginTop: 0, marginBottom: 24, fontSize: 28 }}>{pasos[step].titulo}</h2>
+        <div style={{ minHeight: 120 }}>{pasos[step].contenido}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 32 }}>
           <button
-            onClick={() => setStep(s => Math.max(0, s-1))}
+            onClick={() => setStep(s => Math.max(0, s - 1))}
             disabled={step === 0}
-            style={{background:'#e0e0e0',color:'#333',fontWeight:'bold',padding:'8px 24px',borderRadius:8,border:'none',fontSize:16,cursor:step===0?'not-allowed':'pointer'}}
+            style={{ background: '#e0e0e0', color: '#333', fontWeight: 'bold', padding: '8px 24px', borderRadius: 8, border: 'none', fontSize: 16, cursor: step === 0 ? 'not-allowed' : 'pointer' }}
           >Anterior</button>
           <button
-            onClick={() => setStep(s => Math.min(pasos.length-1, s+1))}
-            disabled={step === pasos.length-1 || (step === 0 && errorFranjas) || (step === 1 && errorMeses) || (step === 2 && errorRangoFechas) || (step === 2 && (!fechaInicio || !fechaFin)) || (step === 3 && generando)}
-            style={{background:'#1976d2',color:'#fff',fontWeight:'bold',padding:'8px 24px',borderRadius:8,border:'none',fontSize:16,cursor:step===pasos.length-1|| (step === 0 && errorFranjas) || (step === 1 && errorMeses) || (step === 2 && errorRangoFechas) || (step === 2 && (!fechaInicio || !fechaFin)) || (step === 3 && generando)?'not-allowed':'pointer'}}
+            onClick={() => setStep(s => Math.min(pasos.length - 1, s + 1))}
+            disabled={step === pasos.length - 1 || (step === 0 && errorFranjas) || (step === 1 && errorMeses) || (step === 2 && errorRangoFechas) || (step === 2 && (!fechaInicio || !fechaFin)) || (step === 3 && generando)}
+            style={{ background: '#1976d2', color: '#fff', fontWeight: 'bold', padding: '8px 24px', borderRadius: 8, border: 'none', fontSize: 16, cursor: step === pasos.length - 1 || (step === 0 && errorFranjas) || (step === 1 && errorMeses) || (step === 2 && errorRangoFechas) || (step === 2 && (!fechaInicio || !fechaFin)) || (step === 3 && generando) ? 'not-allowed' : 'pointer' }}
           >Siguiente</button>
         </div>
       </div>
@@ -810,7 +810,7 @@ function ModalPromedioOperativaWizard({ onClose }) {
 function GraficoPromedioBuses({ data, nombreFranjaMap, onClose }) {
   // Extraer valores únicos para los selectores
   const empresas = [...new Set(data.map(d => d.empresa_nombre))];
-  const meses = [...new Set(data.map(d => `${String(d.mes).padStart(2,'0')}/${d.anio}`))];
+  const meses = [...new Set(data.map(d => `${String(d.mes).padStart(2, '0')}/${d.anio}`))];
   const tipoDias = [...new Set(data.map(d => d.tipo_dia))];
   const franjas = [...new Set(data.map(d => d.franja))];
 
@@ -836,7 +836,7 @@ function GraficoPromedioBuses({ data, nombreFranjaMap, onClose }) {
   // Filtrar datos según selección y rango de horas
   const datosFiltrados = data.filter(d =>
     d.empresa_nombre === empresa &&
-    `${String(d.mes).padStart(2,'0')}/${d.anio}` === mes &&
+    `${String(d.mes).padStart(2, '0')}/${d.anio}` === mes &&
     d.tipo_dia === tipoDia &&
     d.franja === franja &&
     (rango ? (d.hora >= rango.inicio && d.hora <= rango.fin) : true)
@@ -861,19 +861,19 @@ function GraficoPromedioBuses({ data, nombreFranjaMap, onClose }) {
   };
 
   return (
-    <div style={{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.35)',zIndex:4000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <div style={{background:'#fff',borderRadius:12,padding:32,minWidth:420,maxWidth:700,boxShadow:'0 4px 24px #0003',position:'relative'}}>
-        <button onClick={onClose} style={{position:'absolute',top:18,right:18,fontSize:22,background:'#e3f2fd',color:'#1976d2',border:'2px solid #90caf9',borderRadius:20,width:'auto',height:48,padding:'0 24px',cursor:'pointer',zIndex:3001,fontWeight:'bold',display:'flex',alignItems:'center',gap:8}}>
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.35)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: 12, padding: 32, minWidth: 420, maxWidth: 700, boxShadow: '0 4px 24px #0003', position: 'relative' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 18, right: 18, fontSize: 22, background: '#e3f2fd', color: '#1976d2', border: '2px solid #90caf9', borderRadius: 20, width: 'auto', height: 48, padding: '0 24px', cursor: 'pointer', zIndex: 3001, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 8 }}>
           Cerrar
         </button>
         <h3>Gráfico de Promedio de Buses</h3>
-        <div style={{display:'flex',gap:12,marginBottom:18}}>
-          <select value={empresa} onChange={e=>setEmpresa(e.target.value)}>{empresas.map(e=><option key={e}>{e}</option>)}</select>
-          <select value={mes} onChange={e=>setMes(e.target.value)}>{meses.map(m=><option key={m}>{m}</option>)}</select>
-          <select value={tipoDia} onChange={e=>setTipoDia(e.target.value)}>{tipoDias.map(t=><option key={t}>{t}</option>)}</select>
-          <select value={franja} onChange={e=>setFranja(e.target.value)}>{franjas.map(f=><option key={f}>{nombreFranjaMap[f]||f}</option>)}</select>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 18 }}>
+          <select value={empresa} onChange={e => setEmpresa(e.target.value)}>{empresas.map(e => <option key={e}>{e}</option>)}</select>
+          <select value={mes} onChange={e => setMes(e.target.value)}>{meses.map(m => <option key={m}>{m}</option>)}</select>
+          <select value={tipoDia} onChange={e => setTipoDia(e.target.value)}>{tipoDias.map(t => <option key={t}>{t}</option>)}</select>
+          <select value={franja} onChange={e => setFranja(e.target.value)}>{franjas.map(f => <option key={f}>{nombreFranjaMap[f] || f}</option>)}</select>
         </div>
-        <div style={{width:600, height:350}}>
+        <div style={{ width: 600, height: 350 }}>
           <Line data={chartData} />
         </div>
       </div>

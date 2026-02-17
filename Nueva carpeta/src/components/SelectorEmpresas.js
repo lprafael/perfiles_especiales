@@ -7,7 +7,7 @@ function SelectorEmpresas() {
 
   useEffect(() => {
     // Define la URL de tu backend Express
-    const API_URL = 'http://192.168.100.191:3000/empresas'; // Ajusta si tu backend corre en otro puerto o tiene una ruta base diferente
+    const API_URL = 'http://localhost:3000/empresas'; // Ajusta si tu backend corre en otro puerto o tiene una ruta base diferente
 
     fetch(API_URL)
       .then(response => {
