@@ -20,9 +20,10 @@ RUN npm run build
 FROM nginx:alpine
 # Copiar configuración de Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-# Crear subcarpeta y copiar archivos
+# Crear directorios y copiar archivos en ambos lugares para máxima compatibilidad
 RUN mkdir -p /usr/share/nginx/html/monitoreo_vmt
 COPY --from=build /app/build /usr/share/nginx/html/monitoreo_vmt
+COPY --from=build /app/build /usr/share/nginx/html
 EXPOSE 3003
 CMD ["nginx", "-g", "daemon off;"]
 
