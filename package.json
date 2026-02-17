@@ -2,6 +2,7 @@
   "name": "sist-transporte",
   "version": "0.1.0",
   "private": true,
+  "homepage": "/monitoreo_vmt/",
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
     "@testing-library/dom": "^10.4.0",
