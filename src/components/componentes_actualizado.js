@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { API_BASE } from "../config";
-
-const PUBLIC_URL = process.env.PUBLIC_URL || "";
 // import MapaCiudades from "./mapa";
 import L from "leaflet";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -18,6 +16,8 @@ import ModalPromedioOperativaWizard from './ModalPromedioOperativaWizard';
 import Papa from 'papaparse';
 import ModalReporteRutas from "./ModalReporteRutas";
 import ReporteServiciosModal from "./ReporteServiciosModal";
+
+const PUBLIC_URL = process.env.PUBLIC_URL || "";
 
 // Esta parte genera la cabecera de página
 function CabeceradePagina() {
