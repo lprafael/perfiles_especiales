@@ -20,25 +20,27 @@ import ReporteServiciosModal from "./ReporteServiciosModal";
 const PUBLIC_URL = process.env.PUBLIC_URL || "";
 
 // Esta parte genera la cabecera de página
-function CabeceradePagina() {
+function CabeceradePagina({ onToggleSidebar }) {
   return (
-    <header>
-      <meta charSet="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>CIDSA - VMT</title>
-      {/* Logo CIDSA (debe estar en public/imágenes/Logo_CIDSA.jpg) */}
-      <h1>
-        Sistema de Transporte Urbano - Área Metropolitana de Asunción -
-        Viceministerio de Transporte(MOPC)
-      </h1>
-      <img
-        src={`${PUBLIC_URL}/imágenes/Logo_CIDSA2.jpg`}
-        alt="Logo CIDSA"
-        style={{ height: 60, marginRight: 16 }}
-      />
+    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+      <button className="hamburger-btn" onClick={onToggleSidebar} title="Mostrar/Ocultar menú">
+        ☰
+      </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
+        <h1 style={{ margin: 0, fontSize: '1.2rem' }}>
+          Sistema de Transporte Urbano - Área Metropolitana de Asunción -
+          Viceministerio de Transporte(MOPC)
+        </h1>
+        <img
+          src={`${PUBLIC_URL}/imágenes/Logo_CIDSA2.jpg`}
+          alt="Logo CIDSA"
+          style={{ height: 60, marginLeft: 16 }}
+        />
+      </div>
     </header>
   );
 }
+
 
 // Distancia en metros entre dos puntos lat/lng (fórmula Haversine)
 function distanciaEnMetros(p1, p2) {
@@ -155,7 +157,7 @@ function MiPaginaExistente() {
   // Configuración de la URL base del backend
 
   // Estado para controlar la visibilidad del sidebar izquierdo
-  const [mostrarSidebarIzquierdo, setMostrarSidebarIzquierdo] = useState(false);
+  const [mostrarSidebarIzquierdo, setMostrarSidebarIzquierdo] = useState(true);
 
   // Estado para la simulación de buses
   const [simulacionEstado, setSimulacionEstado] = useState(null);
@@ -1526,7 +1528,7 @@ function MiPaginaExistente() {
 
   return (
     <div className="container" style={{ border: "2px solid blue" }}>
-      <CabeceradePagina />
+      <CabeceradePagina onToggleSidebar={() => setMostrarSidebarIzquierdo(!mostrarSidebarIzquierdo)} />
       <div className="mobile-tabs">
         <div className="mobile-tab active" data-tab="info">
           Información
@@ -1537,7 +1539,8 @@ function MiPaginaExistente() {
       </div>
       <div className="content">
         {/* Sidebar principal para selectores y botones */}
-        <div className="sidebar" style={{ border: "2px solid blue" }}>
+        <div className={`sidebar ${!mostrarSidebarIzquierdo ? 'hidden' : ''}`} style={{ border: "2px solid blue" }}>
+
           <div className="selector">
             <b><label htmlFor="empresa-select">Seleccione una empresa:</label></b>
             <select
