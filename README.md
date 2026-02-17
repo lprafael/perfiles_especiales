@@ -75,6 +75,40 @@ Para que la app funcione en un servidor, el frontend debe llamar al backend por 
 
 ---
 
+## Frontend en HTTPS (ej. https://sistemas.mopc.gov.py/monitoreo_vmt/)
+
+Si el frontend se sirve por **HTTPS**, el navegador exige que el API también sea **HTTPS** y que no sea una IP privada (evita Mixed Content y bloqueo "Private Network Access"). Hay que exponer el backend detrás del mismo dominio vía **proxy reverso**.
+
+### 1. Exponer el API por HTTPS en el mismo dominio (nginx)
+
+En el servidor que atiende `sistemas.mopc.gov.py`, agregar una ubicación que envíe `/api` al backend (por ejemplo en 172.16.222.222:8010):
+
+```nginx
+# Dentro del server que ya tiene SSL para sistemas.mopc.gov.py
+location /api/ {
+    proxy_pass http://172.16.222.222:8010/;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+Así, `https://sistemas.mopc.gov.py/api/empresas` se reenvía a `http://172.16.222.222:8010/empresas` de forma interna.
+
+### 2. Build del frontend con la URL HTTPS del API
+
+Construir el frontend apuntando al API por HTTPS:
+
+```bash
+REACT_APP_API_URL=https://sistemas.mopc.gov.py/api npm run build
+```
+
+Desplegar el contenido de la carpeta `build` donde se sirve `/monitoreo_vmt/`. El frontend llamará a `https://sistemas.mopc.gov.py/api/...` y dejarán de aparecer Mixed Content y el bloqueo por "local address space".
+
+---
+
 ## Subir a GitHub
 
 Repositorio: https://github.com/lprafael/sist_transporte
