@@ -1,0 +1,27 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Instalamos dependencias del sistema para psycopg2 si fuera necesario (usamos binary para simplificar)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalamos las dependencias de Python
+RUN pip install --no-cache-dir \
+    streamlit \
+    pandas \
+    psycopg2-binary \
+    numpy \
+    plotly \
+    python-dotenv
+
+# Copiamos el script
+COPY analisis_transbordos_streamlit.py .
+
+# Exponemos el puerto de Streamlit
+EXPOSE 8501
+
+# Comando para ejecutar Streamlit con la ruta base configurada
+CMD ["streamlit", "run", "analisis_transbordos_streamlit.py", "--server.port", "8501", "--server.baseUrlPath", "/monitoreo_vmt/transbordos", "--server.address", "0.0.0.0"]
