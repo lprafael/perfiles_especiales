@@ -7,7 +7,8 @@
  */
 const isProd = window.location.hostname === "sistemas.mopc.gov.py";
 
-export const API_BASE = isProd 
-  ? "https://sistemas.mopc.gov.py/api" 
+export const API_BASE = isProd
+  ? "https://sistemas.mopc.gov.py/monitoreo_vmt/api"
   : (process.env.REACT_APP_API_URL || "http://127.0.0.1:8010");
+
 
