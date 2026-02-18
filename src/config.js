@@ -5,4 +5,9 @@
  *   Ejemplo: REACT_APP_API_URL=https://sistemas.mopc.gov.py/api npm run build
  *   (El API debe estar expuesto por HTTPS en el mismo dominio o uno con certificado válido.)
  */
-export const API_BASE = process.env.REACT_APP_API_URL || "http://127.0.0.1:8010";
+const isProd = window.location.hostname === "sistemas.mopc.gov.py";
+
+export const API_BASE = isProd 
+  ? "https://sistemas.mopc.gov.py/api" 
+  : (process.env.REACT_APP_API_URL || "http://127.0.0.1:8010");
+
