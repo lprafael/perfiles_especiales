@@ -53,6 +53,19 @@ function distanciaEnMetros(p1, p2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Calcular el rumbo (bearing) entre dos puntos en grados
+function calcularRumbo(p1, p2) {
+  const dLon = (p2.lng - p1.lng) * (Math.PI / 180);
+  const lat1 = p1.lat * (Math.PI / 180);
+  const lat2 = p2.lat * (Math.PI / 180);
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  const brng = Math.atan2(y, x) * (180 / Math.PI);
+  return (brng + 360) % 360;
+}
+
+
 // Agrupar puntos cercanos y calcular su punto medio
 // Esta función agrupa puntos que están dentro de un umbral dado (en metros) y devuelve el centro de cada grupo
 function agruparCercanos(puntos, umbral = 100) {
@@ -628,18 +641,37 @@ function MiPaginaExistente() {
       mapInstance.current.removeLayer(window.busesLayer);
       window.busesLayer = null;
     }
-    // Obtener última hora
+    // Obtener última hora (parámetros informativos para el usuario si se desea, 
+    // pero el backend 'n=2' es lo que realmente usaremos)
     const ahora = new Date();
-    const haceUnaHora = new Date(ahora.getTime() - 60 * 60 * 1000);
-    // Traer solo la última posición de cada bus en la última hora
-    let buses = [];
+
+    // Traer los 2 últimos puntos de cada bus
+    let rawBuses = [];
     try {
-      const res = await fetch(`${API_BASE}/empresas/${empresaId}/ultimos_gps?desde=${haceUnaHora.toISOString()}&hasta=${ahora.toISOString()}&solo_ultimo=1`);
-      buses = await res.json();
+      const res = await fetch(`${API_BASE}/empresas/${empresaId}/ultimos_gps?n=2`);
+      rawBuses = await res.json();
+      console.log("--- DATOS RECIBIDOS DEL SERVIDOR ---");
+      console.table(rawBuses.map(b => ({ mean_id: b.mean_id, num_puntos: b.puntos.length, fecha1: b.puntos[0]?.fecha_hora })));
     } catch (e) {
       mostrarAviso("Error al obtener buses en tiempo real", "error");
       return;
     }
+
+    // Adaptar los datos para mantener compatibilidad con el resto del sistema
+    const buses = rawBuses
+      .filter(b => b.puntos && b.puntos.length > 0)
+      .map(b => {
+        const pActual = b.puntos[0];
+        return {
+          ...pActual,
+          mean_id: b.mean_id,
+          // Renombrar campos si vienen como latitude/longitude
+          lat: parseFloat(pActual.latitude || pActual.latitud || pActual.lat),
+          lng: parseFloat(pActual.longitude || pActual.longitud || pActual.lng),
+          puntos: b.puntos
+        };
+      });
+
     setBusesTiempoReal(buses);
     setBusesTiempoRealSeleccionados(buses.map(b => b.mean_id));
     setMostrarSidebarDerecho(true);
@@ -650,8 +682,10 @@ function MiPaginaExistente() {
       buses,
       busesSeleccionados: buses.map(b => b.mean_id)
     });
+
     if (!mapInstance.current) return;
     window.busesLayer = L.layerGroup().addTo(mapInstance.current);
+
     // Crear buffer alrededor de todos los shapes de la empresa
     let bufferPolygons = [];
     if (shapeLayer.current && window.turf) {
@@ -675,6 +709,7 @@ function MiPaginaExistente() {
         }
       });
     }
+
     // Unir todos los buffers en uno solo
     let unionBuffer = null;
     if (bufferPolygons.length === 1) {
@@ -689,6 +724,7 @@ function MiPaginaExistente() {
         }
       }
     }
+
     // Dibujar el buffer en el mapa
     if (unionBuffer && unionBuffer.geometry && (unionBuffer.geometry.type === "Polygon" || unionBuffer.geometry.type === "MultiPolygon")) {
       const polys = unionBuffer.geometry.type === "Polygon" ? [unionBuffer.geometry.coordinates] : unionBuffer.geometry.coordinates;
@@ -705,6 +741,7 @@ function MiPaginaExistente() {
         });
       });
     }
+
     // Función para saber si un punto está dentro del buffer
     function estaEnBuffer(lat, lng) {
       if (!window.turf || !unionBuffer) return false;
@@ -717,9 +754,9 @@ function MiPaginaExistente() {
       }
       return dentro;
     }
-    // Iconos
+
+    // Iconos estándar
     const greenIcon = new L.Icon({
-      // Usar CDN jsDelivr en lugar de raw.githubusercontent para mayor disponibilidad
       iconUrl: "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-green.png",
       shadowUrl: shadowIcon,
       iconSize: [25, 41],
@@ -728,7 +765,6 @@ function MiPaginaExistente() {
       shadowSize: [41, 41],
     });
     const redIcon = new L.Icon({
-      // Usar CDN jsDelivr en lugar de raw.githubusercontent para mayor disponibilidad
       iconUrl: "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-red.png",
       shadowUrl: shadowIcon,
       iconSize: [25, 41],
@@ -736,21 +772,80 @@ function MiPaginaExistente() {
       popupAnchor: [1, -34],
       shadowSize: [41, 41],
     });
+
     // Dibujar buses
     buses.forEach(bus => {
-      const lat = parseFloat(bus.latitud || bus.latitude);
-      const lng = parseFloat(bus.longitud || bus.longitude);
+      const lat = bus.lat;
+      const lng = bus.lng;
       if (isNaN(lat) || isNaN(lng)) return;
+
       const inside = estaEnBuffer(lat, lng);
-      const icon = inside ? greenIcon : redIcon;
+
+      let rumbo = 0;
+      let velocidad = 0;
+      let mostrarFlecha = false;
+
+      if (bus.puntos && bus.puntos.length >= 2) {
+        const pActual = bus.puntos[0];
+        const pAnterior = bus.puntos[1];
+        const latActual = parseFloat(pActual.latitude || pActual.latitud || pActual.lat);
+        const lngActual = parseFloat(pActual.longitude || pActual.longitud || pActual.lng);
+        const latAnt = parseFloat(pAnterior.latitude || pAnterior.latitud || pAnterior.lat);
+        const lngAnt = parseFloat(pAnterior.longitude || pAnterior.longitud || pAnterior.lng);
+
+        if (!isNaN(latAnt) && !isNaN(lngAnt)) {
+          const dist = distanciaEnMetros({ lat: latAnt, lng: lngAnt }, { lat: latActual, lng: lngActual });
+          if (dist > 1) { // Umbral de movimiento de 1 metro
+            rumbo = calcularRumbo({ lat: latAnt, lng: lngAnt }, { lat: latActual, lng: lngActual });
+            mostrarFlecha = true;
+
+            const t1 = new Date(pAnterior.fecha_hora).getTime();
+            const t2 = new Date(pActual.fecha_hora).getTime();
+            const dt = (t2 - t1) / 1000;
+            if (dt > 0) {
+              velocidad = (dist / dt) * 3.6; // km/h
+            }
+          }
+        }
+      }
+
+
+      let icon;
+      const speedLabel = mostrarFlecha ? `<div style="background: white; border: 1px solid black; border-radius: 3px; padding: 0 2px; font-size: 10px; margin-top: 2px; white-space: nowrap;">${velocidad.toFixed(0)} km/h</div>` : '';
+
+      if (mostrarFlecha) {
+        const color = inside ? '#2e7d32' : '#c62828';
+        icon = L.divIcon({
+          html: `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                  <div style="transform: rotate(${rumbo}deg); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z" fill="${color}" stroke="white" stroke-width="1.5"/>
+                    </svg>
+                  </div>
+                  ${speedLabel}
+                </div>`,
+          className: '',
+          iconSize: [30, 45],
+          iconAnchor: [15, 15]
+        });
+      } else {
+        icon = inside ? greenIcon : redIcon;
+      }
+
       L.marker([lat, lng], { icon })
         .addTo(window.busesLayer)
-        .bindPopup(
-          `Bus: ${bus.mean_id || ""}<br>Fecha: ${bus.fecha_hora || ""}`
-        );
+        .bindPopup(`
+          <div style="font-family: Arial, sans-serif;">
+            <b style="color: #1a73e8;">Bus: ${bus.mean_id}</b><br>
+            <b>Última actualización:</b> ${bus.fecha_hora?.slice(11, 19) || ""}<br>
+            ${mostrarFlecha ? `<b>Velocidad aprox:</b> ${velocidad.toFixed(1)} km/h<br>` : '<b>Estado:</b> Detenido o mov. lento<br>'}
+            <b>Ubicación:</b> ${inside ? '<span style="color: green;">En Ruta</span>' : '<span style="color: red;">Fuera de Ruta</span>'}
+          </div>
+        `);
     });
     mostrarAviso(`Se mostraron ${buses.length} buses en tiempo real`, "success");
   };
+
 
   useEffect(() => {
     // Inicialización del mapa
@@ -1081,29 +1176,37 @@ function MiPaginaExistente() {
           mapInstance.current.removeLayer(window.busesLayer);
           window.busesLayer = null;
         }
-        // Obtener última hora
+        // Obtener datos de los últimos 2 puntos
         const ahora = new Date();
-        const haceUnaHora = new Date(ahora.getTime() - 60 * 60 * 1000);
-        let buses = [];
+        let rawBuses = [];
         try {
-          const res = await fetch(`${API_BASE}/empresas/${empresaId}/ultimos_gps?desde=${haceUnaHora.toISOString()}&hasta=${ahora.toISOString()}&solo_ultimo=1`);
-          buses = await res.json();
+          const res = await fetch(`${API_BASE}/empresas/${empresaId}/ultimos_gps?n=2`);
+          rawBuses = await res.json();
+
         } catch (e) {
-          mostrarAviso("Error al obtener buses en tiempo real", "error");
+          console.error("Error al refrescar buses:", e);
           return;
         }
+
+        const buses = rawBuses
+          .filter(b => b.puntos && b.puntos.length > 0)
+          .map(b => {
+            const pActual = b.puntos[0];
+            return {
+              ...pActual,
+              mean_id: b.mean_id,
+              lat: parseFloat(pActual.latitude || pActual.latitud || pActual.lat),
+              lng: parseFloat(pActual.longitude || pActual.longitud || pActual.lng),
+              puntos: b.puntos
+            };
+          });
+
         setBusesTiempoReal(buses);
-        setBusesTiempoRealSeleccionados(buses.map(b => b.mean_id));
-        setInfoServicios({
-          tipo: 'buses-tiempo-real',
-          empresaId,
-          fecha: ahora.toISOString().slice(0, 10),
-          buses,
-          busesSeleccionados: buses.map(b => b.mean_id)
-        });
+
         if (!mapInstance.current) return;
         window.busesLayer = L.layerGroup().addTo(mapInstance.current);
-        // Crear buffer alrededor de todos los shapes de la empresa
+
+        // Geocercas/Buffer (Lógica idéntica para consistencia)
         let bufferPolygons = [];
         if (shapeLayer.current && window.turf) {
           shapeLayer.current.eachLayer(layer => {
@@ -1112,105 +1215,95 @@ function MiPaginaExistente() {
               if (Array.isArray(latlngs) && latlngs.length > 1) {
                 const lineFeature = {
                   type: "Feature",
-                  geometry: {
-                    type: "LineString",
-                    coordinates: latlngs.map(p => [p.lng, p.lat])
-                  }
+                  geometry: { type: "LineString", coordinates: latlngs.map(p => [p.lng, p.lat]) }
                 };
-                const bufferKm = geocercaRadio / 1000;
-                const buffer = window.turf.buffer(lineFeature, bufferKm, { units: "kilometers" });
-                if (buffer && buffer.geometry && (buffer.geometry.type === "Polygon" || buffer.geometry.type === "MultiPolygon")) {
-                  bufferPolygons.push(buffer);
-                }
+                const buffer = window.turf.buffer(lineFeature, geocercaRadio / 1000, { units: "kilometers" });
+                if (buffer && buffer.geometry) bufferPolygons.push(buffer);
               }
             }
           });
         }
-        // Unir todos los buffers en uno solo
         let unionBuffer = null;
-        if (bufferPolygons.length === 1) {
-          unionBuffer = bufferPolygons[0];
-        } else if (bufferPolygons.length > 1 && window.turf.union) {
+        if (bufferPolygons.length > 0 && window.turf.union) {
           unionBuffer = bufferPolygons[0];
           for (let i = 1; i < bufferPolygons.length; i++) {
-            try {
-              unionBuffer = window.turf.union(unionBuffer, bufferPolygons[i]);
-            } catch (e) {
-              // turf.union puede fallar con geometrías complejas
-            }
+            try { unionBuffer = window.turf.union(unionBuffer, bufferPolygons[i]); } catch (e) { }
           }
         }
-        // Dibujar el buffer en el mapa
-        if (unionBuffer && unionBuffer.geometry && (unionBuffer.geometry.type === "Polygon" || unionBuffer.geometry.type === "MultiPolygon")) {
+        if (unionBuffer && unionBuffer.geometry) {
           const polys = unionBuffer.geometry.type === "Polygon" ? [unionBuffer.geometry.coordinates] : unionBuffer.geometry.coordinates;
           polys.forEach(coordsArr => {
             coordsArr.forEach(ring => {
               const latlngs = ring.map(([lng, lat]) => [lat, lng]);
-              L.polygon(latlngs, {
-                color: "#3388ff",
-                fillColor: "#3388ff",
-                fillOpacity: 0.12,
-                weight: 2,
-                dashArray: "4 4"
-              }).addTo(window.busesLayer);
+              L.polygon(latlngs, { color: "#3388ff", fillOpacity: 0.12, weight: 2, dashArray: "4 4" }).addTo(window.busesLayer);
             });
           });
         }
-        // Función para saber si un punto está dentro del buffer
-        function estaEnBuffer(lat, lng) {
+
+        const estaEnBuffer = (lat, lng) => {
           if (!window.turf || !unionBuffer) return false;
-          const pt = { type: "Feature", geometry: { type: "Point", coordinates: [lng, lat] } };
-          let dentro = false;
-          try {
-            dentro = window.turf.booleanPointInPolygon(pt, unionBuffer);
-          } catch (e) {
-            dentro = false;
+          try { return window.turf.booleanPointInPolygon({ type: "Feature", geometry: { type: "Point", coordinates: [lng, lat] } }, unionBuffer); } catch (e) { return false; }
+        };
+
+        const greenIcon = new L.Icon({ iconUrl: "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-green.png", shadowUrl: shadowIcon, iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
+        const redIcon = new L.Icon({ iconUrl: "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-red.png", shadowUrl: shadowIcon, iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
+
+        // Filtrar por selección si existe
+        let busesParaMostrar = buses;
+        if (busesTiempoRealSeleccionados.length > 0 && busesTiempoRealSeleccionados.length < buses.length) {
+          busesParaMostrar = buses.filter(b => busesTiempoRealSeleccionados.includes(b.mean_id));
+        }
+
+        busesParaMostrar.forEach(bus => {
+          const inside = estaEnBuffer(bus.lat, bus.lng);
+          let rumbo = 0, velocidad = 0, mostrarFlecha = false;
+          if (bus.puntos && bus.puntos.length >= 2) {
+            const pActual = bus.puntos[0], pAnterior = bus.puntos[1];
+            const lat1 = parseFloat(pAnterior.latitude || pAnterior.latitud || pAnterior.lat), lng1 = parseFloat(pAnterior.longitude || pAnterior.longitud || pAnterior.lng);
+            const dist = distanciaEnMetros({ lat: lat1, lng: lng1 }, { lat: bus.lat, lng: bus.lng });
+            if (dist > 1) { // Umbral de movimiento de 1 metro
+              rumbo = calcularRumbo({ lat: lat1, lng: lng1 }, { lat: bus.lat, lng: bus.lng });
+              mostrarFlecha = true;
+              const dt = (new Date(pActual.fecha_hora).getTime() - new Date(pAnterior.fecha_hora).getTime()) / 1000;
+              if (dt > 0) velocidad = (dist / dt) * 3.6;
+            }
           }
-          return dentro;
-        }
-        // Iconos
-        const greenIcon = new L.Icon({
-          // Usar CDN jsDelivr en lugar de raw.githubusercontent para mayor disponibilidad
-          iconUrl: "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-green.png",
-          shadowUrl: shadowIcon,
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41],
-        });
-        const redIcon = new L.Icon({
-          // Usar CDN jsDelivr en lugar de raw.githubusercontent para mayor disponibilidad
-          iconUrl: "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-red.png",
-          shadowUrl: shadowIcon,
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41],
-        });
-        // Dibujar buses (solo los seleccionados o todos si no hay selección manual)
-        let busesFiltrados;
-        if (
-          busesTiempoRealSeleccionados.length === 0 ||
-          busesTiempoRealSeleccionados.length === buses.length
-        ) {
-          busesFiltrados = buses;
-        } else {
-          busesFiltrados = buses.filter(bus => busesTiempoRealSeleccionados.includes(bus.mean_id));
-        }
-        busesFiltrados.forEach(bus => {
-          const lat = parseFloat(bus.latitud || bus.latitude);
-          const lng = parseFloat(bus.longitud || bus.longitude);
-          if (isNaN(lat) || isNaN(lng)) return;
-          const inside = estaEnBuffer(lat, lng);
-          const icon = inside ? greenIcon : redIcon;
-          L.marker([lat, lng], { icon })
+
+
+          let icon;
+          const speedLabel = mostrarFlecha ? `<div style="background: white; border: 1px solid black; border-radius: 3px; padding: 0 2px; font-size: 10px; margin-top: 2px; white-space: nowrap;">${velocidad.toFixed(0)} km/h</div>` : '';
+
+          if (mostrarFlecha) {
+            const color = inside ? '#2e7d32' : '#c62828';
+            icon = L.divIcon({
+              html: `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                      <div style="transform: rotate(${rumbo}deg); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z" fill="${color}" stroke="white" stroke-width="1.5"/>
+                        </svg>
+                      </div>
+                      ${speedLabel}
+                    </div>`,
+              className: '', iconSize: [30, 45], iconAnchor: [15, 15]
+            });
+          } else { icon = inside ? greenIcon : redIcon; }
+
+
+          L.marker([bus.lat, bus.lng], { icon })
             .addTo(window.busesLayer)
-            .bindPopup(`Bus: ${bus.mean_id || ""}<br>Fecha: ${bus.fecha_hora || ""}`);
+            .bindPopup(`
+              <div style="font-family: Arial, sans-serif;">
+                <b style="color: #1a73e8;">Bus: ${bus.mean_id}</b><br>
+                <b>Actualización:</b> ${bus.fecha_hora?.slice(11, 19) || ""}<br>
+                ${mostrarFlecha ? `<b>Velocidad:</b> ${velocidad.toFixed(1)} km/h<br>` : '<b>Estado:</b> Estacionado/Lento<br>'}
+                <b>Ubicación:</b> ${inside ? '<span style="color: green;">En Ruta</span>' : '<span style="color: red;">Fuera de Ruta</span>'}
+              </div>
+            `);
         });
-        mostrarAviso(`Se mostraron ${buses.length} buses en tiempo real`, "success");
       };
       pintarBuses();
       busesTiempoRealInterval.current = setInterval(pintarBuses, 10000);
+
     } else {
       if (busesTiempoRealInterval.current) {
         clearInterval(busesTiempoRealInterval.current);

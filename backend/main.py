@@ -327,23 +327,61 @@ def root():
 
 # ÚLTIMOS GPS DE BUSES DE LA EMPRESA
 @app.get("/empresas/{empresa_id}/ultimos_gps")
-def obtener_ultimos_gps(empresa_id: str):
+def obtener_ultimos_gps(empresa_id: str, n: int = Query(1)):
+    """
+    Obtiene los últimos N puntos GPS de cada bus de la empresa.
+    Si n=1, devuelve el último punto. Si n>1, devuelve una lista de puntos por cada bus.
+    """
     try:
         with get_conn_monitoreo() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                # Establecer el nivel de aislamiento justo después de abrir la conexión
                 cursor.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;")
-                cursor.execute("""
-                    SELECT DISTINCT ON (mean_id) mean_id, latitude, longitude, fecha_hora
+                
+                # Usar ROW_NUMBER para obtener los últimos N puntos por cada bus
+                # Esto funciona tanto para N=1 como para N>1
+                query = """
+                    SELECT mean_id, latitude, longitude, fecha_hora
+                    FROM (
+                        SELECT mean_id, latitude, longitude, fecha_hora,
+                               ROW_NUMBER() OVER (PARTITION BY mean_id ORDER BY fecha_hora DESC) as rn
                         FROM app_monitoreo_mensajeoperativo
                         WHERE agency_id = %s
-                        AND fecha_hora BETWEEN (NOW() - INTERVAL '2 hour') AND NOW()
-                        ORDER BY mean_id, fecha_hora DESC
-                """, (empresa_id,))
-                return cursor.fetchall()
+                        AND fecha_hora BETWEEN (NOW() - INTERVAL '4 hour') AND NOW()
+                    ) t
+                    WHERE rn <= %s
+                    ORDER BY mean_id, fecha_hora DESC
+                """
+                cursor.execute(query, (empresa_id, n))
+                rows = cursor.fetchall()
+                
+                # Agrupar por mean_id para devolver el formato esperado por el frontend
+                buses_dict = {}
+                for row in rows:
+                    mid = row['mean_id']
+                    if mid not in buses_dict:
+                        buses_dict[mid] = []
+                    
+                    # Limpiar y convertir datos
+                    punto = {
+                        "lat": float(row['latitude']) if row['latitude'] is not None else 0,
+                        "lng": float(row['longitude']) if row['longitude'] is not None else 0,
+                        "fecha_hora": row['fecha_hora'].isoformat() if hasattr(row['fecha_hora'], 'isoformat') else str(row['fecha_hora'])
+                    }
+                    buses_dict[mid].append(punto)
+                
+                # Devolver formato consistente: lista de objetos con mean_id y puntos
+                return [{"mean_id": mid, "puntos": puntos} for mid, puntos in buses_dict.items()]
+
+
+                
     except Exception as e:
-        print("Error al obtener últimos GPS de buses:", e)
-        raise HTTPException(status_code=500, detail="Error al obtener últimos GPS de buses")
+        import traceback
+        print(f"ERROR en /ultimos_gps para empresa {empresa_id} (n={n}):")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 
 # GPS DE BUSES DE LA EMPRESA EN UNA FECHA
 @app.get("/empresas/{empresa_id}/buses")
