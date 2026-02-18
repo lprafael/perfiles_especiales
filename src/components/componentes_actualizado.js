@@ -26,15 +26,14 @@ function CabeceradePagina({ onToggleSidebar }) {
       <button className="hamburger-btn" onClick={onToggleSidebar} title="Mostrar/Ocultar menú">
         ☰
       </button>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
-        <h1 style={{ margin: 0, fontSize: '1.2rem' }}>
-          Sistema de Transporte Urbano - Área Metropolitana de Asunción -
-          Viceministerio de Transporte(MOPC)
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1, overflow: 'hidden' }}>
+        <h1 className="header-title">
+          Sistema de Transporte - VMT
         </h1>
         <img
           src={`${PUBLIC_URL}/imágenes/Logo_CIDSA2.jpg`}
           alt="Logo CIDSA"
-          style={{ height: 60, marginLeft: 16 }}
+          className="header-logo"
         />
       </div>
     </header>
@@ -1527,19 +1526,13 @@ function MiPaginaExistente() {
   }
 
   return (
-    <div className="container" style={{ border: "2px solid blue" }}>
+    <div className="container">
       <CabeceradePagina onToggleSidebar={() => setMostrarSidebarIzquierdo(!mostrarSidebarIzquierdo)} />
-      <div className="mobile-tabs">
-        <div className="mobile-tab active" data-tab="info">
-          Información
-        </div>
-        <div className="mobile-tab" data-tab="map">
-          Mapa
-        </div>
-      </div>
+
       <div className="content">
+
         {/* Sidebar principal para selectores y botones */}
-        <div className={`sidebar ${!mostrarSidebarIzquierdo ? 'hidden' : ''}`} style={{ border: "2px solid blue" }}>
+        <div className={`sidebar ${!mostrarSidebarIzquierdo ? 'hidden' : ''}`}>
 
           <div className="selector">
             <b><label htmlFor="empresa-select">Seleccione una empresa:</label></b>
@@ -1560,6 +1553,9 @@ function MiPaginaExistente() {
                   mostrarTerminales(newEmpresaId);
                 }
                 setIncluirValidaciones(false); // Desactivar checkbox de validaciones para evitar residuos
+                if (window.innerWidth < 768) {
+                  setMostrarSidebarIzquierdo(false);
+                }
                 mostrarItinerarios(e.target.value);
                 // mostrarbuses(e.target.value);
               }}
