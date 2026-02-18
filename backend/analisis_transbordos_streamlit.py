@@ -804,8 +804,22 @@ if 'df_linked' in st.session_state:
             color='tipo_descuento',
             labels={'cantidad': 'Cantidad de Transbordos', 'empresa_transbordo': 'Empresa', 'tipo_descuento': 'Tipo de Descuento'},
             barmode='stack',
-            color_discrete_sequence=px.colors.qualitative.Pastel
+            color_discrete_sequence=px.colors.qualitative.Pastel,
+            text_auto=True
         )
+        
+        # Calcular y añadir el total en la parte superior de cada barra
+        totales_empresa = empresa_descuento.groupby('empresa_transbordo')['cantidad'].sum().reset_index()
+        fig2.add_trace(go.Scatter(
+            x=totales_empresa['empresa_transbordo'],
+            y=totales_empresa['cantidad'],
+            text=[f"{val:,}" for val in totales_empresa['cantidad']],
+            mode='text',
+            textposition='top center',
+            showlegend=False,
+            cliponaxis=False
+        ))
+        
         fig2.update_layout(height=500, xaxis_tickangle=-45)
         st.plotly_chart(fig2, use_container_width=True)
         
@@ -827,7 +841,8 @@ if 'df_linked' in st.session_state:
                 x='Tipo de Descuento',
                 y='Cantidad',
                 color='Tipo de Descuento',
-                color_discrete_sequence=px.colors.qualitative.Set2
+                color_discrete_sequence=px.colors.qualitative.Set2,
+                text_auto=True
             )
             fig3.update_layout(showlegend=False, xaxis_tickangle=-45)
             st.plotly_chart(fig3, use_container_width=True)
@@ -843,7 +858,8 @@ if 'df_linked' in st.session_state:
                 x='Tipo de Descuento',
                 y='Cantidad',
                 color='Tipo de Descuento',
-                color_discrete_sequence=px.colors.qualitative.Set1
+                color_discrete_sequence=px.colors.qualitative.Set1,
+                text_auto=True
             )
             fig4.update_layout(showlegend=False, xaxis_tickangle=-45)
             st.plotly_chart(fig4, use_container_width=True)
@@ -868,8 +884,21 @@ if 'df_linked' in st.session_state:
             y=['Intra-Empresa', 'Inter-Empresa'],
             labels={'value': 'Cantidad', 'variable': 'Tipo'},
             barmode='stack',
-            color_discrete_map={'Intra-Empresa': '#3498db', 'Inter-Empresa': '#e74c3c'}
+            color_discrete_map={'Intra-Empresa': '#3498db', 'Inter-Empresa': '#e74c3c'},
+            text_auto=True
         )
+        
+        # Añadir totales en la parte superior
+        fig.add_trace(go.Scatter(
+            x=resumen_empresa['Empresa'],
+            y=resumen_empresa['Total Transbordos'],
+            text=[f"{val:,}" for val in resumen_empresa['Total Transbordos']],
+            mode='text',
+            textposition='top center',
+            showlegend=False,
+            cliponaxis=False
+        ))
+        
         fig.update_layout(height=500)
         st.plotly_chart(fig, use_container_width=True)
         
@@ -907,7 +936,8 @@ if 'df_linked' in st.session_state:
                 x='cantidad',
                 y='servicio_transbordo',
                 orientation='h',
-                labels={'cantidad': 'Cantidad de Transbordos', 'servicio_transbordo': 'Ruta'}
+                labels={'cantidad': 'Cantidad de Transbordos', 'servicio_transbordo': 'Ruta'},
+                text_auto=True
             )
             fig2.update_layout(height=400)
             st.plotly_chart(fig2, use_container_width=True)
