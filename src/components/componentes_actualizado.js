@@ -823,7 +823,8 @@ function MiPaginaExistente() {
         const oldPos = marker.getLatLng();
         const newPos = L.latLng(bus.lat, bus.lng);
         if (oldPos.lat !== newPos.lat || oldPos.lng !== newPos.lng) {
-          animateMarker(marker, oldPos, newPos, 2000);
+          //  Segundos para el desplazamiento
+          animateMarker(marker, oldPos, newPos, 5000);
         }
         marker.setIcon(icon);
         marker.setPopupContent(popupContent);
@@ -1309,7 +1310,7 @@ function MiPaginaExistente() {
             const oldPos = marker.getLatLng();
             const newPos = L.latLng(bus.lat, bus.lng);
             if (oldPos.lat !== newPos.lat || oldPos.lng !== newPos.lng) {
-              animateMarker(marker, oldPos, newPos, 2000); // 2 segundos de desplazamiento
+              animateMarker(marker, oldPos, newPos, 5000); // 5 segundos de desplazamiento
             }
             marker.setIcon(icon);
             marker.setPopupContent(popupContent);
