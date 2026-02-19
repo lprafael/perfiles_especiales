@@ -65,6 +65,29 @@ function calcularRumbo(p1, p2) {
   return (brng + 360) % 360;
 }
 
+// Función para animar el movimiento de un marcador
+function animateMarker(marker, startLatLng, endLatLng, duration = 1000) {
+  if (!marker || !startLatLng || !endLatLng) return;
+  const startTime = performance.now();
+
+  function frame(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Interpolación lineal
+    const lat = startLatLng.lat + (endLatLng.lat - startLatLng.lat) * progress;
+    const lng = startLatLng.lng + (endLatLng.lng - startLatLng.lng) * progress;
+
+    marker.setLatLng([lat, lng]);
+
+    if (progress < 1) {
+      requestAnimationFrame(frame);
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
 
 // Agrupar puntos cercanos y calcular su punto medio
 // Esta función agrupa puntos que están dentro de un umbral dado (en metros) y devuelve el centro de cada grupo
@@ -212,6 +235,7 @@ function MiPaginaExistente() {
 
   // Referencia para la capa de terminales
   const terminalesLayer = useRef(null);
+  const markerRefs = useRef({});
 
   // Función para mostrar el sidebar izquierdo al cambiar de empresas
   // Función para cargar y mostrar terminales
@@ -595,6 +619,7 @@ function MiPaginaExistente() {
     if (window.busesLayer && mapInstance.current) {
       mapInstance.current.removeLayer(window.busesLayer);
       window.busesLayer = null;
+      markerRefs.current = {};
     }
     fetch(`${API_BASE}/empresas/${empresaId}/ultimos_gps`)
       .then((res) => res.json())
@@ -636,13 +661,11 @@ function MiPaginaExistente() {
       mostrarAviso("Seleccione una empresa primero", "error");
       return;
     }
-    // Limpiar capa previa de buses si existe
-    if (window.busesLayer && mapInstance.current) {
-      mapInstance.current.removeLayer(window.busesLayer);
-      window.busesLayer = null;
+    // Inicializar capa si no existe, NO borrarla (para permitir transición)
+    if (!window.busesLayer && mapInstance.current) {
+      window.busesLayer = L.layerGroup().addTo(mapInstance.current);
     }
-    // Obtener última hora (parámetros informativos para el usuario si se desea, 
-    // pero el backend 'n=2' es lo que realmente usaremos)
+
     const ahora = new Date();
 
     // Traer los 2 últimos puntos de cada bus
@@ -650,14 +673,12 @@ function MiPaginaExistente() {
     try {
       const res = await fetch(`${API_BASE}/empresas/${empresaId}/ultimos_gps?n=2`);
       rawBuses = await res.json();
-      console.log("--- DATOS RECIBIDOS DEL SERVIDOR ---");
-      console.table(rawBuses.map(b => ({ mean_id: b.mean_id, num_puntos: b.puntos.length, fecha1: b.puntos[0]?.fecha_hora })));
     } catch (e) {
       mostrarAviso("Error al obtener buses en tiempo real", "error");
       return;
     }
 
-    // Adaptar los datos para mantener compatibilidad con el resto del sistema
+    // Adaptar los datos
     const buses = rawBuses
       .filter(b => b.puntos && b.puntos.length > 0)
       .map(b => {
@@ -665,7 +686,6 @@ function MiPaginaExistente() {
         return {
           ...pActual,
           mean_id: b.mean_id,
-          // Renombrar campos si vienen como latitude/longitude
           lat: parseFloat(pActual.latitude || pActual.latitud || pActual.lat),
           lng: parseFloat(pActual.longitude || pActual.longitud || pActual.lng),
           puntos: b.puntos
@@ -683,8 +703,14 @@ function MiPaginaExistente() {
       busesSeleccionados: buses.map(b => b.mean_id)
     });
 
-    if (!mapInstance.current) return;
-    window.busesLayer = L.layerGroup().addTo(mapInstance.current);
+    if (!mapInstance.current || !window.busesLayer) return;
+
+    // Limpiar polígonos previos
+    window.busesLayer.eachLayer(layer => {
+      if (layer instanceof L.Polygon && !(layer instanceof L.Marker)) {
+        window.busesLayer.removeLayer(layer);
+      }
+    });
 
     // Crear buffer alrededor de todos los shapes de la empresa
     let bufferPolygons = [];
@@ -695,38 +721,26 @@ function MiPaginaExistente() {
           if (Array.isArray(latlngs) && latlngs.length > 1) {
             const lineFeature = {
               type: "Feature",
-              geometry: {
-                type: "LineString",
-                coordinates: latlngs.map(p => [p.lng, p.lat])
-              }
+              geometry: { type: "LineString", coordinates: latlngs.map(p => [p.lng, p.lat]) }
             };
             const bufferKm = geocercaRadio / 1000;
             const buffer = window.turf.buffer(lineFeature, bufferKm, { units: "kilometers" });
-            if (buffer && buffer.geometry && (buffer.geometry.type === "Polygon" || buffer.geometry.type === "MultiPolygon")) {
-              bufferPolygons.push(buffer);
-            }
+            if (buffer && buffer.geometry) bufferPolygons.push(buffer);
           }
         }
       });
     }
 
-    // Unir todos los buffers en uno solo
     let unionBuffer = null;
-    if (bufferPolygons.length === 1) {
-      unionBuffer = bufferPolygons[0];
-    } else if (bufferPolygons.length > 1 && window.turf.union) {
+    if (bufferPolygons.length > 0 && window.turf.union) {
       unionBuffer = bufferPolygons[0];
       for (let i = 1; i < bufferPolygons.length; i++) {
-        try {
-          unionBuffer = window.turf.union(unionBuffer, bufferPolygons[i]);
-        } catch (e) {
-          // turf.union puede fallar con geometrías complejas
-        }
+        try { unionBuffer = window.turf.union(unionBuffer, bufferPolygons[i]); } catch (e) { }
       }
     }
 
-    // Dibujar el buffer en el mapa
-    if (unionBuffer && unionBuffer.geometry && (unionBuffer.geometry.type === "Polygon" || unionBuffer.geometry.type === "MultiPolygon")) {
+    // Dibujar el buffer
+    if (unionBuffer && unionBuffer.geometry) {
       const polys = unionBuffer.geometry.type === "Polygon" ? [unionBuffer.geometry.coordinates] : unionBuffer.geometry.coordinates;
       polys.forEach(coordsArr => {
         coordsArr.forEach(ring => {
@@ -742,73 +756,40 @@ function MiPaginaExistente() {
       });
     }
 
-    // Función para saber si un punto está dentro del buffer
-    function estaEnBuffer(lat, lng) {
+    const estaEnBuffer = (lat, lng) => {
       if (!window.turf || !unionBuffer) return false;
-      const pt = { type: "Feature", geometry: { type: "Point", coordinates: [lng, lat] } };
-      let dentro = false;
       try {
-        dentro = window.turf.booleanPointInPolygon(pt, unionBuffer);
-      } catch (e) {
-        dentro = false;
+        return window.turf.booleanPointInPolygon({ type: "Feature", geometry: { type: "Point", coordinates: [lng, lat] } }, unionBuffer);
+      } catch (e) { return false; }
+    };
+
+    const greenIcon = new L.Icon({ iconUrl: "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-green.png", shadowUrl: shadowIcon, iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
+    const redIcon = new L.Icon({ iconUrl: "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-red.png", shadowUrl: shadowIcon, iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
+
+    // ACTUALIZAR MARCADOERS
+    const nuevosIds = buses.map(b => String(b.mean_id));
+    Object.keys(markerRefs.current).forEach(id => {
+      if (!nuevosIds.includes(id)) {
+        window.busesLayer.removeLayer(markerRefs.current[id]);
+        delete markerRefs.current[id];
       }
-      return dentro;
-    }
-
-    // Iconos estándar
-    const greenIcon = new L.Icon({
-      iconUrl: "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-green.png",
-      shadowUrl: shadowIcon,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41],
-    });
-    const redIcon = new L.Icon({
-      iconUrl: "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-red.png",
-      shadowUrl: shadowIcon,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41],
     });
 
-    // Dibujar buses
     buses.forEach(bus => {
-      const lat = bus.lat;
-      const lng = bus.lng;
-      if (isNaN(lat) || isNaN(lng)) return;
-
-      const inside = estaEnBuffer(lat, lng);
-
-      let rumbo = 0;
-      let velocidad = 0;
-      let mostrarFlecha = false;
+      const inside = estaEnBuffer(bus.lat, bus.lng);
+      let rumbo = 0, velocidad = 0, mostrarFlecha = false;
 
       if (bus.puntos && bus.puntos.length >= 2) {
-        const pActual = bus.puntos[0];
-        const pAnterior = bus.puntos[1];
-        const latActual = parseFloat(pActual.latitude || pActual.latitud || pActual.lat);
-        const lngActual = parseFloat(pActual.longitude || pActual.longitud || pActual.lng);
-        const latAnt = parseFloat(pAnterior.latitude || pAnterior.latitud || pAnterior.lat);
-        const lngAnt = parseFloat(pAnterior.longitude || pAnterior.longitud || pAnterior.lng);
-
-        if (!isNaN(latAnt) && !isNaN(lngAnt)) {
-          const dist = distanciaEnMetros({ lat: latAnt, lng: lngAnt }, { lat: latActual, lng: lngActual });
-          if (dist > 1) { // Umbral de movimiento de 1 metro
-            rumbo = calcularRumbo({ lat: latAnt, lng: lngAnt }, { lat: latActual, lng: lngActual });
-            mostrarFlecha = true;
-
-            const t1 = new Date(pAnterior.fecha_hora).getTime();
-            const t2 = new Date(pActual.fecha_hora).getTime();
-            const dt = (t2 - t1) / 1000;
-            if (dt > 0) {
-              velocidad = (dist / dt) * 3.6; // km/h
-            }
-          }
+        const pActual = bus.puntos[0], pAnterior = bus.puntos[1];
+        const lat1 = parseFloat(pAnterior.latitude || pAnterior.latitud || pAnterior.lat), lng1 = parseFloat(pAnterior.longitude || pAnterior.longitud || pAnterior.lng);
+        const dist = distanciaEnMetros({ lat: lat1, lng: lng1 }, { lat: bus.lat, lng: bus.lng });
+        if (dist > 1) {
+          rumbo = calcularRumbo({ lat: lat1, lng: lng1 }, { lat: bus.lat, lng: bus.lng });
+          mostrarFlecha = true;
+          const dt = (new Date(pActual.fecha_hora).getTime() - new Date(pAnterior.fecha_hora).getTime()) / 1000;
+          if (dt > 0) velocidad = (dist / dt) * 3.6;
         }
       }
-
 
       let icon;
       const speedLabel = mostrarFlecha ? `<div style="background: white; border: 1px solid black; border-radius: 3px; padding: 0 2px; font-size: 10px; margin-top: 2px; white-space: nowrap;">${velocidad.toFixed(0)} km/h</div>` : '';
@@ -824,24 +805,34 @@ function MiPaginaExistente() {
                   </div>
                   ${speedLabel}
                 </div>`,
-          className: '',
-          iconSize: [30, 45],
-          iconAnchor: [15, 15]
+          className: '', iconSize: [30, 45], iconAnchor: [15, 15]
         });
-      } else {
-        icon = inside ? greenIcon : redIcon;
-      }
+      } else { icon = inside ? greenIcon : redIcon; }
 
-      L.marker([lat, lng], { icon })
-        .addTo(window.busesLayer)
-        .bindPopup(`
-          <div style="font-family: Arial, sans-serif;">
-            <b style="color: #1a73e8;">Bus: ${bus.mean_id}</b><br>
-            <b>Última actualización:</b> ${bus.fecha_hora?.slice(11, 19) || ""}<br>
-            ${mostrarFlecha ? `<b>Velocidad aprox:</b> ${velocidad.toFixed(1)} km/h<br>` : '<b>Estado:</b> Detenido o mov. lento<br>'}
-            <b>Ubicación:</b> ${inside ? '<span style="color: green;">En Ruta</span>' : '<span style="color: red;">Fuera de Ruta</span>'}
-          </div>
-        `);
+      const popupContent = `
+        <div style="font-family: Arial, sans-serif;">
+          <b style="color: #1a73e8;">Bus: ${bus.mean_id}</b><br>
+          <b>Última actualización:</b> ${bus.fecha_hora?.slice(11, 19) || ""}<br>
+          ${mostrarFlecha ? `<b>Velocidad aprox:</b> ${velocidad.toFixed(1)} km/h<br>` : '<b>Estado:</b> Detenido o mov. lento<br>'}
+          <b>Ubicación:</b> ${inside ? '<span style="color: green;">En Ruta</span>' : '<span style="color: red;">Fuera de Ruta</span>'}
+        </div>
+      `;
+
+      let marker = markerRefs.current[String(bus.mean_id)];
+      if (marker) {
+        const oldPos = marker.getLatLng();
+        const newPos = L.latLng(bus.lat, bus.lng);
+        if (oldPos.lat !== newPos.lat || oldPos.lng !== newPos.lng) {
+          animateMarker(marker, oldPos, newPos, 2000);
+        }
+        marker.setIcon(icon);
+        marker.setPopupContent(popupContent);
+      } else {
+        marker = L.marker([bus.lat, bus.lng], { icon })
+          .addTo(window.busesLayer)
+          .bindPopup(popupContent);
+        markerRefs.current[String(bus.mean_id)] = marker;
+      }
     });
     mostrarAviso(`Se mostraron ${buses.length} buses en tiempo real`, "success");
   };
@@ -1131,6 +1122,7 @@ function MiPaginaExistente() {
     if (window.busesLayer && mapInstance.current) {
       mapInstance.current.removeLayer(window.busesLayer);
       window.busesLayer = null;
+      markerRefs.current = {};
     }
     if (validacionesLayer.current && mapInstance.current) {
       mapInstance.current.removeLayer(validacionesLayer.current);
@@ -1171,18 +1163,16 @@ function MiPaginaExistente() {
       // Siempre pinta en el mapa aunque no se abra el sidebar
       const pintarBuses = async () => {
         if (!empresaId) return;
-        // Limpiar capa previa de buses si existe
-        if (window.busesLayer && mapInstance.current) {
-          mapInstance.current.removeLayer(window.busesLayer);
-          window.busesLayer = null;
+        // Inicializar capa si no existe, NO borrarla (para evitar parpadeo)
+        if (!window.busesLayer && mapInstance.current) {
+          window.busesLayer = L.layerGroup().addTo(mapInstance.current);
         }
+
         // Obtener datos de los últimos 2 puntos
-        const ahora = new Date();
         let rawBuses = [];
         try {
           const res = await fetch(`${API_BASE}/empresas/${empresaId}/ultimos_gps?n=2`);
           rawBuses = await res.json();
-
         } catch (e) {
           console.error("Error al refrescar buses:", e);
           return;
@@ -1203,10 +1193,16 @@ function MiPaginaExistente() {
 
         setBusesTiempoReal(buses);
 
-        if (!mapInstance.current) return;
-        window.busesLayer = L.layerGroup().addTo(mapInstance.current);
+        if (!mapInstance.current || !window.busesLayer) return;
 
-        // Geocercas/Buffer (Lógica idéntica para consistencia)
+        // --- MANEJO DE GEOCERCAS/BUFFERS ---
+        // Limpiamos solo los polígonos antes de redibujarlos (si existen)
+        window.busesLayer.eachLayer(layer => {
+          if (layer instanceof L.Polygon && !(layer instanceof L.Marker)) {
+            window.busesLayer.removeLayer(layer);
+          }
+        });
+
         let bufferPolygons = [];
         if (shapeLayer.current && window.turf) {
           shapeLayer.current.eachLayer(layer => {
@@ -1254,6 +1250,17 @@ function MiPaginaExistente() {
           busesParaMostrar = buses.filter(b => busesTiempoRealSeleccionados.includes(b.mean_id));
         }
 
+        // --- ACTUALIZACIÓN DE MARCADORES CON DESPLAZAMIENTO SUAVE ---
+        const nuevosIds = busesParaMostrar.map(b => String(b.mean_id));
+
+        // 1. Eliminar marcadores obsoletos
+        Object.keys(markerRefs.current).forEach(id => {
+          if (!nuevosIds.includes(id)) {
+            window.busesLayer.removeLayer(markerRefs.current[id]);
+            delete markerRefs.current[id];
+          }
+        });
+
         busesParaMostrar.forEach(bus => {
           const inside = estaEnBuffer(bus.lat, bus.lng);
           let rumbo = 0, velocidad = 0, mostrarFlecha = false;
@@ -1268,7 +1275,6 @@ function MiPaginaExistente() {
               if (dt > 0) velocidad = (dist / dt) * 3.6;
             }
           }
-
 
           let icon;
           const speedLabel = mostrarFlecha ? `<div style="background: white; border: 1px solid black; border-radius: 3px; padding: 0 2px; font-size: 10px; margin-top: 2px; white-space: nowrap;">${velocidad.toFixed(0)} km/h</div>` : '';
@@ -1288,17 +1294,32 @@ function MiPaginaExistente() {
             });
           } else { icon = inside ? greenIcon : redIcon; }
 
+          const popupContent = `
+            <div style="font-family: Arial, sans-serif;">
+              <b style="color: #1a73e8;">Bus: ${bus.mean_id}</b><br>
+              <b>Actualización:</b> ${bus.fecha_hora?.slice(11, 19) || ""}<br>
+              ${mostrarFlecha ? `<b>Velocidad:</b> ${velocidad.toFixed(1)} km/h<br>` : '<b>Estado:</b> Estacionado/Lento<br>'}
+              <b>Ubicación:</b> ${inside ? '<span style="color: green;">En Ruta</span>' : '<span style="color: red;">Fuera de Ruta</span>'}
+            </div>
+          `;
 
-          L.marker([bus.lat, bus.lng], { icon })
-            .addTo(window.busesLayer)
-            .bindPopup(`
-              <div style="font-family: Arial, sans-serif;">
-                <b style="color: #1a73e8;">Bus: ${bus.mean_id}</b><br>
-                <b>Actualización:</b> ${bus.fecha_hora?.slice(11, 19) || ""}<br>
-                ${mostrarFlecha ? `<b>Velocidad:</b> ${velocidad.toFixed(1)} km/h<br>` : '<b>Estado:</b> Estacionado/Lento<br>'}
-                <b>Ubicación:</b> ${inside ? '<span style="color: green;">En Ruta</span>' : '<span style="color: red;">Fuera de Ruta</span>'}
-              </div>
-            `);
+          let marker = markerRefs.current[String(bus.mean_id)];
+          if (marker) {
+            // Desplazamiento suave de la posición anterior a la actual
+            const oldPos = marker.getLatLng();
+            const newPos = L.latLng(bus.lat, bus.lng);
+            if (oldPos.lat !== newPos.lat || oldPos.lng !== newPos.lng) {
+              animateMarker(marker, oldPos, newPos, 2000); // 2 segundos de desplazamiento
+            }
+            marker.setIcon(icon);
+            marker.setPopupContent(popupContent);
+          } else {
+            // Nuevo marcador
+            marker = L.marker([bus.lat, bus.lng], { icon })
+              .addTo(window.busesLayer)
+              .bindPopup(popupContent);
+            markerRefs.current[String(bus.mean_id)] = marker;
+          }
         });
       };
       pintarBuses();
@@ -1314,6 +1335,7 @@ function MiPaginaExistente() {
         mapInstance.current.removeLayer(window.busesLayer);
         window.busesLayer = null;
       }
+      markerRefs.current = {}; // Limpiar referencias
       setBusesTiempoReal([]);
       setBusesTiempoRealSeleccionados([]);
       // Limpiar validaciones si estaban activas
