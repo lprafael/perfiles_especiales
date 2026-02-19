@@ -12,14 +12,26 @@ body {
 .alert {
     position: fixed;
     top: 20px;
-    right: 20px;
-    padding: 15px 20px;
-    border-radius: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 25px;
+    border-radius: 30px;
     color: white;
-    font-weight: bold;
-    z-index: 1000;
+    font-weight: 600;
+    z-index: 9999;
     display: none;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.3s ease-out;
+    text-align: center;
+}
+
+.alert.success { background-color: #059669; }
+.alert.error { background-color: #dc2626; }
+.alert.info { background-color: #2563eb; }
+
+@keyframes slideDown {
+    from { top: -50px; opacity: 0; }
+    to { top: 20px; opacity: 1; }
 }
 
 .container {

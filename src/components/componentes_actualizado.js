@@ -20,22 +20,41 @@ import ReporteServiciosModal from "./ReporteServiciosModal";
 const PUBLIC_URL = process.env.PUBLIC_URL || "";
 
 // Esta parte genera la cabecera de página
-function CabeceradePagina({ onToggleSidebar }) {
+function CabeceradePagina({ onToggleSidebar, statusMessage }) {
   return (
-    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
-      <button className="hamburger-btn" onClick={onToggleSidebar} title="Mostrar/Ocultar menú">
-        ☰
-      </button>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1, overflow: 'hidden' }}>
-        <h1 className="header-title">
+    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: '#1e40af', color: 'white' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <button className="hamburger-btn" onClick={onToggleSidebar} title="Mostrar/Ocultar menú">
+          ☰
+        </button>
+        <h1 className="header-title" style={{ margin: 0 }}>
           Sistema de Transporte - VMT
         </h1>
-        <img
-          src={`${PUBLIC_URL}/imágenes/Logo_CIDSA2.jpg`}
-          alt="Logo CIDSA"
-          className="header-logo"
-        />
       </div>
+
+      {statusMessage && (
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.15)',
+          padding: '6px 15px',
+          borderRadius: '20px',
+          fontSize: '0.95rem',
+          fontWeight: '600',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span style={{ width: '10px', height: '10px', background: '#4ade80', borderRadius: '50%', display: 'inline-block' }}></span>
+          {statusMessage}
+        </div>
+      )}
+
+      <img
+        src={`${PUBLIC_URL}/imágenes/Logo_CIDSA2.jpg`}
+        alt="Logo CIDSA"
+        className="header-logo"
+        style={{ height: '45px' }}
+      />
     </header>
   );
 }
@@ -208,6 +227,8 @@ function MiPaginaExistente() {
   const busesTiempoRealInterval = useRef(null);
   const [busesTiempoReal, setBusesTiempoReal] = useState([]);
   const [busesTiempoRealSeleccionados, setBusesTiempoRealSeleccionados] = useState([]);
+  const [busStatus, setBusStatus] = useState("");
+  const markerRefs = useRef({});
   const [incluirValidaciones, setIncluirValidaciones] = useState(false); // Nuevo estado
 
   const validacionesLayer = useRef(null);
@@ -235,7 +256,6 @@ function MiPaginaExistente() {
 
   // Referencia para la capa de terminales
   const terminalesLayer = useRef(null);
-  const markerRefs = useRef({});
 
   // Función para mostrar el sidebar izquierdo al cambiar de empresas
   // Función para cargar y mostrar terminales
@@ -620,6 +640,7 @@ function MiPaginaExistente() {
       mapInstance.current.removeLayer(window.busesLayer);
       window.busesLayer = null;
       markerRefs.current = {};
+      setBusStatus("");
     }
     fetch(`${API_BASE}/empresas/${empresaId}/ultimos_gps`)
       .then((res) => res.json())
@@ -836,7 +857,9 @@ function MiPaginaExistente() {
       }
     });
     const enItinerario = buses.filter(b => estaEnBuffer(b.lat, b.lng)).length;
-    mostrarAviso(`${enItinerario} (de ${buses.length}) buses en itinerario`, "success");
+    const descStatus = `${enItinerario} (de ${buses.length}) buses en itinerario`;
+    setBusStatus(descStatus);
+    mostrarAviso(descStatus, "success");
   };
 
 
@@ -1107,7 +1130,7 @@ function MiPaginaExistente() {
   // --- useEffect para renderizar los puntos al cambiar la hora de la barra de progreso ---
   // (Eliminado: ahora está en SimulacionRecorrido)
 
-  // --- FUNCION DE AVANCE DE SIMULACION (AJUSTADA PARA USAR EL ESTADO MAS RECIENTE) ---
+  // --- FUNCION DE AVANCE DE SIMULACION (AJUSTADA PARA USAR EL ESTADO MAS RECENTE) ---
   // (Eliminado: ahora está en useSimulacionRecorrido)
 
   // --- useEffect para avance automático de la simulación tipo reproductor ---
@@ -1125,6 +1148,7 @@ function MiPaginaExistente() {
       mapInstance.current.removeLayer(window.busesLayer);
       window.busesLayer = null;
       markerRefs.current = {};
+      setBusStatus("");
     }
     if (validacionesLayer.current && mapInstance.current) {
       mapInstance.current.removeLayer(validacionesLayer.current);
@@ -1324,7 +1348,9 @@ function MiPaginaExistente() {
           }
         });
         const enItinerario = busesParaMostrar.filter(b => estaEnBuffer(b.lat, b.lng)).length;
-        mostrarAviso(`${enItinerario} (de ${busesParaMostrar.length}) buses en itinerario`, "success");
+        const descStatus = `${enItinerario} (de ${busesParaMostrar.length}) buses en itinerario`;
+        setBusStatus(descStatus);
+        mostrarAviso(descStatus, "success");
       };
       pintarBuses();
       busesTiempoRealInterval.current = setInterval(pintarBuses, 15000);
@@ -1340,6 +1366,7 @@ function MiPaginaExistente() {
         window.busesLayer = null;
       }
       markerRefs.current = {}; // Limpiar referencias
+      setBusStatus("");
       setBusesTiempoReal([]);
       setBusesTiempoRealSeleccionados([]);
       // Limpiar validaciones si estaban activas
@@ -1646,7 +1673,10 @@ function MiPaginaExistente() {
 
   return (
     <div className="container">
-      <CabeceradePagina onToggleSidebar={() => setMostrarSidebarIzquierdo(!mostrarSidebarIzquierdo)} />
+      <CabeceradePagina
+        onToggleSidebar={() => setMostrarSidebarIzquierdo(!mostrarSidebarIzquierdo)}
+        statusMessage={busesTiempoRealActivo ? busStatus : ""}
+      />
 
       <div className="content">
 
