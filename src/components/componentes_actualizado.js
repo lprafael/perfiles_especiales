@@ -824,7 +824,7 @@ function MiPaginaExistente() {
         const newPos = L.latLng(bus.lat, bus.lng);
         if (oldPos.lat !== newPos.lat || oldPos.lng !== newPos.lng) {
           //  Segundos para el desplazamiento
-          animateMarker(marker, oldPos, newPos, 5000);
+          animateMarker(marker, oldPos, newPos, 15000);
         }
         marker.setIcon(icon);
         marker.setPopupContent(popupContent);
@@ -835,7 +835,8 @@ function MiPaginaExistente() {
         markerRefs.current[String(bus.mean_id)] = marker;
       }
     });
-    mostrarAviso(`Se mostraron ${buses.length} buses en tiempo real`, "success");
+    const enItinerario = buses.filter(b => estaEnBuffer(b.lat, b.lng)).length;
+    mostrarAviso(`${enItinerario} (de ${buses.length}) buses en itinerario`, "success");
   };
 
 
@@ -1310,7 +1311,7 @@ function MiPaginaExistente() {
             const oldPos = marker.getLatLng();
             const newPos = L.latLng(bus.lat, bus.lng);
             if (oldPos.lat !== newPos.lat || oldPos.lng !== newPos.lng) {
-              animateMarker(marker, oldPos, newPos, 5000); // 5 segundos de desplazamiento
+              animateMarker(marker, oldPos, newPos, 15000); // 15 segundos de desplazamiento
             }
             marker.setIcon(icon);
             marker.setPopupContent(popupContent);
@@ -1322,9 +1323,11 @@ function MiPaginaExistente() {
             markerRefs.current[String(bus.mean_id)] = marker;
           }
         });
+        const enItinerario = busesParaMostrar.filter(b => estaEnBuffer(b.lat, b.lng)).length;
+        mostrarAviso(`${enItinerario} (de ${busesParaMostrar.length}) buses en itinerario`, "success");
       };
       pintarBuses();
-      busesTiempoRealInterval.current = setInterval(pintarBuses, 10000);
+      busesTiempoRealInterval.current = setInterval(pintarBuses, 15000);
 
     } else {
       if (busesTiempoRealInterval.current) {
