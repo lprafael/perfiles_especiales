@@ -268,7 +268,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
   // Línea de comparación: soporta fecha seleccionada y el día anterior
   if (datosComparar && typeof datosComparar === 'object') {
     // colores para las series de comparación (seleccionada, anterior)
-    const compColors = ['#1b5e20', '#2e7d32']; // fecha seleccionada, fecha anterior
+    const compColors = ['#2e7d32', '#7b1fa2']; // fecha seleccionada (Verde), fecha anterior (Púrpura)
     let idxColor = 0;
     // Object.keys conserva el orden de inserción (seleccionada primero, luego anterior)
     for (const fechaKey of Object.keys(datosComparar)) {
