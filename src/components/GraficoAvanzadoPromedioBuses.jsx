@@ -76,6 +76,14 @@ function getPicoAnnotations(tipoDiaSel, franjasSel, nombreFranjaMap, horas) {
 }
 
 function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Extraer valores únicos para los selectores
   const gremios = unique(data.map(d => d.gre_nombre).filter(Boolean)).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
   const meses = unique(data.map(d => `${String(d.mes).padStart(2, '0')}/${d.anio}`));
@@ -371,88 +379,86 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.45)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: '#fff', borderRadius: 12, padding: 0, minWidth: 'unset', maxWidth: 'unset', boxShadow: '0 4px 24px #0003', position: 'relative', width: '98vw', height: '98vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 18, right: 18, fontSize: 22, background: '#e3f2fd', color: '#1976d2', border: '2px solid #90caf9', borderRadius: 20, width: 'auto', height: 48, padding: '0 24px', cursor: 'pointer', zIndex: 3001, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 8 }}>
-          Cerrar
+      <div style={{ background: '#fff', borderRadius: isMobile ? 0 : 12, padding: 0, minWidth: 'unset', maxWidth: 'unset', boxShadow: '0 4px 24px #0003', position: 'relative', width: isMobile ? '100vw' : '98vw', height: isMobile ? '100vh' : '98vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: isMobile ? 12 : 18, right: isMobile ? 12 : 18, fontSize: isMobile ? 16 : 22, background: '#e3f2fd', color: '#1976d2', border: '2px solid #90caf9', borderRadius: 20, width: 'auto', height: isMobile ? 40 : 48, padding: isMobile ? '0 16px' : '0 24px', cursor: 'pointer', zIndex: 3001, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {isMobile ? 'X' : 'Cerrar'}
         </button>
-        <div style={{ padding: '32px 32px 0 32px' }}>
-          <h2 style={{ marginTop: 0 }}>Gráfico Avanzado de Promedio de Buses</h2>
-          <div style={{ display: 'flex', gap: 16, marginBottom: 18, flexWrap: 'wrap', alignItems: 'end' }}>
-            <div>
+        <div style={{ padding: isMobile ? '16px' : '32px 32px 0 32px', overflowY: 'auto', maxHeight: isMobile ? '45%' : 'none', borderBottom: isMobile ? '1px solid #eee' : 'none' }}>
+          <h2 style={{ marginTop: 0, fontSize: isMobile ? '1.2rem' : '1.5rem', paddingRight: isMobile ? 60 : 0 }}>Gráfico Avanzado de Promedio de Buses</h2>
+          <div style={{ display: 'flex', gap: isMobile ? 8 : 16, marginBottom: 18, flexWrap: 'wrap', alignItems: 'end' }}>
+            <div style={{ flex: isMobile ? '1 1 140px' : '0 1 auto' }}>
               <label><b>Gremios:</b></label><br />
-              <select multiple value={gremiosSel} onChange={handleGremiosChange} style={{ minWidth: 120, height: 80 }}>
+              <select multiple value={gremiosSel} onChange={handleGremiosChange} style={{ width: '100%', minWidth: isMobile ? 'none' : 120, height: isMobile ? 60 : 80 }}>
                 {gremios.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
-            <div>
+            <div style={{ flex: isMobile ? '1 1 140px' : '0 1 auto' }}>
               <label>Empresas:</label><br />
-              <select multiple value={empresasSel} onChange={handleMultiSelect(setEmpresasSel)} style={{ minWidth: 120, height: 80 }}>
+              <select multiple value={empresasSel} onChange={handleMultiSelect(setEmpresasSel)} style={{ width: '100%', minWidth: isMobile ? 'none' : 120, height: isMobile ? 60 : 80 }}>
                 {empresas.map(e => <option key={e} value={e}>{e}</option>)}
               </select>
             </div>
-            <div>
+            <div style={{ flex: isMobile ? '1 1 100px' : '0 1 auto' }}>
               <label>Meses:</label><br />
-              <select multiple value={mesesSel} onChange={handleMultiSelect(setMesesSel)} style={{ minWidth: 100, height: 80 }}>
+              <select multiple value={mesesSel} onChange={handleMultiSelect(setMesesSel)} style={{ width: '100%', minWidth: isMobile ? 'none' : 100, height: isMobile ? 60 : 80 }}>
                 {meses.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
-            <div>
+            <div style={{ flex: isMobile ? '1 1 140px' : '0 1 auto' }}>
               <label>Tipo de Día:</label><br />
-              <select value={tipoDiaSel} onChange={e => setTipoDiaSel(e.target.value)} style={{ minWidth: 120, height: 36 }}>
+              <select value={tipoDiaSel} onChange={e => setTipoDiaSel(e.target.value)} style={{ width: '100%', minWidth: isMobile ? 'none' : 120, height: 36 }}>
                 {tipoDias.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
-            <div>
+            <div style={{ flex: isMobile ? '1 1 140px' : '0 1 auto' }}>
               <label>Franjas:</label><br />
-              <select multiple value={franjasSel} onChange={handleMultiSelect(setFranjasSel)} style={{ minWidth: 120, height: 80 }}>
+              <select multiple value={franjasSel} onChange={handleMultiSelect(setFranjasSel)} style={{ width: '100%', minWidth: isMobile ? 'none' : 120, height: isMobile ? 60 : 80 }}>
                 {franjas.map(f => <option key={f} value={f}>{nombreFranjaMap[f] || f}</option>)}
               </select>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginLeft: 16, gap: 2 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, flex: isMobile ? '1 1 100%' : '0 1 auto', marginLeft: isMobile ? 0 : 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', height: 32 }}>
                 <input type="checkbox" id="verif290" checked={verificar290} onChange={e => setVerificar290(e.target.checked)} style={{ marginRight: 6 }} />
-                <label htmlFor="verif290">Verificar Res. GVMT N° 290</label>
+                <label htmlFor="verif290">Verificar Res. 290</label>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', height: 32 }}>
                 <input type="checkbox" id="verifEsencialidad" checked={verificarEsencialidad} onChange={e => setVerificarEsencialidad(e.target.checked)} style={{ marginRight: 6 }} />
-                <label htmlFor="verifEsencialidad">Verificar Esencialidad</label>
+                <label htmlFor="verifEsencialidad">Esencialidad</label>
                 {verificarEsencialidad && (
-                  <input type="number" min={1} max={100} value={porcentajeEsencialidad} onChange={e => setPorcentajeEsencialidad(Number(e.target.value))} style={{ width: 90, marginLeft: 8 }} />
+                  <input type="number" min={1} max={100} value={porcentajeEsencialidad} onChange={e => setPorcentajeEsencialidad(Number(e.target.value))} style={{ width: 60, marginLeft: 8 }} />
                 )}
                 {verificarEsencialidad && <span style={{ marginLeft: 4 }}>%</span>}
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginLeft: 16, gap: 2 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 2 }}>Fuente Promedio:</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <label><input type="radio" name="fuentePromedio" value="meses" checked={fuentePromedio === 'meses'} onChange={() => setFuentePromedio('meses')} /> Meses seleccionados</label>
-                <label><input type="radio" name="fuentePromedio" value="semanas" checked={fuentePromedio === 'semanas'} onChange={() => setFuentePromedio('semanas')} /> X semanas anteriores</label>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, flex: isMobile ? '1 1 100%' : '0 1 auto', marginLeft: isMobile ? 0 : 16 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: 2 }}>Fuente:</div>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: isMobile ? 12 : 2, flexWrap: 'wrap' }}>
+                <label><input type="radio" name="fuentePromedio" value="meses" checked={fuentePromedio === 'meses'} onChange={() => setFuentePromedio('meses')} /> Meses</label>
+                <label><input type="radio" name="fuentePromedio" value="semanas" checked={fuentePromedio === 'semanas'} onChange={() => setFuentePromedio('semanas')} /> Semanas</label>
                 {fuentePromedio === 'semanas' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                    <input type="number" min={1} max={12} value={numSemanas} onChange={e => setNumSemanas(Number(e.target.value))} style={{ width: 50 }} />
-                    <span>semanas</span>
-                    {cargandoSemanas && <span style={{ marginLeft: 8, color: '#1976d2' }}>Cargando...</span>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <input type="number" min={1} max={12} value={numSemanas} onChange={e => setNumSemanas(Number(e.target.value))} style={{ width: 45 }} />
+                    <span style={{ fontSize: 13 }}>sem.</span>
                   </div>
                 )}
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: 4 }}>
-              <button onClick={handleToggleComparar} style={{ background: '#388e3c', color: '#fff', fontWeight: 'bold', padding: '6px 18px', borderRadius: 8, border: 'none', fontSize: 15, cursor: 'pointer', marginBottom: 2 }}>
-                {mostrarComparar ? 'Ocultar Comparar' : 'Comparar'}
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', alignItems: 'start', gap: 8, flex: isMobile ? '1 1 100%' : '0 1 auto' }}>
+              <button onClick={handleToggleComparar} style={{ background: '#388e3c', color: '#fff', fontWeight: 'bold', padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 14, cursor: 'pointer' }}>
+                {mostrarComparar ? 'Ocultar' : 'Comparar'}
               </button>
               {mostrarComparar && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <input type="date" value={fechaComparar} onChange={e => setFechaComparar(e.target.value)} style={{ fontSize: 15 }} />
-                  <button onClick={handleComparar} disabled={!fechaComparar || cargandoComparar} style={{ background: '#1976d2', color: '#fff', fontWeight: 'bold', padding: '4px 12px', borderRadius: 6, border: 'none', fontSize: 14, cursor: (!fechaComparar || cargandoComparar) ? 'not-allowed' : 'pointer' }}>
-                    {cargandoComparar ? 'Cargando...' : 'Graficar'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <input type="date" value={fechaComparar} onChange={e => setFechaComparar(e.target.value)} style={{ fontSize: 14, padding: '2px' }} />
+                  <button onClick={handleComparar} disabled={!fechaComparar || cargandoComparar} style={{ background: '#1976d2', color: '#fff', fontWeight: 'bold', padding: '4px 10px', borderRadius: 6, border: 'none', fontSize: 13, cursor: (!fechaComparar || cargandoComparar) ? 'not-allowed' : 'pointer' }}>
+                    {cargandoComparar ? '...' : 'OK'}
                   </button>
                 </div>
               )}
-              {errorComparar && <div style={{ color: '#d84315', fontSize: 13 }}>{errorComparar}</div>}
             </div>
           </div>
         </div>
-        <div style={{ flex: 1, width: '100%', minHeight: 0, padding: '0 32px 32px 32px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, width: '100%', minHeight: 0, padding: isMobile ? '8px' : '0 32px 32px 32px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
           {noData ? (
             <div style={{ color: '#d84315', fontWeight: 'bold', fontSize: 18, padding: 32, textAlign: 'center' }}>
               No hay datos para graficar con los filtros seleccionados.
@@ -469,7 +475,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
                     point: { radius: 6, hoverRadius: 8 }
                   },
                   plugins: {
-                    legend: { display: true, position: 'top', labels: { font: { size: 16 } } },
+                    legend: { display: true, position: 'top', labels: { font: { size: isMobile ? 12 : 16 } } },
                     annotation: {
                       annotations: getPicoAnnotations(tipoDiaSel, franjasSel, nombreFranjaMap, horas)
                     },
@@ -479,7 +485,7 @@ function GraficoAvanzadoPromedioBuses({ data, nombreFranjaMap, onClose }) {
                         return !((context.dataset.label && context.dataset.label.startsWith('Mínimo Res.')) || (context.dataset.label && context.dataset.label.startsWith('Esencialidad')));
                       },
                       color: '#222',
-                      font: { weight: 'bold', size: 13 },
+                      font: { weight: 'bold', size: isMobile ? 10 : 13 },
                       align: 'top',
                       formatter: function (value, context) {
                         // Solo mostrar hasta dos decimales
