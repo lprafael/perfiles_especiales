@@ -2,3 +2,11 @@ fastapi
 uvicorn
 psycopg2-binary
 python-dotenv
+sqlalchemy[asyncio]
+asyncpg
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt>=4.0.1,<4.1
+python-multipart
+fastapi-mail
+geoalchemy2

@@ -14,8 +14,12 @@ from typing import List, Dict, Any
 
 from collections import defaultdict
 from pydantic import BaseModel
+import auth
 
 app = FastAPI()
+
+# Incluir router de autenticación migrado de sist_catalogos
+app.include_router(auth.router)
 
 
 
