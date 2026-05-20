@@ -12,9 +12,9 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // La URL del backend central de Catálogos (Sistema de Autenticación)
-  // Utilizamos la IP del servidor en el que están centralizados los usuarios
-  const AUTH_API_URL = process.env.REACT_APP_AUTH_API_URL || 'http://172.16.222.222:8001/auth';
+  // Usar /api que está configurado en nginx para hacer proxy al backend
+  // Esto evita errores de contenido mixto (HTTPS -> HTTP)
+  const apiUrl = process.env.REACT_APP_API_URL || '/api';
 
   const handleChange = (e) => {
     setCredentials({
@@ -33,7 +33,7 @@ const Login = ({ onLogin }) => {
     setError('');
 
     try {
-      const response = await fetch(`${AUTH_API_URL}/login`, {
+      const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -49,42 +49,13 @@ const Login = ({ onLogin }) => {
         if (data.refresh_token) {
           localStorage.setItem('refreshToken', data.refresh_token);
         }
-        
-        const userData = data.user;
-        
-        // Verificamos si tiene acceso a ESTE sistema (Sistema de Transporte, asumiendo ID 3).
-        let hasAccess = false;
-        let systemRole = 'viewer';
-        
-        // Si el usuario tiene permisos globales de admin o permisos locales en este sistema
-        if (userData.rol === 'admin') {
-           hasAccess = true;
-           systemRole = 'admin';
-        } else if (userData.habilitaciones_sistemas) {
-           const hab = userData.habilitaciones_sistemas.find(h => h.sistema_id === 3 && h.activo);
-           if (hab) {
-               hasAccess = true;
-               systemRole = hab.rol_nombre || 'viewer';
-           }
-        }
-        
-        if (!hasAccess) {
-           setError('No tienes permisos para acceder a este sistema.');
-           localStorage.removeItem('token');
-           localStorage.removeItem('refreshToken');
-           setLoading(false);
-           return;
-        }
-        
-        userData.system_role = systemRole;
-        localStorage.setItem('user', JSON.stringify(userData));
-        onLogin({ user: userData, token: data.access_token });
+        localStorage.setItem('user', JSON.stringify(data.user));
+        onLogin(data);
       } else {
-        setError(data.detail || 'Usuario o contraseña incorrectos');
+        setError(data.detail || 'Error en el inicio de sesión');
       }
     } catch (err) {
-      setError('Error de conexión. Verifica que el servidor de autenticación esté funcionando.');
-      console.error('Error de login:', err);
+      setError('Error de conexión. Verifica que el servidor esté funcionando.');
     } finally {
       setLoading(false);
     }
@@ -169,7 +140,7 @@ const Login = ({ onLogin }) => {
               setLoading(true);
               setError('');
               try {
-                const response = await fetch(`${AUTH_API_URL.replace('/auth', '')}/notify/forgot-password`, {
+                const response = await fetch(`${apiUrl}/notify/forgot-password`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ username: credentials.username })
@@ -178,6 +149,7 @@ const Login = ({ onLogin }) => {
                 if (response.ok) {
                   alert('Se ha notificado al administrador. Pronto se pondrá en contacto contigo.');
                 } else {
+                  // Si la respuesta es un array de errores, muestra el primer mensaje legible
                   if (Array.isArray(data.detail)) {
                     setError(data.detail.map(e => e.msg).join(' | '));
                   } else if (typeof data.detail === 'object') {
