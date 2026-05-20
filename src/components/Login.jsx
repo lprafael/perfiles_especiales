@@ -45,11 +45,11 @@ const Login = ({ onLogin }) => {
 
       if (response.ok) {
         // Guardar token, refresh token y datos del usuario
-        localStorage.setItem('token', data.access_token);
+        sessionStorage.setItem('token', data.access_token);
         if (data.refresh_token) {
-          localStorage.setItem('refreshToken', data.refresh_token);
+          sessionStorage.setItem('refreshToken', data.refresh_token);
         }
-        localStorage.setItem('user', JSON.stringify(data.user));
+        sessionStorage.setItem('user', JSON.stringify(data.user));
         onLogin(data);
       } else {
         setError(data.detail || 'Error en el inicio de sesión');
