@@ -9,10 +9,9 @@ RUN npm ci
 
 COPY . .
 # BUILD: API URL y base path (PUBLIC_URL vacío = app en raíz para Docker local; /monitoreo_vmt/ para producción)
-ARG REACT_APP_API_URL=http://localhost:8010
 ARG PUBLIC_URL=
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
 ENV PUBLIC_URL=$PUBLIC_URL
+# REACT_APP_API_URL se lee automáticamente desde .env.production al correr npm run build
 ENV PORT=3003
 RUN npm run build
 
