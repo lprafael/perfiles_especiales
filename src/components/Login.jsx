@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import './Login.css'; // Cargará nuestro nuevo CSS con la imagen de fondo de Gemini
+import { API_BASE } from '../config';
+import './Login.css'; // Cargará nuestro nuevo CSS con la imagen de fondo unificada
 
 const PUBLIC_URL = process.env.PUBLIC_URL || '';
 
@@ -12,9 +13,8 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Usar /api que está configurado en nginx para hacer proxy al backend
-  // Esto evita errores de contenido mixto (HTTPS -> HTTP)
-  const apiUrl = process.env.REACT_APP_API_URL || '/api';
+  // Usar API_BASE para evitar errores de contenido mixto (HTTPS -> HTTP)
+  const apiUrl = API_BASE;
 
   const handleChange = (e) => {
     setCredentials({
@@ -62,10 +62,10 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <div className="login-container" style={{ background: `url('${PUBLIC_URL}/imágenes/Gemini_Generated_Image_mbooyjmbooyjmboo.png') no-repeat center center fixed`, backgroundSize: 'cover' }}>
+    <div className="login-container" style={{ background: `url('${PUBLIC_URL}/imágenes/Imagen principal.png') no-repeat center center fixed`, backgroundSize: 'cover' }}>
       <div className="login-card">
         <div className="login-header">
-          <h2>Sistema de Transporte</h2>
+          <h2>Sistema de Transporte VMT-CID</h2>
           <p>Inicia sesión para continuar</p>
         </div>
 
