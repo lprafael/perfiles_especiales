@@ -20,7 +20,7 @@ import ReporteServiciosModal from "./ReporteServiciosModal";
 const PUBLIC_URL = process.env.PUBLIC_URL || "";
 
 // Esta parte genera la cabecera de página
-function CabeceradePagina({ onToggleSidebar, statusMessage }) {
+function CabeceradePagina({ onToggleSidebar, statusMessage, user, onLogout }) {
   return (
     <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: '#1e40af', color: 'white' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -49,12 +49,20 @@ function CabeceradePagina({ onToggleSidebar, statusMessage }) {
         </div>
       )}
 
-      <img
-        src={`${PUBLIC_URL}/imágenes/Logo_CIDSA2.jpg`}
-        alt="Logo CIDSA"
-        className="header-logo"
-        style={{ height: '45px' }}
-      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        {user && (
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user.nombre_completo}</div>
+            <button onClick={onLogout} style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontSize: '0.8rem' }}>Cerrar sesión</button>
+          </div>
+        )}
+        <img
+          src={`${PUBLIC_URL}/imágenes/Logo_CIDSA2.jpg`}
+          alt="Logo CIDSA"
+          className="header-logo"
+          style={{ height: '45px' }}
+        />
+      </div>
     </header>
   );
 }
@@ -139,7 +147,7 @@ function agruparCercanos(puntos, umbral = 100) {
 }
 
 // ✅ Función principal para calcular y mostrar los puntos de control
-function MiPaginaExistente() {
+function MiPaginaExistente({ user, onLogout }) {
   // ...existing code...
   // ...
   const [itinerariosEmpresa, setItinerariosEmpresa] = useState([]);
@@ -1676,6 +1684,8 @@ function MiPaginaExistente() {
       <CabeceradePagina
         onToggleSidebar={() => setMostrarSidebarIzquierdo(!mostrarSidebarIzquierdo)}
         statusMessage={busesTiempoRealActivo ? busStatus : ""}
+        user={user}
+        onLogout={onLogout}
       />
 
       <div className="content">
