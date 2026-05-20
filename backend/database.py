@@ -3,7 +3,9 @@ import os
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from env_loader import load_dotenv_safe
 
-load_dotenv_safe()
+# Load .env only if DATABASE_URL is not already provided by the container environment
+if not os.getenv("DATABASE_URL"):
+    load_dotenv_safe()
 
 # Configuración de las bases de datos
 DATABASE_URL = os.getenv("DATABASE_URL")
