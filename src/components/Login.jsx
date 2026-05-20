@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './Login.css'; // Cargará nuestro nuevo CSS con la imagen de fondo de Gemini
 
+const PUBLIC_URL = process.env.PUBLIC_URL || '';
+
 const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({
     username: '',
@@ -89,7 +91,7 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <div className="login-container">
+    <div className="login-container" style={{ background: `url('${PUBLIC_URL}/imágenes/Gemini_Generated_Image_mbooyjmbooyjmboo.png') no-repeat center center fixed`, backgroundSize: 'cover' }}>
       <div className="login-card">
         <div className="login-header">
           <h2>Sistema de Transporte</h2>
