@@ -62,7 +62,7 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <div className="login-container" style={{ background: `url('${PUBLIC_URL}/imágenes/Imagen principal.png') no-repeat center center fixed`, backgroundSize: 'cover' }}>
+    <div className="login-container" style={{ background: `url('${PUBLIC_URL}/imágenes/Gemini_Generated_Image_mbooyjmbooyjmboo.png') no-repeat center center fixed`, backgroundSize: 'cover' }}>
       <div className="login-card">
         <div className="login-header">
           <h2>Sistema de Transporte VMT-CID</h2>
