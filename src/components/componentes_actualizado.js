@@ -2401,6 +2401,7 @@ function MiPaginaExistente({ user, onLogout }) {
                 position: "absolute",
                 top: 0,
                 right: 0,
+                left: "auto",
                 height: "100%",
                 width: "340px",
                 background: "rgba(255, 255, 255, 0.4)",
