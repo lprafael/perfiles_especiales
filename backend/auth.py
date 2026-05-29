@@ -87,7 +87,7 @@ async def login(
     # Crear token usando el rol asociado a Catálogos (sistema_id = 2)
     user_rol_catalogos = "viewer"
     for hab in getattr(user, 'habilitaciones_sistemas', []):
-        if getattr(hab, 'sistema_id', None) == 2 and getattr(hab, 'activo', True):
+        if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
             user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
             break
             
@@ -161,7 +161,6 @@ async def create_user(
         email=user_data.email,
         hashed_password=hashed_password,
         nombre_completo=user_data.nombre_completo,
-        rol=user_data.rol,
         creado_por=current_user["user_id"]
     )
     
@@ -214,7 +213,6 @@ async def create_user(
         new_data={
             "username": new_user.username,
             "email": new_user.email,
-            "rol": new_user.rol,
             "activo": new_user.activo,
         },
         details=f"Usuario creado: {new_user.username}"
@@ -230,7 +228,7 @@ async def create_user(
     
     user_rol_catalogos = "viewer"
     for hab in getattr(user_final, 'habilitaciones_sistemas', []):
-        if getattr(hab, 'sistema_id', None) == 2 and getattr(hab, 'activo', True):
+        if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
             user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
             break
     user_final.rol = user_rol_catalogos
@@ -251,7 +249,7 @@ async def list_users(
     for user in users:
         user_rol_catalogos = "viewer"
         for hab in getattr(user, 'habilitaciones_sistemas', []):
-            if getattr(hab, 'sistema_id', None) == 2 and getattr(hab, 'activo', True):
+            if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
                 user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
                 break
         user.rol = user_rol_catalogos
@@ -276,7 +274,7 @@ async def get_user(
     
     user_rol_catalogos = "viewer"
     for hab in getattr(user, 'habilitaciones_sistemas', []):
-        if getattr(hab, 'sistema_id', None) == 2 and getattr(hab, 'activo', True):
+        if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
             user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
             break
     user.rol = user_rol_catalogos
@@ -358,7 +356,7 @@ async def update_user(
     
     user_rol_catalogos = "viewer"
     for hab in getattr(user_final, 'habilitaciones_sistemas', []):
-        if getattr(hab, 'sistema_id', None) == 2 and getattr(hab, 'activo', True):
+        if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
             user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
             break
     user_final.rol = user_rol_catalogos
@@ -378,7 +376,7 @@ async def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     # Proteger admin
-    if user.username == 'admin' and user.rol == 'admin':
+    if user.username == 'admin':
         raise HTTPException(status_code=403, detail="No se puede eliminar el usuario admin")
     # Desactivar usuario en lugar de eliminarlo
     user.activo = False
@@ -401,7 +399,6 @@ async def delete_user(
         previous_data={
             "username": user.username,
             "email": user.email,
-            "rol": user.rol,
         },
         details=f"Usuario desactivado: {user.username}"
     )
@@ -529,7 +526,7 @@ async def get_current_user_info(
     if user:
         user_rol_catalogos = "viewer"
         for hab in getattr(user, 'habilitaciones_sistemas', []):
-            if getattr(hab, 'sistema_id', None) == 2 and getattr(hab, 'activo', True):
+            if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
                 user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
                 break
         user.rol = user_rol_catalogos
