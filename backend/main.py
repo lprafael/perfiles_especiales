@@ -399,10 +399,14 @@ def obtener_buses_empresa(empresa_id: str, fecha: str, limit: int = 5000, offset
                 fecha_ini = f"{fecha} 00:00:00"
                 fecha_fin = f"{fecha} 23:59:59"
                 cursor.execute("""
-                    SELECT mean_id, latitude, longitude, fecha_hora AT TIME ZONE 'America/Asuncion' AS fecha_hora
+                    SELECT DISTINCT ON (mean_id, date_trunc('minute', fecha_hora))
+                        mean_id, 
+                        latitude, 
+                        longitude, 
+                        fecha_hora AT TIME ZONE 'America/Asuncion' AS fecha_hora
                     FROM app_monitoreo_mensajeoperativo
                     WHERE agency_id = %s AND fecha_hora BETWEEN %s AND %s
-                    ORDER BY mean_id, fecha_hora
+                    ORDER BY mean_id, date_trunc('minute', fecha_hora), fecha_hora
                     LIMIT %s OFFSET %s
                 """, (empresa_id, fecha_ini, fecha_fin, limit, offset))
                 rows = cursor.fetchall()
