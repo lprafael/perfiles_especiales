@@ -389,9 +389,9 @@ def obtener_ultimos_gps(empresa_id: str, n: int = Query(1)):
 
 # GPS DE BUSES DE LA EMPRESA EN UNA FECHA
 @app.get("/empresas/{empresa_id}/buses")
-def obtener_buses_empresa(empresa_id: str, fecha: str, limit: int = 5000, offset: int = 0):
+def obtener_buses_empresa(empresa_id: str, fecha: str):
     """
-    Devuelve todos los mean_id (buses) y sus puntos GPS para la empresa y fecha seleccionada de forma paginada.
+    Devuelve todos los mean_id (buses) y sus puntos GPS (optimizados a 1 por minuto) para la empresa y fecha seleccionada.
     """
     try:
         with get_conn_monitoreo() as conn:
@@ -407,12 +407,11 @@ def obtener_buses_empresa(empresa_id: str, fecha: str, limit: int = 5000, offset
                     FROM app_monitoreo_mensajeoperativo
                     WHERE agency_id = %s AND fecha_hora BETWEEN %s AND %s
                     ORDER BY mean_id, date_trunc('minute', fecha_hora), fecha_hora
-                    LIMIT %s OFFSET %s
-                """, (empresa_id, fecha_ini, fecha_fin, limit, offset))
+                """, (empresa_id, fecha_ini, fecha_fin))
                 rows = cursor.fetchall()
                 # Agrupar por mean_id
                 # imprimo en la terminal para debug
-                print(f"Obtenidos {len(rows)} puntos GPS para la empresa {empresa_id} en la fecha {fecha} (Limit: {limit}, Offset: {offset})")
+                print(f"Obtenidos {len(rows)} puntos GPS (1xMinuto) para la empresa {empresa_id} en la fecha {fecha}")
                 buses = {}
                 for row in rows:
                     mid = row['mean_id']
