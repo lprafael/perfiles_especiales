@@ -2109,7 +2109,7 @@ function MiPaginaExistente({ user, onLogout }) {
               <b>Calcular servicios</b>
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 // Nueva funcionalidad: Verificar recorrido
                 if (!empresaId || !fecha) {
                   alert("Seleccione una empresa y una fecha");
@@ -2119,26 +2119,58 @@ function MiPaginaExistente({ user, onLogout }) {
                 setBusesTiempoReal([]); // Limpiar buses en tiempo real
                 setBusesTiempoRealSeleccionados([]); // Limpiar selección
                 limpiarCapasMapa(); // Limpiar todas las capas del mapa
-                fetch(`${API_BASE}/empresas/${empresaId}/buses?fecha=${fecha}`)
-                  .then(res => res.json())
-                  .then(busesData => {
-                    setMostrarSidebarDerecho(true);
-                    setInfoServicios({
-                      tipo: 'buses',
-                      empresaId,
-                      fecha,
-                      buses: busesData,
-                      busesSeleccionados: busesData.map(b => b.mean_id), // por defecto todos seleccionados
+                mostrarAviso("Descargando recorridos, esto puede demorar un momento...", "info");
+
+                try {
+                  let page = 0;
+                  const limit = 5000;
+                  let hasMore = true;
+                  let busesAgrupados = {};
+
+                  while (hasMore) {
+                    const res = await fetch(`${API_BASE}/empresas/${empresaId}/buses?fecha=${fecha}&limit=${limit}&offset=${page * limit}`);
+                    if (!res.ok) throw new Error("Error en la respuesta");
+                    const data = await res.json();
+                    
+                    let puntosRecibidos = 0;
+                    data.forEach(b => {
+                      if (!busesAgrupados[b.mean_id]) {
+                        busesAgrupados[b.mean_id] = { mean_id: b.mean_id, recorrido: [] };
+                      }
+                      busesAgrupados[b.mean_id].recorrido.push(...b.recorrido);
+                      puntosRecibidos += b.recorrido.length;
                     });
-                    // Si el checkbox de validaciones está activo, cargar validaciones para la fecha seleccionada
-                    if (incluirValidaciones) {
-                      cargarValidaciones(empresaId, fecha, false);
-                    } else if (validacionesLayer.current && mapInstance.current) {
-                      mapInstance.current.removeLayer(validacionesLayer.current);
-                      validacionesLayer.current = null;
+
+                    if (puntosRecibidos < limit) {
+                      hasMore = false;
+                    } else {
+                      page++;
                     }
-                  })
-                  .catch(() => mostrarAviso("Error al obtener buses", "error"));
+                  }
+
+                  const busesData = Object.values(busesAgrupados);
+                  setMostrarSidebarDerecho(true);
+                  setInfoServicios({
+                    tipo: 'buses',
+                    empresaId,
+                    fecha,
+                    buses: busesData,
+                    busesSeleccionados: busesData.map(b => b.mean_id), // por defecto todos seleccionados
+                  });
+
+                  // Si el checkbox de validaciones está activo, cargar validaciones para la fecha seleccionada
+                  if (incluirValidaciones) {
+                    cargarValidaciones(empresaId, fecha, false);
+                  } else if (validacionesLayer.current && mapInstance.current) {
+                    mapInstance.current.removeLayer(validacionesLayer.current);
+                    validacionesLayer.current = null;
+                  }
+                  
+                  mostrarAviso("Recorridos descargados exitosamente.", "success");
+                } catch (error) {
+                  console.error(error);
+                  mostrarAviso("Error al obtener buses", "error");
+                }
               }}
               style={{ width: "100%", background: '#e0e0ff', color: '#222' }}
             >

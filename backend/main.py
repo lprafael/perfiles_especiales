@@ -389,32 +389,26 @@ def obtener_ultimos_gps(empresa_id: str, n: int = Query(1)):
 
 # GPS DE BUSES DE LA EMPRESA EN UNA FECHA
 @app.get("/empresas/{empresa_id}/buses")
-def obtener_buses_empresa(empresa_id: str, fecha: str):
+def obtener_buses_empresa(empresa_id: str, fecha: str, limit: int = 5000, offset: int = 0):
     """
-    Devuelve todos los mean_id (buses) y sus puntos GPS para la empresa y fecha seleccionada.
+    Devuelve todos los mean_id (buses) y sus puntos GPS para la empresa y fecha seleccionada de forma paginada.
     """
     try:
         with get_conn_monitoreo() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 fecha_ini = f"{fecha} 00:00:00"
                 fecha_fin = f"{fecha} 23:59:59"
-                # cursor.execute("""
-                #     SELECT mean_id, latitude, longitude, fecha_hora
-                #     FROM app_monitoreo_mensajeoperativo
-                #     WHERE agency_id = %s AND fecha_hora BETWEEN %s AND %s
-                #     ORDER BY mean_id, fecha_hora
-                # """, (empresa_id, fecha_ini, fecha_fin))
-                # SELECT mean_id, latitude, longitude, fecha_hora AT TIME ZONE 'America/Asuncion' + interval '1 hours' AS fecha_hora
                 cursor.execute("""
                     SELECT mean_id, latitude, longitude, fecha_hora AT TIME ZONE 'America/Asuncion' AS fecha_hora
                     FROM app_monitoreo_mensajeoperativo
                     WHERE agency_id = %s AND fecha_hora BETWEEN %s AND %s
                     ORDER BY mean_id, fecha_hora
-                """, (empresa_id, fecha_ini, fecha_fin))
+                    LIMIT %s OFFSET %s
+                """, (empresa_id, fecha_ini, fecha_fin, limit, offset))
                 rows = cursor.fetchall()
                 # Agrupar por mean_id
                 # imprimo en la terminal para debug
-                print(f"Obtenidos {len(rows)} puntos GPS para la empresa {empresa_id} en la fecha {fecha}")
+                print(f"Obtenidos {len(rows)} puntos GPS para la empresa {empresa_id} en la fecha {fecha} (Limit: {limit}, Offset: {offset})")
                 buses = {}
                 for row in rows:
                     mid = row['mean_id']
