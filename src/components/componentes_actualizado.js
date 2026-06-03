@@ -248,6 +248,173 @@ function MiPaginaExistente({ user, onLogout }) {
   const [mostrarPanelControlFranja, setMostrarPanelControlFranja] = useState(false);
   const [mostrarPanelRegularidadBuses, setMostrarPanelRegularidadBuses] = useState(false);
 
+  const [modoVelocidadComercial, setModoVelocidadComercial] = useState(false);
+  const [puntoInicioVel, setPuntoInicioVel] = useState(null);
+  const [puntoFinVel, setPuntoFinVel] = useState(null);
+  const [resultadosVelocidad, setResultadosVelocidad] = useState(null);
+  const capaVelocidadRef = useRef(null);
+
+  // Efecto para el modo de Velocidad Comercial
+  useEffect(() => {
+    if (!mapInstance.current) return;
+    
+    if (modoVelocidadComercial) {
+      if (!capaVelocidadRef.current) {
+        capaVelocidadRef.current = L.layerGroup().addTo(mapInstance.current);
+        
+        // Obtener el centro actual del mapa
+        const center = mapInstance.current.getCenter();
+        const pInicio = { lat: center.lat, lng: center.lng - 0.01 };
+        const pFin = { lat: center.lat, lng: center.lng + 0.01 };
+        
+        setPuntoInicioVel(pInicio);
+        setPuntoFinVel(pFin);
+
+        const markerInicio = L.marker([pInicio.lat, pInicio.lng], {
+          draggable: true,
+          icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            shadowUrl: shadowIcon,
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          })
+        }).addTo(capaVelocidadRef.current);
+        
+        const circleInicio = L.circle([pInicio.lat, pInicio.lng], { radius: 150, color: 'green', fillOpacity: 0.2 }).addTo(capaVelocidadRef.current);
+
+        markerInicio.bindTooltip("Punto Inicial", { permanent: true, direction: "top" });
+        markerInicio.on('drag', (e) => {
+          const latlng = e.target.getLatLng();
+          setPuntoInicioVel({ lat: latlng.lat, lng: latlng.lng });
+          circleInicio.setLatLng(latlng);
+        });
+
+        const markerFin = L.marker([pFin.lat, pFin.lng], {
+          draggable: true,
+          icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: shadowIcon,
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          })
+        }).addTo(capaVelocidadRef.current);
+
+        const circleFin = L.circle([pFin.lat, pFin.lng], { radius: 150, color: 'red', fillOpacity: 0.2 }).addTo(capaVelocidadRef.current);
+
+        markerFin.bindTooltip("Punto Final", { permanent: true, direction: "top" });
+        markerFin.on('drag', (e) => {
+          const latlng = e.target.getLatLng();
+          setPuntoFinVel({ lat: latlng.lat, lng: latlng.lng });
+          circleFin.setLatLng(latlng);
+        });
+      }
+    } else {
+      if (capaVelocidadRef.current && mapInstance.current) {
+        mapInstance.current.removeLayer(capaVelocidadRef.current);
+        capaVelocidadRef.current = null;
+        setPuntoInicioVel(null);
+        setPuntoFinVel(null);
+        setResultadosVelocidad(null);
+      }
+    }
+  }, [modoVelocidadComercial]);
+
+  const calcularVelocidadComercial = async () => {
+    if (!empresaId || !fecha) {
+      alert("Seleccione una empresa y una fecha");
+      return;
+    }
+    if (!puntoInicioVel || !puntoFinVel) return;
+
+    let busesEvaluar = [];
+    try {
+      const res = await fetch(`${API_BASE}/empresas/${empresaId}/buses?fecha=${fecha}`);
+      busesEvaluar = await res.json();
+    } catch (e) {
+      alert("Error al obtener recorridos de buses");
+      return;
+    }
+
+    if (!Array.isArray(busesEvaluar) || busesEvaluar.length === 0) {
+      alert("No se encontraron buses para esta fecha.");
+      return;
+    }
+
+    const resultados = [];
+    busesEvaluar.forEach(bus => {
+      if (!Array.isArray(bus.recorrido) || bus.recorrido.length === 0) return;
+      const rec = [...bus.recorrido].sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
+      
+      let i = 0;
+      while (i < rec.length) {
+        let idxInicio = null;
+        while (i < rec.length) {
+          if (distanciaEnMetros(rec[i], puntoInicioVel) <= 150) {
+            idxInicio = i;
+            break;
+          }
+          i++;
+        }
+
+        if (idxInicio === null) break;
+
+        while (i < rec.length && distanciaEnMetros(rec[i], puntoInicioVel) <= 150) {
+          idxInicio = i;
+          i++;
+        }
+
+        let idxFin = null;
+        while (i < rec.length) {
+          if (distanciaEnMetros(rec[i], puntoFinVel) <= 150) {
+            idxFin = i;
+            break;
+          }
+          i++;
+        }
+
+        if (idxFin !== null) {
+          const pInicio = rec[idxInicio];
+          const pFin = rec[idxFin];
+          const tInicio = new Date(pInicio.fecha_hora);
+          const tFin = new Date(pFin.fecha_hora);
+          const diffMs = tFin - tInicio;
+          const diffHoras = diffMs / (1000 * 60 * 60);
+
+          if (diffHoras > 0) {
+            let distanciaM = 0;
+            for (let k = idxInicio; k < idxFin; k++) {
+              distanciaM += distanciaEnMetros(rec[k], rec[k+1]);
+            }
+            const distanciaKm = distanciaM / 1000;
+            const velocidadKmH = distanciaKm / diffHoras;
+
+            const diffMin = Math.floor(diffMs / 60000);
+            const duracionStr = `${Math.floor(diffMin / 60)}h ${diffMin % 60}m`;
+
+            resultados.push({
+              unidad: bus.mean_id,
+              horaInicio: tInicio.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              horaFin: tFin.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              duracion: duracionStr,
+              distanciaKm: distanciaKm.toFixed(2),
+              velocidadKmH: velocidadKmH.toFixed(2)
+            });
+          }
+          // Continue searching if the bus returns and does the route again
+          i = idxFin + 1;
+        } else {
+          break;
+        }
+      }
+    });
+
+    setResultadosVelocidad(resultados);
+  };
+
   // Forzar reset de estado del modal de regularidad al cambiar empresa o fecha
   const prevEmpresaId = useRef("");
   const prevFecha = useRef("");
@@ -2210,6 +2377,13 @@ function MiPaginaExistente({ user, onLogout }) {
             >
               Verificar promedio de operativa
             </button>
+            <button
+              className="btn-velocidad-comercial"
+              onClick={() => setModoVelocidadComercial(!modoVelocidadComercial)}
+              style={{ width: "100%", backgroundColor: modoVelocidadComercial ? '#ffebee' : '#fce4ec', color: '#c2185b', fontWeight: 'bold', marginTop: 8 }}
+            >
+              {modoVelocidadComercial ? 'Ocultar Velocidad Comercial' : 'Calcular Velocidad Comercial en el Mapa'}
+            </button>
             {/* Modal wizard para análisis avanzado (placeholder) */}
             {mostrarPanelPromedioOperativa && (
               <ModalPromedioOperativaWizard onClose={() => setMostrarPanelPromedioOperativa(false)} />
@@ -2402,6 +2576,69 @@ function MiPaginaExistente({ user, onLogout }) {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+          {modoVelocidadComercial && (
+            <div
+              className="panel-velocidad-comercial"
+              style={{
+                position: "absolute",
+                top: 10,
+                right: mostrarSidebarDerecho ? 350 : 10,
+                width: "400px",
+                maxHeight: "80%",
+                background: "rgba(255, 255, 255, 0.95)",
+                zIndex: 1000,
+                boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+                borderRadius: "8px",
+                padding: "16px",
+                overflowY: "auto",
+              }}
+            >
+              <h3 style={{ margin: "0 0 10px 0", color: "#c2185b", fontSize: "18px" }}>Cálculo de Velocidad Comercial</h3>
+              <p style={{ fontSize: "14px", color: "#555", marginBottom: "10px" }}>
+                Arrastre el <b>Punto Inicial (Verde)</b> y el <b>Punto Final (Rojo)</b> en el mapa. Luego presione "Ejecutar Cálculo".
+              </p>
+              <button
+                onClick={calcularVelocidadComercial}
+                style={{ width: "100%", backgroundColor: '#c2185b', color: 'white', fontWeight: 'bold', padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", marginBottom: "10px" }}
+              >
+                Ejecutar Cálculo
+              </button>
+              
+              {resultadosVelocidad && (
+                <div>
+                  <h4 style={{ margin: "10px 0 5px 0" }}>Resultados ({resultadosVelocidad.length} viajes)</h4>
+                  {resultadosVelocidad.length === 0 ? (
+                    <p style={{ fontSize: "13px" }}>No se detectaron viajes entre estos puntos con un buffer de 150m.</p>
+                  ) : (
+                    <table style={{ width: "100%", fontSize: "12px", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ background: "#f0f0f0", textAlign: "left" }}>
+                          <th style={{ padding: "4px", borderBottom: "1px solid #ccc" }}>Unidad</th>
+                          <th style={{ padding: "4px", borderBottom: "1px solid #ccc" }}>Inicio</th>
+                          <th style={{ padding: "4px", borderBottom: "1px solid #ccc" }}>Fin</th>
+                          <th style={{ padding: "4px", borderBottom: "1px solid #ccc" }}>Tiempo</th>
+                          <th style={{ padding: "4px", borderBottom: "1px solid #ccc" }}>Dist.</th>
+                          <th style={{ padding: "4px", borderBottom: "1px solid #ccc" }}>Velocidad</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {resultadosVelocidad.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: "4px", borderBottom: "1px solid #eee" }}>{r.unidad}</td>
+                            <td style={{ padding: "4px", borderBottom: "1px solid #eee" }}>{r.horaInicio}</td>
+                            <td style={{ padding: "4px", borderBottom: "1px solid #eee" }}>{r.horaFin}</td>
+                            <td style={{ padding: "4px", borderBottom: "1px solid #eee" }}>{r.duracion}</td>
+                            <td style={{ padding: "4px", borderBottom: "1px solid #eee" }}>{r.distanciaKm} km</td>
+                            <td style={{ padding: "4px", borderBottom: "1px solid #eee", fontWeight: "bold", color: "#c2185b" }}>{r.velocidadKmH} km/h</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {/* Sidebar derecho flotante y semitransparente */}
