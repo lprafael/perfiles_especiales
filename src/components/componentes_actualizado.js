@@ -253,6 +253,14 @@ function MiPaginaExistente({ user, onLogout }) {
   const [puntoFinVel, setPuntoFinVel] = useState(null);
   const [resultadosVelocidad, setResultadosVelocidad] = useState(null);
   const capaVelocidadRef = useRef(null);
+  const circleInicioRef = useRef(null);
+  const circleFinRef = useRef(null);
+
+  // Efecto para actualizar el radio de los círculos cuando cambia geocercaRadio
+  useEffect(() => {
+    if (circleInicioRef.current) circleInicioRef.current.setRadius(geocercaRadio);
+    if (circleFinRef.current) circleFinRef.current.setRadius(geocercaRadio);
+  }, [geocercaRadio]);
 
   // Efecto para el modo de Velocidad Comercial
   useEffect(() => {
@@ -282,7 +290,8 @@ function MiPaginaExistente({ user, onLogout }) {
           })
         }).addTo(capaVelocidadRef.current);
         
-        const circleInicio = L.circle([pInicio.lat, pInicio.lng], { radius: 150, color: 'green', fillOpacity: 0.2 }).addTo(capaVelocidadRef.current);
+        const circleInicio = L.circle([pInicio.lat, pInicio.lng], { radius: geocercaRadio, color: 'green', fillOpacity: 0.2 }).addTo(capaVelocidadRef.current);
+        circleInicioRef.current = circleInicio;
 
         markerInicio.bindTooltip("Punto Inicial", { permanent: true, direction: "top" });
         markerInicio.on('drag', (e) => {
@@ -303,7 +312,8 @@ function MiPaginaExistente({ user, onLogout }) {
           })
         }).addTo(capaVelocidadRef.current);
 
-        const circleFin = L.circle([pFin.lat, pFin.lng], { radius: 150, color: 'red', fillOpacity: 0.2 }).addTo(capaVelocidadRef.current);
+        const circleFin = L.circle([pFin.lat, pFin.lng], { radius: geocercaRadio, color: 'red', fillOpacity: 0.2 }).addTo(capaVelocidadRef.current);
+        circleFinRef.current = circleFin;
 
         markerFin.bindTooltip("Punto Final", { permanent: true, direction: "top" });
         markerFin.on('drag', (e) => {
@@ -316,6 +326,8 @@ function MiPaginaExistente({ user, onLogout }) {
       if (capaVelocidadRef.current && mapInstance.current) {
         mapInstance.current.removeLayer(capaVelocidadRef.current);
         capaVelocidadRef.current = null;
+        circleInicioRef.current = null;
+        circleFinRef.current = null;
         setPuntoInicioVel(null);
         setPuntoFinVel(null);
         setResultadosVelocidad(null);
@@ -353,7 +365,7 @@ function MiPaginaExistente({ user, onLogout }) {
       while (i < rec.length) {
         let idxInicio = null;
         while (i < rec.length) {
-          if (distanciaEnMetros(rec[i], puntoInicioVel) <= 150) {
+          if (distanciaEnMetros(rec[i], puntoInicioVel) <= geocercaRadio) {
             idxInicio = i;
             break;
           }
@@ -362,14 +374,14 @@ function MiPaginaExistente({ user, onLogout }) {
 
         if (idxInicio === null) break;
 
-        while (i < rec.length && distanciaEnMetros(rec[i], puntoInicioVel) <= 150) {
+        while (i < rec.length && distanciaEnMetros(rec[i], puntoInicioVel) <= geocercaRadio) {
           idxInicio = i;
           i++;
         }
 
         let idxFin = null;
         while (i < rec.length) {
-          if (distanciaEnMetros(rec[i], puntoFinVel) <= 150) {
+          if (distanciaEnMetros(rec[i], puntoFinVel) <= geocercaRadio) {
             idxFin = i;
             break;
           }
@@ -2610,7 +2622,7 @@ function MiPaginaExistente({ user, onLogout }) {
                 <div>
                   <h4 style={{ margin: "10px 0 5px 0" }}>Resultados ({resultadosVelocidad.length} viajes)</h4>
                   {resultadosVelocidad.length === 0 ? (
-                    <p style={{ fontSize: "13px" }}>No se detectaron viajes entre estos puntos con un buffer de 150m.</p>
+                    <p style={{ fontSize: "13px" }}>No se detectaron viajes entre estos puntos con un buffer de {geocercaRadio}m.</p>
                   ) : (
                     <table style={{ width: "100%", fontSize: "12px", borderCollapse: "collapse" }}>
                       <thead>
