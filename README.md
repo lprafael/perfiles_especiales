@@ -1,6 +1,6 @@
 # Sist. Transporte
 
-Frontend React (puerto 3003) + Backend FastAPI (puerto 8010).
+Frontend React (puerto 3008) + Backend FastAPI (puerto 8010).
 
 ## Requisitos
 
@@ -10,16 +10,16 @@ Frontend React (puerto 3003) + Backend FastAPI (puerto 8010).
 
 ## Desarrollo local
 
-### Frontend (raíz del proyecto, puerto 3003)
+### Frontend (raíz del proyecto, puerto 3008)
 
 ```bash
-# Opcional: copiar .env.example a .env y poner PORT=3003 para que npm start use el puerto 3003
+# Opcional: copiar .env.example a .env y poner PORT=3008 para que npm start use el puerto 3008
 cp .env.example .env
 npm install
 npm start
 ```
 
-Abre [http://localhost:3003](http://localhost:3003).
+Abre [http://localhost:3008](http://localhost:3008).
 
 ### Backend (carpeta backend, puerto 8010)
 
@@ -39,10 +39,10 @@ API en [http://localhost:8010](http://localhost:8010).
 docker compose up --build
 ```
 
-- Frontend: [http://localhost:3003](http://localhost:3003)
+- Frontend: [http://localhost:3008](http://localhost:3008)
 - Backend: [http://localhost:8010](http://localhost:8010)
 
-## Despliegue en servidor (ej. http://172.16.222.222:3003/)
+## Despliegue en servidor (ej. http://172.16.222.222:3008/)
 
 Para que la app funcione en un servidor, el frontend debe llamar al backend por la URL pública del servidor (no por localhost).
 
@@ -58,7 +58,7 @@ Para que la app funcione en un servidor, el frontend debe llamar al backend por 
    ```bash
    docker compose up --build -d
    ```
-5. Abrir en el navegador: **http://172.16.222.222:3003/** (frontend) y **http://172.16.222.222:8010** (API).
+5. Abrir en el navegador: **http://172.16.222.222:3008/** (frontend) y **http://172.16.222.222:8010** (API).
 
 ### Opción B: Sin Docker en el servidor
 
@@ -71,7 +71,7 @@ Para que la app funcione en un servidor, el frontend debe llamar al backend por 
    set REACT_APP_API_URL=http://172.16.222.222:8010
    npm run build
    ```
-   Luego copiar la carpeta `build` al servidor y servirla con nginx, Apache o `serve -s build -l 3003`.
+   Luego copiar la carpeta `build` al servidor y servirla con nginx, Apache o `serve -s build -l 3008`.
 
 ---
 
@@ -130,7 +130,7 @@ In the project directory, you can run:
 ### `npm start`
 
 Runs the app in the development mode.\
-Open [http://localhost:3003](http://localhost:3003) to view it in your browser (usa `PORT=3003` en `.env` si hace falta).
+Open [http://localhost:3008](http://localhost:3008) to view it in your browser (usa `PORT=3008` en `.env` si hace falta).
 
 The page will reload when you make changes.\
 You may also see any lint errors in the console.

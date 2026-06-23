@@ -1,6 +1,6 @@
 {
-  "short_name": "CID-Monitoreo",
-  "name": "CID Monitoreo de Transporte",
+  "short_name": "VMT-AP",
+  "name": "VMT- Administración de Perfiles Especiales",
   "icons": [
     {
       "src": "favicon.ico",

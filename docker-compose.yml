@@ -1,5 +1,5 @@
 # Backend: desde carpeta backend (uvicorn main:app)
-# Frontend: desde raíz (npm start → puerto 3003)
+# Frontend: desde raíz (npm start → puerto 3008)
 # Levantar: docker compose up --build
 
 services:
@@ -19,21 +19,11 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # Local Docker: dejá por defecto → app en http://localhost:3003/
+        # Local Docker: dejá por defecto → app en http://localhost:3008/
         # Producción: REACT_APP_API_URL=https://sistemas.mopc.gov.py/api PUBLIC_URL=/monitoreo_vmt/
         REACT_APP_API_URL: ${REACT_APP_API_URL:-http://127.0.0.1:8010}
         PUBLIC_URL: ${PUBLIC_URL:-}
     ports:
-      - "3003:3003"
+      - "3008:3008"
     depends_on:
       - backend
-
-  streamlit:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.streamlit
-    ports:
-      - "8501:8501"
-    env_file:
-      - ./backend/.env
-    restart: always

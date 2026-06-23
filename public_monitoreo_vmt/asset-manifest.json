@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/monitoreo_vmt/static/css/main.01f43e42.css",
+    "main.js": "/monitoreo_vmt/static/js/main.51e76e31.js",
+    "index.html": "/monitoreo_vmt/index.html",
+    "main.01f43e42.css.map": "/monitoreo_vmt/static/css/main.01f43e42.css.map",
+    "main.51e76e31.js.map": "/monitoreo_vmt/static/js/main.51e76e31.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.01f43e42.css",
+    "static/js/main.51e76e31.js"
+  ]
+}

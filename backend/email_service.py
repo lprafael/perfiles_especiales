@@ -18,9 +18,12 @@ class EmailService:
         self.password = os.getenv("EMAIL_PASSWORD", "")
         self.from_email = os.getenv("EMAIL_FROM", "")
 
-    def send_email(self, to_email: str, subject: str, body: str, is_html: bool = False) -> bool:
-        """Envía un email"""
+    def send_email(self, to_email: str, subject: str, body: str, is_html: bool = False, attachments: list = None) -> bool:
+        """Envía un email con soporte para adjuntos opcionales"""
         try:
+            from email.mime.base import MIMEBase
+            from email import encoders
+            
             if not self.username or not self.password or not self.from_email:
                 print("Error enviando email: EMAIL_USERNAME, EMAIL_PASSWORD o EMAIL_FROM no configurados en .env")
                 return False
@@ -37,6 +40,15 @@ class EmailService:
                 msg.attach(MIMEText(body, 'html'))
             else:
                 msg.attach(MIMEText(body, 'plain'))
+                
+            if attachments:
+                for attachment in attachments:
+                    # attachment is expected to be a dict: {'filename': str, 'content': bytes, 'content_type': str}
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(attachment['content'])
+                    encoders.encode_base64(part)
+                    part.add_header('Content-Disposition', f"attachment; filename= {attachment['filename']}")
+                    msg.attach(part)
 
             # Timeout 15s para evitar bloquear y causar 502 en nginx
             server = smtplib.SMTP(self.host, self.port, timeout=15)

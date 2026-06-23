@@ -39,11 +39,21 @@ class HabilitacionCreate(BaseModel):
     sistema_id: int
     rol: str
 
+class OrganismoResponse(BaseModel):
+    id: int
+    sigla: str
+    nombre_completo: str
+    
+    class Config:
+        from_attributes = True
+
 class UserCreate(BaseModel):
     username: str
+    password: str
     email: EmailStr
     nombre_completo: str
     rol: str = "user"
+    id_organismo: Optional[int] = None
     habilitaciones: List[HabilitacionCreate] = []
     
     @validator('username')
@@ -58,6 +68,7 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     nombre_completo: Optional[str] = None
     rol: Optional[str] = None
+    id_organismo: Optional[int] = None
     activo: Optional[bool] = None
     habilitaciones: Optional[List[HabilitacionCreate]] = None
 
@@ -96,6 +107,8 @@ class UserResponse(BaseModel):
     email: str
     nombre_completo: str
     rol: str
+    id_organismo: Optional[int] = None
+    organismo: Optional[OrganismoResponse] = None
     activo: bool
     fecha_creacion: datetime
     ultimo_acceso: Optional[datetime] = None
@@ -1077,3 +1090,46 @@ class FranjaOperativaResponse(FranjaOperativaBase):
 
 class OSRMRouteRequest(BaseModel):
     coords: str
+
+# ===== SCHEMAS PERFILES ESPECIALES =====
+
+class TipoPerfilEspecialBase(BaseModel):
+    tipo_especial: Optional[str] = None
+    id_organismo: Optional[int] = None
+    organismo: Optional[OrganismoResponse] = None
+
+class TipoPerfilEspecialResponse(TipoPerfilEspecialBase):
+    id_tipo_especial: int
+    class Config:
+        from_attributes = True
+
+class PerfilEspecialBase(BaseModel):
+    nombre_apellido: Optional[str] = None
+    fecha_nacimiento: Optional[date] = None
+    cedula_identidad: Optional[str] = None
+    institucion: Optional[str] = None
+    Lote: Optional[str] = None
+    eps: Optional[str] = None
+    serial_mdp: Optional[str] = None
+    id_tipo_perfil: Optional[int] = None
+    verificado: bool = False
+
+class PerfilEspecialCreate(PerfilEspecialBase):
+    pass
+
+class PerfilEspecialUpdate(BaseModel):
+    nombre_apellido: Optional[str] = None
+    fecha_nacimiento: Optional[date] = None
+    cedula_identidad: Optional[str] = None
+    institucion: Optional[str] = None
+    Lote: Optional[str] = None
+    eps: Optional[str] = None
+    serial_mdp: Optional[str] = None
+    id_tipo_perfil: Optional[int] = None
+    verificado: Optional[bool] = None
+
+class PerfilEspecialResponse(PerfilEspecialBase):
+    orden: int
+    tipo_perfil: Optional[TipoPerfilEspecialResponse] = None
+    class Config:
+        from_attributes = True

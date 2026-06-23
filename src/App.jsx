@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Login from './components/Login.jsx';
-import MiPaginaExistente from './components/componentes_actualizado.js';
+import MainScreen from './components/MainScreen.jsx';
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -69,8 +69,7 @@ const App = () => {
     return <Login onLogin={handleLogin} />;
   }
 
-  // Pasamos información del usuario y función de logout si el componente la necesitara
-  return <MiPaginaExistente user={user} onLogout={handleLogout} />;
+  return <MainScreen user={user} onLogout={handleLogout} />;
 };
 
 export default App;

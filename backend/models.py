@@ -293,6 +293,15 @@ class HistoricoEotRuta(Base):
     eot = relationship("EOT", backref="historico_rutas")
     ruta = relationship("CatalogoRuta", backref="historico_eots")
 
+class Organismo(Base):
+    __tablename__ = "organismos"
+    __table_args__ = {"schema": "sistema"}
+    
+    id = Column(Integer, primary_key=True, index=True)
+    sigla = Column(String(20), nullable=False, unique=True)
+    nombre_completo = Column(String(200), nullable=False)
+    activo = Column(Boolean, default=True)
+
 class SistemaApp(Base):
     __tablename__ = "sistemas"
     __table_args__ = {"schema": "sistema"}
@@ -334,6 +343,7 @@ class Usuario(Base):
     fecha_creacion = Column(DateTime, default=func.now())
     ultimo_acceso = Column(DateTime)
     creado_por = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=True)
+    id_organismo = Column(Integer, ForeignKey('sistema.organismos.id'), nullable=True)
     
     # Relaciones
     roles = relationship("Rol", secondary=usuario_rol, back_populates="usuarios")
@@ -342,6 +352,7 @@ class Usuario(Base):
     logs_auditoria = relationship("LogAuditoria", back_populates="usuario")
     creador = relationship("Usuario", remote_side=[id])
     habilitaciones_sistemas = relationship("UsuarioSistemaRol", back_populates="usuario")
+    organismo = relationship("Organismo")
 
 class Rol(Base):
     __tablename__ = "roles"
@@ -697,5 +708,34 @@ class ItinerarioParada(Base):
     id_parada = Column(Integer, ForeignKey('geometria.paradas_oficiales.id'), primary_key=True)
     orden = Column(Integer)
     
-    itinerario = relationship("HistoricoItinerario", backref=backref("parada_links", cascade="all, delete-orphan"), overlaps="itinerarios,paradas")
-    parada = relationship("ParadaOficial", backref=backref("itinerario_links", cascade="all, delete-orphan"))
+    itinerario = relationship("HistoricoItinerario", backref=backref("parada_links", cascade="all, delete-orphan", overlaps="itinerarios,paradas"), overlaps="itinerarios,paradas")
+    parada = relationship("ParadaOficial", backref=backref("itinerario_links", cascade="all, delete-orphan", overlaps="itinerarios,paradas"), overlaps="itinerarios,paradas")
+
+# ===== SISTEMA DE PERFILES PÚBLICOS =====
+
+class TipoPerfilEspecial(Base):
+    __tablename__ = "tipo_perfil_especial"
+    __table_args__ = {"schema": "public"}
+    
+    id_tipo_especial = Column(Integer, primary_key=True, autoincrement=True)
+    tipo_especial = Column(Text, nullable=True) # Ej: Perfil 3, Perfil 4, etc.
+    id_organismo = Column(Integer, ForeignKey('sistema.organismos.id'), nullable=True)
+    
+    organismo = relationship("Organismo")
+
+class PerfilEspecial(Base):
+    __tablename__ = "perfiles_especiales"
+    __table_args__ = {"schema": "public"}
+    
+    orden = Column(Integer, primary_key=True, autoincrement=True)
+    nombre_apellido = Column(String(200), nullable=True)
+    fecha_nacimiento = Column(Date, nullable=True)
+    cedula_identidad = Column(String(50), nullable=True)
+    institucion = Column(String(200), nullable=True)
+    Lote = Column(String(50), nullable=True)
+    eps = Column(String(100), nullable=True)
+    serial_mdp = Column(String(100), nullable=True)
+    id_tipo_perfil = Column(Integer, ForeignKey('public.tipo_perfil_especial.id_tipo_especial'), nullable=True)
+    verificado = Column(Boolean, default=False)
+    
+    tipo_perfil = relationship("TipoPerfilEspecial")

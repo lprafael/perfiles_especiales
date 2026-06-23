@@ -63,7 +63,7 @@ async def login(
     # Buscar usuario y cargar sus habilitaciones
     result = await session.execute(
         select(Usuario)
-        .options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol))
+        .options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol), selectinload(Usuario.organismo))
         .where(Usuario.username == user_credentials.username)
     )
     user = result.scalar_one_or_none()
@@ -84,13 +84,21 @@ async def login(
     user.ultimo_acceso = datetime.utcnow()
     await session.commit()
     
-    # Crear token usando el rol asociado a Catálogos (sistema_id = 2)
-    user_rol_catalogos = "viewer"
-    for hab in getattr(user, 'habilitaciones_sistemas', []):
-        if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
-            user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
-            break
+    user_rol_catalogos = None
+    if user.username == 'admin':
+        user_rol_catalogos = 'admin'
+    else:
+        for hab in getattr(user, 'habilitaciones_sistemas', []):
+            if getattr(hab, 'sistema_id', None) == 4 and getattr(hab, 'activo', True):
+                user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
+                break
             
+    if not user_rol_catalogos:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El usuario no tiene permisos habilitados en este sistema."
+        )
+
     # Asignamos al objeto user de manera que el schema (from_orm) use este rol
     user.rol = user_rol_catalogos
     populate_rol_nombres(user)
@@ -161,6 +169,7 @@ async def create_user(
         email=user_data.email,
         hashed_password=hashed_password,
         nombre_completo=user_data.nombre_completo,
+        id_organismo=user_data.id_organismo,
         creado_por=current_user["user_id"]
     )
     
@@ -221,14 +230,14 @@ async def create_user(
     # Reload for response
     result_final = await session.execute(
         select(Usuario)
-        .options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol))
+        .options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol), selectinload(Usuario.organismo))
         .where(Usuario.id == new_user.id)
     )
     user_final = result_final.scalar_one()
     
     user_rol_catalogos = "viewer"
     for hab in getattr(user_final, 'habilitaciones_sistemas', []):
-        if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
+        if getattr(hab, 'sistema_id', None) == 4 and getattr(hab, 'activo', True):
             user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
             break
     user_final.rol = user_rol_catalogos
@@ -243,13 +252,13 @@ async def list_users(
 ):
     """Listar usuarios (solo administradores)"""
     result = await session.execute(
-        select(Usuario).options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol))
+        select(Usuario).options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol), selectinload(Usuario.organismo))
     )
     users = result.scalars().all()
     for user in users:
         user_rol_catalogos = "viewer"
         for hab in getattr(user, 'habilitaciones_sistemas', []):
-            if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
+            if getattr(hab, 'sistema_id', None) == 4 and getattr(hab, 'activo', True):
                 user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
                 break
         user.rol = user_rol_catalogos
@@ -265,7 +274,7 @@ async def get_user(
     """Obtener usuario por ID"""
     result = await session.execute(
         select(Usuario)
-        .options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol))
+        .options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol), selectinload(Usuario.organismo))
         .where(Usuario.id == user_id)
     )
     user = result.scalar_one_or_none()
@@ -274,7 +283,7 @@ async def get_user(
     
     user_rol_catalogos = "viewer"
     for hab in getattr(user, 'habilitaciones_sistemas', []):
-        if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
+        if getattr(hab, 'sistema_id', None) == 4 and getattr(hab, 'activo', True):
             user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
             break
     user.rol = user_rol_catalogos
@@ -349,14 +358,14 @@ async def update_user(
     # Reload for response
     result_final = await session.execute(
         select(Usuario)
-        .options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol))
+        .options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol), selectinload(Usuario.organismo))
         .where(Usuario.id == user.id)
     )
     user_final = result_final.scalar_one()
     
     user_rol_catalogos = "viewer"
     for hab in getattr(user_final, 'habilitaciones_sistemas', []):
-        if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
+        if getattr(hab, 'sistema_id', None) == 4 and getattr(hab, 'activo', True):
             user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
             break
     user_final.rol = user_rol_catalogos
@@ -518,7 +527,7 @@ async def get_current_user_info(
     """Obtener información del usuario actual"""
     result = await session.execute(
         select(Usuario)
-        .options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol))
+        .options(selectinload(Usuario.habilitaciones_sistemas).selectinload(UsuarioSistemaRol.rol), selectinload(Usuario.organismo))
         .where(Usuario.id == current_user["user_id"])
     )
     user = result.scalar_one_or_none()
@@ -526,7 +535,7 @@ async def get_current_user_info(
     if user:
         user_rol_catalogos = "viewer"
         for hab in getattr(user, 'habilitaciones_sistemas', []):
-            if getattr(hab, 'sistema_id', None) == 3 and getattr(hab, 'activo', True):
+            if getattr(hab, 'sistema_id', None) == 4 and getattr(hab, 'activo', True):
                 user_rol_catalogos = getattr(getattr(hab, 'rol', None), 'nombre', "viewer")
                 break
         user.rol = user_rol_catalogos
