@@ -61,13 +61,19 @@ async def get_perfiles(
     elif documento: # Por compatibilidad
         query = query.where(PerfilEspecial.cedula_identidad == documento)
         
+    # Añadimos un límite para evitar colgar el servidor y el navegador (timeout 504)
+    query = query.limit(500)
+    
     result = await session.execute(query)
     perfiles = result.scalars().all()
     
-    # Llenar la relación
+    # Pre-cargar todos los tipos de perfiles en memoria (1 sola consulta rápida)
+    res_tipos = await session.execute(select(TipoPerfilEspecial))
+    tipos_dict = {t.id_tipo_especial: t for t in res_tipos.scalars().all()}
+    
+    # Asignar la relación desde el diccionario
     for p in perfiles:
-        res_tipo = await session.execute(select(TipoPerfilEspecial).where(TipoPerfilEspecial.id_tipo_especial == p.id_tipo_perfil))
-        p.tipo_perfil = res_tipo.scalar_one_or_none()
+        p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
         
     return perfiles
 
