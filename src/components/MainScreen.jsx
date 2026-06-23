@@ -30,7 +30,7 @@ const MainScreen = ({ user, onLogout }) => {
             🔍 Consulta de Perfiles
           </button>
 
-          {isUsuario && (
+          {(isUsuario || isAdmin) && (
             <button 
               onClick={() => setActiveTab('importacion')}
               style={{ 
@@ -82,7 +82,7 @@ const MainScreen = ({ user, onLogout }) => {
 
         <main style={{ background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           {activeTab === 'consulta' && <ConsultaPerfiles user={user} />}
-          {activeTab === 'importacion' && isUsuario && <ImportacionPerfiles />}
+          {activeTab === 'importacion' && (isUsuario || isAdmin) && <ImportacionPerfiles />}
           {activeTab === 'validacion' && isAdmin && <ValidacionPerfiles />}
         </main>
       </div>
