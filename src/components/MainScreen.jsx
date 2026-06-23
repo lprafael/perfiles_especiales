@@ -17,13 +17,13 @@ const MainScreen = ({ user, onLogout }) => {
           <h2 style={{ margin: 0, fontSize: '1.2rem' }}>CID Perfiles Especiales</h2>
           <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#bdc3c7' }}>Organismo: {user?.organismo?.sigla || 'General'}</p>
         </div>
-        
+
         <nav style={{ flex: 1, padding: '1rem 0' }}>
-          <button 
+          <button
             onClick={() => setActiveTab('consulta')}
-            style={{ 
-              width: '100%', padding: '1rem', textAlign: 'left', border: 'none', 
-              background: activeTab === 'consulta' ? '#34495e' : 'transparent', 
+            style={{
+              width: '100%', padding: '1rem', textAlign: 'left', border: 'none',
+              background: activeTab === 'consulta' ? '#34495e' : 'transparent',
               color: 'white', cursor: 'pointer', fontSize: '1rem'
             }}
           >
@@ -31,11 +31,11 @@ const MainScreen = ({ user, onLogout }) => {
           </button>
 
           {(isUsuario || isAdmin) && (
-            <button 
+            <button
               onClick={() => setActiveTab('importacion')}
-              style={{ 
-                width: '100%', padding: '1rem', textAlign: 'left', border: 'none', 
-                background: activeTab === 'importacion' ? '#34495e' : 'transparent', 
+              style={{
+                width: '100%', padding: '1rem', textAlign: 'left', border: 'none',
+                background: activeTab === 'importacion' ? '#34495e' : 'transparent',
                 color: 'white', cursor: 'pointer', fontSize: '1rem'
               }}
             >
@@ -44,11 +44,11 @@ const MainScreen = ({ user, onLogout }) => {
           )}
 
           {isAdmin && (
-            <button 
+            <button
               onClick={() => setActiveTab('validacion')}
-              style={{ 
-                width: '100%', padding: '1rem', textAlign: 'left', border: 'none', 
-                background: activeTab === 'validacion' ? '#34495e' : 'transparent', 
+              style={{
+                width: '100%', padding: '1rem', textAlign: 'left', border: 'none',
+                background: activeTab === 'validacion' ? '#34495e' : 'transparent',
                 color: 'white', cursor: 'pointer', fontSize: '1rem'
               }}
             >
@@ -56,9 +56,9 @@ const MainScreen = ({ user, onLogout }) => {
             </button>
           )}
         </nav>
-        
+
         <div style={{ padding: '1rem' }}>
-          <button 
+          <button
             onClick={onLogout}
             style={{ width: '100%', padding: '0.75rem', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
           >
@@ -70,7 +70,7 @@ const MainScreen = ({ user, onLogout }) => {
       {/* Main Content Area */}
       <div style={{ flex: 1, padding: '2rem', background: '#f8f9fa' }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid #dee2e6', paddingBottom: '1rem' }}>
-          <h1 style={{ margin: 0, color: '#2c3e50' }}>
+          <h1 style={{ margin: 0, color: '#ffffffff' }}>
             {activeTab === 'consulta' && 'Consulta de Beneficiarios'}
             {activeTab === 'importacion' && 'Gestión de Importaciones'}
             {activeTab === 'validacion' && 'Validación Administrativa'}
