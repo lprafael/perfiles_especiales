@@ -1,6 +1,6 @@
 # Sist. Transporte
 
-Frontend React (puerto 3008) + Backend FastAPI (puerto 8010).
+Frontend React (puerto 3008) + Backend FastAPI (puerto 8011).
 
 ## Requisitos
 
@@ -21,7 +21,7 @@ npm start
 
 Abre [http://localhost:3008](http://localhost:3008).
 
-### Backend (carpeta backend, puerto 8010)
+### Backend (carpeta backend, puerto 8011)
 
 ```bash
 cd backend
@@ -30,7 +30,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-API en [http://localhost:8010](http://localhost:8010).
+API en [http://localhost:8011](http://localhost:8011).
 
 ## Docker
 
@@ -40,7 +40,7 @@ docker compose up --build
 ```
 
 - Frontend: [http://localhost:3008](http://localhost:3008)
-- Backend: [http://localhost:8010](http://localhost:8010)
+- Backend: [http://localhost:8011](http://localhost:8011)
 
 ## Despliegue en servidor (ej. http://172.16.222.222:3008/)
 
@@ -52,23 +52,23 @@ Para que la app funcione en un servidor, el frontend debe llamar al backend por 
 2. Crear `backend/.env` con las variables de las bases de datos (igual que en desarrollo).
 3. Definir la URL del API para el build del frontend. En la **raíz** del proyecto crear o editar `.env` (no confundir con `backend/.env`):
    ```env
-   REACT_APP_API_URL=http://172.16.222.222:8010
+   REACT_APP_API_URL=http://172.16.222.222:8011
    ```
 4. Build y levantar:
    ```bash
    docker compose up --build -d
    ```
-5. Abrir en el navegador: **http://172.16.222.222:3008/** (frontend) y **http://172.16.222.222:8010** (API).
+5. Abrir en el navegador: **http://172.16.222.222:3008/** (frontend) y **http://172.16.222.222:8011** (API).
 
 ### Opción B: Sin Docker en el servidor
 
 1. **Backend:** en el servidor, en la carpeta `backend`:
    - Crear `backend/.env` con las variables de BD.
    - `pip install -r requirements.txt`
-   - Ejecutar: `uvicorn main:app --host 0.0.0.0 --port 8010`
+   - Ejecutar: `uvicorn main:app --host 0.0.0.0 --port 8011`
 2. **Frontend:** en tu PC (o en el servidor) hacer un build apuntando al API del servidor:
    ```bash
-   set REACT_APP_API_URL=http://172.16.222.222:8010
+   set REACT_APP_API_URL=http://172.16.222.222:8011
    npm run build
    ```
    Luego copiar la carpeta `build` al servidor y servirla con nginx, Apache o `serve -s build -l 3008`.
@@ -81,12 +81,12 @@ Si el frontend se sirve por **HTTPS**, el navegador exige que el API también se
 
 ### 1. Exponer el API por HTTPS en el mismo dominio (nginx)
 
-En el servidor que atiende `sistemas.mopc.gov.py`, agregar una ubicación que envíe `/api` al backend (por ejemplo en 172.16.222.222:8010):
+En el servidor que atiende `sistemas.mopc.gov.py`, agregar una ubicación que envíe `/api` al backend (por ejemplo en 172.16.222.222:8011):
 
 ```nginx
 # Dentro del server que ya tiene SSL para sistemas.mopc.gov.py
 location /api/ {
-    proxy_pass http://172.16.222.222:8010/;
+    proxy_pass http://172.16.222.222:8011/;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -95,7 +95,7 @@ location /api/ {
 }
 ```
 
-Así, `https://sistemas.mopc.gov.py/api/empresas` se reenvía a `http://172.16.222.222:8010/empresas` de forma interna.
+Así, `https://sistemas.mopc.gov.py/api/empresas` se reenvía a `http://172.16.222.222:8011/empresas` de forma interna.
 
 ### 2. Build del frontend con la URL HTTPS del API
 

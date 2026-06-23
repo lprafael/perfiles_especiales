@@ -1,4 +1,4 @@
-# Levantar servidor (desde la carpeta backend): uvicorn main:app --reload --port 8010
+# Levantar servidor (desde la carpeta backend): uvicorn main:app --reload --port 8011
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv

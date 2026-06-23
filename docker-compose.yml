@@ -8,7 +8,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8010:8010"
+      - "8011:8011"
     # Variables de BD solo desde backend/.env (copiar desde backend/.env.example).
     # Si PostgreSQL corre en tu PC, usá host.docker.internal como host (ej. DB_CID_HOST=host.docker.internal).
     env_file:
@@ -21,7 +21,7 @@ services:
       args:
         # Local Docker: dejá por defecto → app en http://localhost:3008/
         # Producción: REACT_APP_API_URL=https://sistemas.mopc.gov.py/api PUBLIC_URL=/monitoreo_vmt/
-        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://127.0.0.1:8010}
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://127.0.0.1:8011}
         PUBLIC_URL: ${PUBLIC_URL:-}
     ports:
       - "3008:3008"
