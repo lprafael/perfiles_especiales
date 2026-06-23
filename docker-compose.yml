@@ -20,7 +20,7 @@ services:
       dockerfile: Dockerfile
       args:
         # Local Docker: dejá por defecto → app en http://localhost:3008/
-        # Producción: REACT_APP_API_URL=https://sistemas.mopc.gov.py/api PUBLIC_URL=/monitoreo_vmt/
+        # Producción: REACT_APP_API_URL=https://sistemas.mopc.gov.py/api PUBLIC_URL=/perfiles_especiales/
         REACT_APP_API_URL: ${REACT_APP_API_URL:-http://127.0.0.1:8011}
         PUBLIC_URL: ${PUBLIC_URL:-}
     ports:

@@ -75,7 +75,7 @@ Para que la app funcione en un servidor, el frontend debe llamar al backend por 
 
 ---
 
-## Frontend en HTTPS (ej. https://sistemas.mopc.gov.py/monitoreo_vmt/)
+## Frontend en HTTPS (ej. https://sistemas.mopc.gov.py/perfiles_especiales/)
 
 Si el frontend se sirve por **HTTPS**, el navegador exige que el API también sea **HTTPS** y que no sea una IP privada (evita Mixed Content y bloqueo "Private Network Access"). Hay que exponer el backend detrás del mismo dominio vía **proxy reverso**.
 
@@ -105,7 +105,7 @@ Construir el frontend apuntando al API por HTTPS:
 REACT_APP_API_URL=https://sistemas.mopc.gov.py/api npm run build
 ```
 
-Desplegar el contenido de la carpeta `build` donde se sirve `/monitoreo_vmt/`. El frontend llamará a `https://sistemas.mopc.gov.py/api/...` y dejarán de aparecer Mixed Content y el bloqueo por "local address space".
+Desplegar el contenido de la carpeta `build` donde se sirve `/perfiles_especiales/`. El frontend llamará a `https://sistemas.mopc.gov.py/api/...` y dejarán de aparecer Mixed Content y el bloqueo por "local address space".
 
 ---
 
