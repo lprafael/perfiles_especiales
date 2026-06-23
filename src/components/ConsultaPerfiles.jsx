@@ -31,14 +31,9 @@ const ConsultaPerfiles = ({ user }) => {
   };
 
   useEffect(() => {
-    // Solo hace la búsqueda en vivo si ya ha pasado un pequeño delay (debounce)
-    // Esto también maneja la carga inicial cuando search es ''
-    const delayDebounceFn = setTimeout(() => {
-      fetchPerfiles(search);
-    }, 400);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [search]);
+    // Carga inicial
+    fetchPerfiles('');
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
