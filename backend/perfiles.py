@@ -17,7 +17,7 @@ from fastapi.responses import StreamingResponse
 
 router = APIRouter(prefix="/perfiles", tags=["Perfiles Especiales"])
 
-@router.get("", response_model=List[PerfilEspecialResponse])
+@router.get("/", response_model=List[PerfilEspecialResponse])
 async def get_perfiles(
     q: Optional[str] = None,
     documento: Optional[str] = None,

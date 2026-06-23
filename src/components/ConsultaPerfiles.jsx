@@ -9,7 +9,7 @@ const ConsultaPerfiles = ({ user }) => {
   const fetchPerfiles = async (doc = '') => {
     setLoading(true);
     try {
-      const url = new URL(`${API_BASE}/perfiles`);
+      const url = new URL(`${API_BASE}/perfiles/`);
       if (doc) url.searchParams.append('q', doc);
       
       const res = await fetch(url, {
