@@ -92,10 +92,75 @@ async def get_template(current_user: dict = Depends(get_current_user)):
         headers={"Content-Disposition": "attachment; filename=plantilla_perfiles.xlsx"}
     )
 
+@router.post("/verify")
+async def verify_perfiles(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Verificar perfiles desde Excel y devolver rechazados sin guardar."""
+    content = await file.read()
+    try:
+        df = pd.read_excel(io.BytesIO(content))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="El archivo no es un Excel válido")
+        
+    required_cols = ["nombres", "apellidos", "documento", "id_tipo_perfil", "lote"]
+    for col in required_cols:
+        if col not in df.columns:
+            raise HTTPException(status_code=400, detail=f"Falta la columna requerida: {col}")
+            
+    df = df.fillna("")
+    
+    res_user = await session.execute(select(Usuario).where(Usuario.id == current_user["user_id"]))
+    user = res_user.scalar_one_or_none()
+    
+    rejected_rows = []
+    
+    for index, row in df.iterrows():
+        doc = str(row["documento"]).strip()
+        if not doc:
+            row["motivo_rechazo"] = "Documento vacío"
+            rejected_rows.append(row)
+            continue
+            
+        tipo_perfil_excel = str(row["id_tipo_perfil"]).strip()
+        tipo_perfil_final = int(tipo_perfil_excel) if tipo_perfil_excel.isdigit() else 1
+        
+        if user and user.id_organismo == 2:
+            tipo_perfil_final = 3
+        elif user and user.id_organismo == 3:
+            if tipo_perfil_final not in [4, 5]:
+                row["motivo_rechazo"] = "Tipo de perfil no permitido para su organismo (solo 4 o 5)"
+                rejected_rows.append(row)
+                continue
+                
+        res_dup = await session.execute(select(PerfilEspecial).where(PerfilEspecial.cedula_identidad == doc))
+        dup = res_dup.scalar_one_or_none()
+        
+        if dup:
+            row["motivo_rechazo"] = "Documento duplicado"
+            rejected_rows.append(row)
+            
+    if rejected_rows:
+        rejected_df = pd.DataFrame(rejected_rows)
+        stream = io.BytesIO()
+        with pd.ExcelWriter(stream, engine='openpyxl') as writer:
+            rejected_df.to_excel(writer, index=False)
+        stream.seek(0)
+        
+        return StreamingResponse(
+            stream,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=rechazados.xlsx"}
+        )
+        
+    return {"message": "El archivo es válido. No se encontraron errores ni duplicados."}
+
 @router.post("/import")
 async def import_perfiles(
     file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user), # Podríamos restringir a "user"
+    current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
     """Importar perfiles desde Excel y devolver rechazados por duplicidad."""
@@ -110,8 +175,10 @@ async def import_perfiles(
         if col not in df.columns:
             raise HTTPException(status_code=400, detail=f"Falta la columna requerida: {col}")
             
-    # Llenar NaN
     df = df.fillna("")
+    
+    res_user = await session.execute(select(Usuario).where(Usuario.id == current_user["user_id"]))
+    user = res_user.scalar_one_or_none()
     
     rejected_rows = []
     
@@ -122,7 +189,17 @@ async def import_perfiles(
             rejected_rows.append(row)
             continue
             
-        # Verificar duplicado
+        tipo_perfil_excel = str(row["id_tipo_perfil"]).strip()
+        tipo_perfil_final = int(tipo_perfil_excel) if tipo_perfil_excel.isdigit() else 1
+        
+        if user and user.id_organismo == 2:
+            tipo_perfil_final = 3
+        elif user and user.id_organismo == 3:
+            if tipo_perfil_final not in [4, 5]:
+                row["motivo_rechazo"] = "Tipo de perfil no permitido para su organismo (solo 4 o 5)"
+                rejected_rows.append(row)
+                continue
+                
         res_dup = await session.execute(select(PerfilEspecial).where(PerfilEspecial.cedula_identidad == doc))
         dup = res_dup.scalar_one_or_none()
         
@@ -133,7 +210,7 @@ async def import_perfiles(
             nuevo = PerfilEspecial(
                 nombre_apellido=f"{row['nombres']} {row['apellidos']}",
                 cedula_identidad=doc,
-                id_tipo_perfil=int(row["id_tipo_perfil"]) if str(row["id_tipo_perfil"]).isdigit() else 1, # Default 1
+                id_tipo_perfil=tipo_perfil_final,
                 Lote=str(row["lote"]),
                 verificado=False
             )
@@ -154,7 +231,7 @@ async def import_perfiles(
             headers={"Content-Disposition": "attachment; filename=rechazados.xlsx"}
         )
         
-    return {"message": "Importación exitosa. No hubo registros duplicados."}
+    return {"message": "Importación exitosa. No hubo registros duplicados ni errores."}
 
 @router.get("/unverified", response_model=List[PerfilEspecialResponse])
 async def get_unverified(

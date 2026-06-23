@@ -3,7 +3,9 @@ import { API_BASE } from '../config';
 
 const ImportacionPerfiles = () => {
   const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingVerify, setLoadingVerify] = useState(false);
+  const [loadingImport, setLoadingImport] = useState(false);
+  const [statusMsg, setStatusMsg] = useState("");
 
   const handleDownloadTemplate = async () => {
     try {
@@ -33,21 +35,28 @@ const ImportacionPerfiles = () => {
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       setFile(e.target.files[0]);
+      setStatusMsg("");
     }
   };
 
-  const handleImport = async () => {
+  const handleProcess = async (action) => {
     if (!file) {
       alert("Por favor seleccione un archivo Excel");
       return;
     }
 
-    setLoading(true);
+    const endpoint = action === 'verify' ? '/verify' : '/import';
+    
+    if (action === 'verify') setLoadingVerify(true);
+    else setLoadingImport(true);
+    
+    setStatusMsg("");
+
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const res = await fetch(`${API_BASE}/perfiles/import`, {
+      const res = await fetch(`${API_BASE}/perfiles${endpoint}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${sessionStorage.getItem('token')}`
@@ -67,21 +76,39 @@ const ImportacionPerfiles = () => {
           document.body.appendChild(a);
           a.click();
           a.remove();
-          alert("Importación parcial. Se encontraron duplicados, se descargó un archivo con los registros rechazados.");
+          
+          if (action === 'verify') {
+            setStatusMsg("Se encontraron errores o duplicados. Revise el archivo descargado.");
+            alert("Verificación finalizada con errores. Se descargó un archivo Excel.");
+          } else {
+            setStatusMsg("Importación parcial. Los registros sin errores se guardaron con estado 'Pendiente'.");
+            alert("Importación parcial. Se encontraron errores o duplicados, se descargó un archivo con los registros rechazados.");
+            setFile(null); // Reset on successful import
+          }
         } else {
           const data = await res.json();
-          alert(data.message || "Importación exitosa.");
+          if (action === 'verify') {
+            setStatusMsg("El archivo es válido. No se encontraron errores ni duplicados. ¡Listo para importar!");
+            alert(data.message || "Verificación exitosa.");
+          } else {
+            setStatusMsg("Todos los registros se importaron exitosamente.");
+            alert(data.message || "Importación exitosa.");
+            setFile(null); // Reset on successful import
+          }
         }
       } else {
         const errorData = await res.json();
-        alert(`Error: ${errorData.detail || 'al importar archivo'}`);
+        alert(`Error: ${errorData.detail || 'al procesar archivo'}`);
+        setStatusMsg("Ocurrió un error al procesar el archivo.");
       }
     } catch (err) {
       console.error(err);
       alert("Error de conexión");
+      setStatusMsg("Error de conexión con el servidor.");
     }
-    setLoading(false);
-    setFile(null); // Reset
+    
+    if (action === 'verify') setLoadingVerify(false);
+    else setLoadingImport(false);
   };
 
   return (
@@ -104,22 +131,50 @@ const ImportacionPerfiles = () => {
           type="file" 
           accept=".xlsx, .xls" 
           onChange={handleFileChange}
-          style={{ marginBottom: '1rem', display: 'block' }}
+          style={{ marginBottom: '1.5rem', display: 'block' }}
         />
-        <button 
-          onClick={handleImport}
-          disabled={loading || !file}
-          style={{ 
-            padding: '0.75rem 1.5rem', 
-            background: loading || !file ? '#95a5a6' : '#2980b9', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '4px', 
-            cursor: loading || !file ? 'not-allowed' : 'pointer' 
-          }}
-        >
-          {loading ? "Importando..." : "⬆ Importar Datos"}
-        </button>
+        
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button 
+            onClick={() => handleProcess('verify')}
+            disabled={loadingVerify || loadingImport || !file}
+            style={{ 
+              flex: 1,
+              padding: '0.75rem 1rem', 
+              background: loadingVerify || loadingImport || !file ? '#95a5a6' : '#f39c12', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '4px', 
+              cursor: loadingVerify || loadingImport || !file ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            {loadingVerify ? "Verificando..." : "🔍 Verificar Excel"}
+          </button>
+
+          <button 
+            onClick={() => handleProcess('import')}
+            disabled={loadingVerify || loadingImport || !file}
+            style={{ 
+              flex: 1,
+              padding: '0.75rem 1rem', 
+              background: loadingVerify || loadingImport || !file ? '#95a5a6' : '#2980b9', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '4px', 
+              cursor: loadingVerify || loadingImport || !file ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            {loadingImport ? "Importando..." : "⬆ Importar Datos"}
+          </button>
+        </div>
+        
+        {statusMsg && (
+          <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#ecf0f1', borderRadius: '4px', borderLeft: '4px solid #3498db' }}>
+            {statusMsg}
+          </div>
+        )}
       </div>
     </div>
   );
