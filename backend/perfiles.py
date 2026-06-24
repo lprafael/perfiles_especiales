@@ -36,14 +36,15 @@ async def get_perfiles(
     
     # Si el usuario no es admin, filtramos por su organismo
     if user.id_organismo and current_user.get("role") not in ["admin", "sysadmin"]:
-        if user.id_organismo == 2:
+        org_id = int(user.id_organismo)
+        if org_id == 2:
             query = query.where(PerfilEspecial.id_tipo_perfil == 3)
-        elif user.id_organismo == 3:
+        elif org_id == 3:
             query = query.where(PerfilEspecial.id_tipo_perfil.in_([4, 5]))
         else:
             # Traer los ID de tipos de perfil correspondientes al organismo
             res_tipos = await session.execute(
-                select(TipoPerfilEspecial.id_tipo_especial).where(TipoPerfilEspecial.id_organismo == user.id_organismo)
+                select(TipoPerfilEspecial.id_tipo_especial).where(TipoPerfilEspecial.id_organismo == org_id)
             )
             tipos_ids = [t for t in res_tipos.scalars().all()]
             if not tipos_ids:
