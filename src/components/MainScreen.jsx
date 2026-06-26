@@ -68,7 +68,7 @@ const MainScreen = ({ user, onLogout }) => {
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, padding: '2rem', background: '#f8f9fa' }}>
+      <div style={{ flex: 1, padding: '2rem', background: '#f8f9fa', display: 'flex', flexDirection: 'column' }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid #dee2e6', paddingBottom: '1rem' }}>
           <h1 style={{ margin: 0, color: '#ffffffff' }}>
             {activeTab === 'consulta' && 'Consulta de Beneficiarios'}
@@ -80,11 +80,16 @@ const MainScreen = ({ user, onLogout }) => {
           </div>
         </header>
 
-        <main style={{ background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <main style={{ flex: 1, background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           {activeTab === 'consulta' && <ConsultaPerfiles user={user} />}
           {activeTab === 'importacion' && (isUsuario || isAdmin) && <ImportacionPerfiles />}
           {activeTab === 'validacion' && isAdmin && <ValidacionPerfiles />}
         </main>
+
+        <footer style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.9rem', color: '#7f8c8d', borderTop: '1px solid #dee2e6', paddingTop: '1rem' }}>
+          <p style={{ margin: '0 0 0.5rem 0' }}>Desarrollado por la Coordinación de Innovación y Desarrollo - DMT - VMT - MOPC</p>
+          <p style={{ margin: 0 }}>Contacto: <a href="mailto:vmtcid@mopc.gov.py" style={{color: '#3498db', textDecoration: 'none', fontWeight: '500'}}>vmtcid@mopc.gov.py</a> o <a href="mailto:vicetransporte@mopc.gov.py" style={{color: '#3498db', textDecoration: 'none', fontWeight: '500'}}>vicetransporte@mopc.gov.py</a></p>
+        </footer>
       </div>
     </div>
   );
