@@ -213,7 +213,8 @@ async def import_perfiles(
                 cedula_identidad=doc,
                 id_tipo_perfil=tipo_perfil_final,
                 Lote=str(row["lote"]),
-                verificado=False
+                verificado=False,
+                id_usuario_carga=current_user["user_id"]
             )
             session.add(nuevo)
             
@@ -268,6 +269,7 @@ async def validate_perfiles(
     
     for p in perfiles:
         p.verificado = True
+        p.id_usuario_aprob = current_user["user_id"]
         
     await session.commit()
     return {"message": f"{len(perfiles)} perfiles verificados exitosamente."}

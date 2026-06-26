@@ -737,5 +737,9 @@ class PerfilEspecial(Base):
     serial_mdp = Column(String(100), nullable=True)
     id_tipo_perfil = Column(Integer, ForeignKey('public.tipo_perfil_especial.id_tipo_especial'), nullable=True)
     verificado = Column(Boolean, default=False)
+    id_usuario_carga = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=False, default=1)
+    id_usuario_aprob = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=True)
     
     tipo_perfil = relationship("TipoPerfilEspecial")
+    usuario_carga = relationship("Usuario", foreign_keys=[id_usuario_carga])
+    usuario_aprob = relationship("Usuario", foreign_keys=[id_usuario_aprob])

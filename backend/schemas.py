@@ -1113,6 +1113,8 @@ class PerfilEspecialBase(BaseModel):
     serial_mdp: Optional[str] = None
     id_tipo_perfil: Optional[int] = None
     verificado: bool = False
+    id_usuario_carga: Optional[int] = None
+    id_usuario_aprob: Optional[int] = None
 
 class PerfilEspecialCreate(PerfilEspecialBase):
     pass
