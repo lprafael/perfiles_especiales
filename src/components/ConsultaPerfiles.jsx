@@ -13,7 +13,8 @@ const ConsultaPerfiles = ({ user }) => {
     nombre_apellido: '',
     perfil: '',
     Lote: '',
-    estado: ''
+    estado: '',
+    usuario_carga: ''
   });
 
   const fetchPerfiles = async (doc = '') => {
@@ -41,8 +42,8 @@ const ConsultaPerfiles = ({ user }) => {
   };
 
   useEffect(() => {
-    // Carga inicial
-    fetchPerfiles('');
+    // Carga inicial deshabilitada a petición del usuario
+    // Ya no trae nada al entrar a la pantalla
   }, []);
 
   const handleSearch = (e) => {
@@ -76,6 +77,12 @@ const ConsultaPerfiles = ({ user }) => {
         return estadoStr.includes(columnFilters.estado.toLowerCase());
       });
     }
+    if (columnFilters.usuario_carga) {
+      result = result.filter(p => {
+        const usr = p.usuario_carga ? p.usuario_carga.nombre_completo : '-';
+        return usr.toLowerCase().includes(columnFilters.usuario_carga.toLowerCase());
+      });
+    }
 
     // Aplicar ordenamiento
     if (sortConfig.key) {
@@ -92,6 +99,9 @@ const ConsultaPerfiles = ({ user }) => {
         } else if (sortConfig.key === 'Lote') {
           aValue = a.Lote || '-';
           bValue = b.Lote || '-';
+        } else if (sortConfig.key === 'usuario_carga') {
+          aValue = a.usuario_carga ? a.usuario_carga.nombre_completo : '-';
+          bValue = b.usuario_carga ? b.usuario_carga.nombre_completo : '-';
         }
 
         if (aValue === null || aValue === undefined) aValue = '';
@@ -137,9 +147,9 @@ const ConsultaPerfiles = ({ user }) => {
         <button type="submit" style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>Buscar</button>
         <button type="button" onClick={() => {
           setSearch(''); 
-          setColumnFilters({ cedula_identidad: '', nombre_apellido: '', perfil: '', Lote: '', estado: '' });
+          setColumnFilters({ cedula_identidad: '', nombre_apellido: '', perfil: '', Lote: '', estado: '', usuario_carga: '' });
           setSortConfig({ key: null, direction: 'asc' });
-          fetchPerfiles();
+          setPerfiles([]);
         }} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>Limpiar</button>
       </form>
 
@@ -178,6 +188,12 @@ const ConsultaPerfiles = ({ user }) => {
                     <input type="text" placeholder="Filtrar..." value={columnFilters.estado} onChange={(e) => handleFilterChange(e, 'estado')} onClick={(e) => e.stopPropagation()} style={{ width: '100%', boxSizing: 'border-box', padding: '2px' }} />
                   </div>
                 </th>
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc', cursor: 'pointer', verticalAlign: 'top' }} onClick={() => requestSort('usuario_carga')}>
+                  Cargado por {sortConfig.key === 'usuario_carga' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                  <div style={{ marginTop: '5px' }}>
+                    <input type="text" placeholder="Filtrar..." value={columnFilters.usuario_carga} onChange={(e) => handleFilterChange(e, 'usuario_carga')} onClick={(e) => e.stopPropagation()} style={{ width: '100%', boxSizing: 'border-box', padding: '2px' }} />
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -190,10 +206,13 @@ const ConsultaPerfiles = ({ user }) => {
                   <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
                     {p.verificado ? <span style={{color: 'green'}}>Verificado</span> : <span style={{color: 'orange'}}>Pendiente</span>}
                   </td>
+                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
+                    {p.usuario_carga ? p.usuario_carga.nombre_completo : '-'}
+                  </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="5" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No se encontraron registros en esta vista.</td>
+                  <td colSpan="6" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No se encontraron registros en esta vista.</td>
                 </tr>
               )}
             </tbody>

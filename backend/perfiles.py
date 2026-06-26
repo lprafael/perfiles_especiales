@@ -72,9 +72,14 @@ async def get_perfiles(
     res_tipos = await session.execute(select(TipoPerfilEspecial))
     tipos_dict = {t.id_tipo_especial: t for t in res_tipos.scalars().all()}
     
+    # Pre-cargar los usuarios en memoria (1 sola consulta rápida)
+    res_usuarios = await session.execute(select(Usuario))
+    usuarios_dict = {u.id: u for u in res_usuarios.scalars().all()}
+    
     # Asignar la relación desde el diccionario
     for p in perfiles:
         p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
+        p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
         
     return perfiles
 

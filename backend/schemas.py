@@ -1130,8 +1130,14 @@ class PerfilEspecialUpdate(BaseModel):
     id_tipo_perfil: Optional[int] = None
     verificado: Optional[bool] = None
 
+class UsuarioCargaInfo(BaseModel):
+    nombre_completo: str
+    class Config:
+        from_attributes = True
+
 class PerfilEspecialResponse(PerfilEspecialBase):
     orden: int
     tipo_perfil: Optional[TipoPerfilEspecialResponse] = None
+    usuario_carga: Optional[UsuarioCargaInfo] = None
     class Config:
         from_attributes = True
