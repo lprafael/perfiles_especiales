@@ -723,6 +723,13 @@ class TipoPerfilEspecial(Base):
     
     organismo = relationship("Organismo")
 
+class EstadoSolicitudPerfil(Base):
+    __tablename__ = "estados_solicitud_perfiles"
+    __table_args__ = {"schema": "public"}
+    
+    id_estado = Column(Integer, primary_key=True)
+    descripcion = Column(String(50), nullable=False)
+
 class PerfilEspecial(Base):
     __tablename__ = "perfiles_especiales"
     __table_args__ = {"schema": "public"}
@@ -736,10 +743,15 @@ class PerfilEspecial(Base):
     eps = Column(String(100), nullable=True)
     serial_mdp = Column(String(100), nullable=True)
     id_tipo_perfil = Column(Integer, ForeignKey('public.tipo_perfil_especial.id_tipo_especial'), nullable=True)
-    verificado = Column(Boolean, default=False)
+    id_estado_solicitud = Column(Integer, ForeignKey('public.estados_solicitud_perfiles.id_estado'), nullable=False, default=1)
+    fecha_solicitud = Column(DateTime, default=func.now(), nullable=True)
+    fecha_verificacion = Column(DateTime, nullable=True)
+    fecha_aprobacion = Column(DateTime, nullable=True)
+    fecha_emision = Column(DateTime, nullable=True)
     id_usuario_carga = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=False, default=1)
     id_usuario_aprob = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=True)
     
     tipo_perfil = relationship("TipoPerfilEspecial")
+    estado_solicitud = relationship("EstadoSolicitudPerfil")
     usuario_carga = relationship("Usuario", foreign_keys=[id_usuario_carga])
     usuario_aprob = relationship("Usuario", foreign_keys=[id_usuario_aprob])

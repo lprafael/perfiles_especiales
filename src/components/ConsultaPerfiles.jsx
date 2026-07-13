@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { API_BASE } from '../config';
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  return d.toLocaleString('es-PY', { dateStyle: 'short', timeStyle: 'short' });
+};
+
 const ConsultaPerfiles = ({ user }) => {
   const [perfiles, setPerfiles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -13,6 +19,7 @@ const ConsultaPerfiles = ({ user }) => {
     nombre_apellido: '',
     perfil: '',
     Lote: '',
+    serial_mdp: '',
     estado: '',
     usuario_carga: ''
   });
@@ -42,8 +49,7 @@ const ConsultaPerfiles = ({ user }) => {
   };
 
   useEffect(() => {
-    // Carga inicial deshabilitada a petición del usuario
-    // Ya no trae nada al entrar a la pantalla
+    // Carga inicial deshabilitada
   }, []);
 
   const handleSearch = (e) => {
@@ -71,10 +77,13 @@ const ConsultaPerfiles = ({ user }) => {
     if (columnFilters.Lote) {
       result = result.filter(p => (p.Lote || '-').toLowerCase().includes(columnFilters.Lote.toLowerCase()));
     }
+    if (columnFilters.serial_mdp) {
+      result = result.filter(p => (p.serial_mdp || '-').toLowerCase().includes(columnFilters.serial_mdp.toLowerCase()));
+    }
     if (columnFilters.estado) {
       result = result.filter(p => {
-        const estadoStr = p.verificado ? 'verificado' : 'pendiente';
-        return estadoStr.includes(columnFilters.estado.toLowerCase());
+        const estadoStr = p.estado_solicitud ? p.estado_solicitud.descripcion : 'desconocido';
+        return estadoStr.toLowerCase().includes(columnFilters.estado.toLowerCase());
       });
     }
     if (columnFilters.usuario_carga) {
@@ -94,11 +103,14 @@ const ConsultaPerfiles = ({ user }) => {
           aValue = a.tipo_perfil ? a.tipo_perfil.tipo_especial : String(a.id_tipo_perfil);
           bValue = b.tipo_perfil ? b.tipo_perfil.tipo_especial : String(b.id_tipo_perfil);
         } else if (sortConfig.key === 'estado') {
-          aValue = a.verificado ? 'verificado' : 'pendiente';
-          bValue = b.verificado ? 'verificado' : 'pendiente';
+          aValue = a.estado_solicitud ? a.estado_solicitud.descripcion : '';
+          bValue = b.estado_solicitud ? b.estado_solicitud.descripcion : '';
         } else if (sortConfig.key === 'Lote') {
           aValue = a.Lote || '-';
           bValue = b.Lote || '-';
+        } else if (sortConfig.key === 'serial_mdp') {
+          aValue = a.serial_mdp || '-';
+          bValue = b.serial_mdp || '-';
         } else if (sortConfig.key === 'usuario_carga') {
           aValue = a.usuario_carga ? a.usuario_carga.nombre_completo : '-';
           bValue = b.usuario_carga ? b.usuario_carga.nombre_completo : '-';
@@ -107,7 +119,6 @@ const ConsultaPerfiles = ({ user }) => {
         if (aValue === null || aValue === undefined) aValue = '';
         if (bValue === null || bValue === undefined) bValue = '';
 
-        // Convertir a minúsculas para comparar strings correctamente
         if (typeof aValue === 'string') aValue = aValue.toLowerCase();
         if (typeof bValue === 'string') bValue = bValue.toLowerCase();
 
@@ -132,6 +143,15 @@ const ConsultaPerfiles = ({ user }) => {
     setColumnFilters(prev => ({ ...prev, [key]: e.target.value }));
   };
 
+  const clearFilters = () => {
+    setSearch(''); 
+    setColumnFilters({ 
+      cedula_identidad: '', nombre_apellido: '', perfil: '', Lote: '', serial_mdp: '', estado: '', usuario_carga: '' 
+    });
+    setSortConfig({ key: null, direction: 'asc' });
+    setPerfiles([]);
+  };
+
   return (
     <div>
       <h2>Consulta de Perfiles Especiales</h2>
@@ -145,17 +165,12 @@ const ConsultaPerfiles = ({ user }) => {
           style={{ padding: '0.5rem', flex: 1, maxWidth: '300px' }}
         />
         <button type="submit" style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>Buscar</button>
-        <button type="button" onClick={() => {
-          setSearch(''); 
-          setColumnFilters({ cedula_identidad: '', nombre_apellido: '', perfil: '', Lote: '', estado: '', usuario_carga: '' });
-          setSortConfig({ key: null, direction: 'asc' });
-          setPerfiles([]);
-        }} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>Limpiar</button>
+        <button type="button" onClick={clearFilters} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>Limpiar</button>
       </form>
 
       {loading ? <p>Cargando...</p> : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
+        <div style={{ overflowX: 'auto', paddingBottom: '1rem' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem', minWidth: '1200px' }}>
             <thead>
               <tr style={{ background: '#f0f0f0' }}>
                 <th style={{ padding: '0.5rem', border: '1px solid #ccc', cursor: 'pointer', verticalAlign: 'top' }} onClick={() => requestSort('cedula_identidad')}>
@@ -182,6 +197,12 @@ const ConsultaPerfiles = ({ user }) => {
                     <input type="text" placeholder="Filtrar..." value={columnFilters.Lote} onChange={(e) => handleFilterChange(e, 'Lote')} onClick={(e) => e.stopPropagation()} style={{ width: '100%', boxSizing: 'border-box', padding: '2px' }} />
                   </div>
                 </th>
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc', cursor: 'pointer', verticalAlign: 'top' }} onClick={() => requestSort('serial_mdp')}>
+                  Serial MDP {sortConfig.key === 'serial_mdp' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                  <div style={{ marginTop: '5px' }}>
+                    <input type="text" placeholder="Filtrar..." value={columnFilters.serial_mdp} onChange={(e) => handleFilterChange(e, 'serial_mdp')} onClick={(e) => e.stopPropagation()} style={{ width: '100%', boxSizing: 'border-box', padding: '2px' }} />
+                  </div>
+                </th>
                 <th style={{ padding: '0.5rem', border: '1px solid #ccc', cursor: 'pointer', verticalAlign: 'top' }} onClick={() => requestSort('estado')}>
                   Estado {sortConfig.key === 'estado' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
                   <div style={{ marginTop: '5px' }}>
@@ -194,25 +215,56 @@ const ConsultaPerfiles = ({ user }) => {
                     <input type="text" placeholder="Filtrar..." value={columnFilters.usuario_carga} onChange={(e) => handleFilterChange(e, 'usuario_carga')} onClick={(e) => e.stopPropagation()} style={{ width: '100%', boxSizing: 'border-box', padding: '2px' }} />
                   </div>
                 </th>
+                
+                {/* Fechas */}
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc', cursor: 'pointer', verticalAlign: 'top', fontSize: '0.85rem' }} onClick={() => requestSort('fecha_solicitud')}>
+                  F. Solicitud {sortConfig.key === 'fecha_solicitud' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc', cursor: 'pointer', verticalAlign: 'top', fontSize: '0.85rem' }} onClick={() => requestSort('fecha_verificacion')}>
+                  F. Verif. {sortConfig.key === 'fecha_verificacion' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc', cursor: 'pointer', verticalAlign: 'top', fontSize: '0.85rem' }} onClick={() => requestSort('fecha_aprobacion')}>
+                  F. Aprob. {sortConfig.key === 'fecha_aprobacion' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc', cursor: 'pointer', verticalAlign: 'top', fontSize: '0.85rem' }} onClick={() => requestSort('fecha_emision')}>
+                  F. Emisión {sortConfig.key === 'fecha_emision' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                </th>
               </tr>
             </thead>
             <tbody>
-              {filteredAndSortedPerfiles.length > 0 ? filteredAndSortedPerfiles.map(p => (
-                <tr key={p.orden}>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.cedula_identidad}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.nombre_apellido}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.tipo_perfil ? p.tipo_perfil.tipo_especial : p.id_tipo_perfil}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.Lote || '-'}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
-                    {p.verificado ? <span style={{color: 'green'}}>Verificado</span> : <span style={{color: 'orange'}}>Pendiente</span>}
-                  </td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
-                    {p.usuario_carga ? p.usuario_carga.nombre_completo : '-'}
-                  </td>
-                </tr>
-              )) : (
+              {filteredAndSortedPerfiles.length > 0 ? filteredAndSortedPerfiles.map(p => {
+                
+                // Color por estado
+                let estadoColor = 'black';
+                let estadoTxt = p.estado_solicitud ? p.estado_solicitud.descripcion : 'Desconocido';
+                if (p.id_estado_solicitud === 1) estadoColor = 'orange'; // Solicitado
+                if (p.id_estado_solicitud === 2) estadoColor = 'blue';   // Verificado
+                if (p.id_estado_solicitud === 3) estadoColor = 'green';  // Aprobado
+                if (p.id_estado_solicitud === 4) estadoColor = 'red';    // Rechazado
+                if (p.id_estado_solicitud === 5) estadoColor = 'purple'; // Emitido
+
+                return (
+                  <tr key={p.orden}>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.cedula_identidad}</td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.nombre_apellido}</td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.tipo_perfil ? p.tipo_perfil.tipo_especial : p.id_tipo_perfil}</td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.Lote || '-'}</td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.serial_mdp || '-'}</td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc', fontWeight: 'bold', color: estadoColor }}>
+                      {estadoTxt}
+                    </td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
+                      {p.usuario_carga ? p.usuario_carga.nombre_completo : '-'}
+                    </td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc', fontSize: '0.85rem' }}>{formatDate(p.fecha_solicitud)}</td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc', fontSize: '0.85rem' }}>{formatDate(p.fecha_verificacion)}</td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc', fontSize: '0.85rem' }}>{formatDate(p.fecha_aprobacion)}</td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc', fontSize: '0.85rem' }}>{formatDate(p.fecha_emision)}</td>
+                  </tr>
+                );
+              }) : (
                 <tr>
-                  <td colSpan="6" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No se encontraron registros en esta vista.</td>
+                  <td colSpan="11" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No se encontraron registros en esta vista.</td>
                 </tr>
               )}
             </tbody>

@@ -8,7 +8,7 @@ import io
 import math
 from datetime import datetime
 
-from models import PerfilEspecial, TipoPerfilEspecial, Usuario
+from models import PerfilEspecial, TipoPerfilEspecial, Usuario, EstadoSolicitudPerfil
 from schemas import PerfilEspecialResponse
 from security import get_current_user, check_permission
 from database import get_session
@@ -76,10 +76,15 @@ async def get_perfiles(
     res_usuarios = await session.execute(select(Usuario))
     usuarios_dict = {u.id: u for u in res_usuarios.scalars().all()}
     
+    # Pre-cargar los estados en memoria
+    res_estados = await session.execute(select(EstadoSolicitudPerfil))
+    estados_dict = {e.id_estado: e for e in res_estados.scalars().all()}
+    
     # Asignar la relación desde el diccionario
     for p in perfiles:
         p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
         p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
+        p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
         
     return perfiles
 
@@ -218,7 +223,8 @@ async def import_perfiles(
                 cedula_identidad=doc,
                 id_tipo_perfil=tipo_perfil_final,
                 Lote=str(row["lote"]),
-                verificado=False,
+                id_estado_solicitud=1,
+                fecha_solicitud=datetime.now(),
                 id_usuario_carga=current_user["user_id"]
             )
             session.add(nuevo)
@@ -250,7 +256,7 @@ async def get_unverified(
     if current_user.get("role") not in ["admin", "sysadmin"]:
          raise HTTPException(status_code=403, detail="No autorizado")
 
-    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.verificado == False))
+    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.id_estado_solicitud == 1))
     perfiles = result.scalars().all()
     
     for p in perfiles:
@@ -273,7 +279,8 @@ async def validate_perfiles(
     perfiles = result.scalars().all()
     
     for p in perfiles:
-        p.verificado = True
+        p.id_estado_solicitud = 2
+        p.fecha_verificacion = datetime.now()
         p.id_usuario_aprob = current_user["user_id"]
         
     await session.commit()
@@ -291,8 +298,8 @@ async def send_perfiles_email(
     if current_user.get("role") not in ["admin", "sysadmin"]:
          raise HTTPException(status_code=403, detail="No autorizado")
          
-    # Traer todos los verificados
-    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.verificado == True))
+    # Traer todos los verificados (estado 2)
+    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.id_estado_solicitud == 2))
     perfiles = result.scalars().all()
     
     if not perfiles:
@@ -309,7 +316,7 @@ async def send_perfiles_email(
             "Documento": p.cedula_identidad,
             "Lote": p.Lote,
             "TipoPerfil ID": p.id_tipo_perfil,
-            "Verificado": p.verificado
+            "Estado ID": p.id_estado_solicitud
         })
         
     df = pd.DataFrame(data)
