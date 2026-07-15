@@ -12,6 +12,7 @@ from models import PerfilEspecial, TipoPerfilEspecial, Usuario, EstadoSolicitudP
 from schemas import PerfilEspecialResponse
 from security import get_current_user, check_permission
 from database import get_session
+from audit_utils import log_activity
 from email_service import email_service
 from fastapi.responses import StreamingResponse
 
@@ -194,6 +195,7 @@ async def import_perfiles(
     user = res_user.scalar_one_or_none()
     
     rejected_rows = []
+    added_count = 0
     
     for index, row in df.iterrows():
         doc = str(row["documento"]).strip()
@@ -233,8 +235,19 @@ async def import_perfiles(
                 device_id=device_id
             )
             session.add(nuevo)
+            added_count += 1
             
     await session.commit()
+    
+    if added_count > 0:
+        await log_activity(
+            session=session,
+            request=request,
+            current_user=current_user,
+            action="import",
+            table="perfiles_especiales",
+            details=f"Se importaron {added_count} perfiles desde Excel."
+        )
     
     if rejected_rows:
         rejected_df = pd.DataFrame(rejected_rows)
@@ -272,6 +285,7 @@ async def get_unverified(
 
 @router.put("/validate")
 async def validate_perfiles(
+    request: Request,
     ids: List[int],
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
@@ -289,6 +303,17 @@ async def validate_perfiles(
         p.id_usuario_aprob = current_user["user_id"]
         
     await session.commit()
+    
+    if perfiles:
+        await log_activity(
+            session=session,
+            request=request,
+            current_user=current_user,
+            action="update",
+            table="perfiles_especiales",
+            details=f"Se verificaron {len(perfiles)} perfiles."
+        )
+        
     return {"message": f"{len(perfiles)} perfiles verificados exitosamente."}
 
 @router.post("/send_email")
