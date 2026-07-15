@@ -52,8 +52,15 @@ const ImportacionPerfiles = () => {
     
     setStatusMsg("");
 
+    let deviceId = localStorage.getItem('device_id');
+    if (!deviceId) {
+      deviceId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('device_id', deviceId);
+    }
+
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('device_id', deviceId);
 
     try {
       const res = await fetch(`${API_BASE}/perfiles${endpoint}`, {

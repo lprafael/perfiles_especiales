@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import or_
@@ -170,7 +170,9 @@ async def verify_perfiles(
 
 @router.post("/import")
 async def import_perfiles(
+    request: Request,
     file: UploadFile = File(...),
+    device_id: str = Form(None),
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
@@ -225,7 +227,10 @@ async def import_perfiles(
                 Lote=str(row["lote"]),
                 id_estado_solicitud=1,
                 fecha_solicitud=datetime.now(),
-                id_usuario_carga=current_user["user_id"]
+                id_usuario_carga=current_user["user_id"],
+                ip_origen=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                device_id=device_id
             )
             session.add(nuevo)
             

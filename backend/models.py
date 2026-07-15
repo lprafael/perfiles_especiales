@@ -750,6 +750,9 @@ class PerfilEspecial(Base):
     fecha_emision = Column(DateTime, nullable=True)
     id_usuario_carga = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=False, default=1)
     id_usuario_aprob = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=True)
+    ip_origen = Column(String(45), nullable=True)
+    user_agent = Column(Text, nullable=True)
+    device_id = Column(String(255), nullable=True)
     
     tipo_perfil = relationship("TipoPerfilEspecial")
     estado_solicitud = relationship("EstadoSolicitudPerfil")
