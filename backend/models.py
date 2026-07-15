@@ -1,7 +1,7 @@
 # models.py
 # Modelos de base de datos para el sistema
 
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Table, JSON, Float, Date, Time
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Table, JSON, Float, Date, Time, LargeBinary
 from geoalchemy2 import Geometry
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
@@ -730,6 +730,19 @@ class EstadoSolicitudPerfil(Base):
     id_estado = Column(Integer, primary_key=True)
     descripcion = Column(String(50), nullable=False)
 
+class EvidenciaImportacion(Base):
+    __tablename__ = "evidencia_importacion"
+    __table_args__ = {"schema": "public"}
+    
+    id_evidencia = Column(Integer, primary_key=True, autoincrement=True)
+    nombre_archivo = Column(String(255), nullable=False)
+    archivo_binario = Column(LargeBinary, nullable=False)
+    fecha_importacion = Column(DateTime, default=func.now())
+    id_usuario = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=False)
+    ip_origen = Column(String(45), nullable=True)
+    
+    usuario = relationship("Usuario", foreign_keys=[id_usuario])
+
 class PerfilEspecial(Base):
     __tablename__ = "perfiles_especiales"
     __table_args__ = {"schema": "public"}
@@ -753,8 +766,10 @@ class PerfilEspecial(Base):
     ip_origen = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
     device_id = Column(String(255), nullable=True)
+    id_evidencia = Column(Integer, ForeignKey('public.evidencia_importacion.id_evidencia'), nullable=True)
     
     tipo_perfil = relationship("TipoPerfilEspecial")
     estado_solicitud = relationship("EstadoSolicitudPerfil")
     usuario_carga = relationship("Usuario", foreign_keys=[id_usuario_carga])
     usuario_aprob = relationship("Usuario", foreign_keys=[id_usuario_aprob])
+    evidencia = relationship("EvidenciaImportacion", backref="perfiles_importados")

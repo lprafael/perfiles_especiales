@@ -8,7 +8,7 @@ import io
 import math
 from datetime import datetime
 
-from models import PerfilEspecial, TipoPerfilEspecial, Usuario, EstadoSolicitudPerfil
+from models import PerfilEspecial, TipoPerfilEspecial, Usuario, EstadoSolicitudPerfil, EvidenciaImportacion
 from schemas import PerfilEspecialResponse
 from security import get_current_user, check_permission
 from database import get_session
@@ -184,6 +184,15 @@ async def import_perfiles(
     except Exception as e:
         raise HTTPException(status_code=400, detail="El archivo no es un Excel válido")
         
+    evidencia = EvidenciaImportacion(
+        nombre_archivo=file.filename,
+        archivo_binario=content,
+        id_usuario=current_user["user_id"],
+        ip_origen=request.client.host if request.client else None
+    )
+    session.add(evidencia)
+    await session.flush()
+    
     required_cols = ["nombres", "apellidos", "documento", "id_tipo_perfil", "lote"]
     for col in required_cols:
         if col not in df.columns:
@@ -232,7 +241,8 @@ async def import_perfiles(
                 id_usuario_carga=current_user["user_id"],
                 ip_origen=request.client.host if request.client else None,
                 user_agent=request.headers.get("user-agent"),
-                device_id=device_id
+                device_id=device_id,
+                id_evidencia=evidencia.id_evidencia
             )
             session.add(nuevo)
             added_count += 1
