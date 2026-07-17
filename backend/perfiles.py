@@ -136,8 +136,10 @@ async def verify_perfiles(
             rejected_rows.append(row)
             continue
             
-        tipo_perfil_excel = str(row["id_tipo_perfil"]).strip()
-        tipo_perfil_final = int(tipo_perfil_excel) if tipo_perfil_excel.isdigit() else 1
+        try:
+            tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
+        except ValueError:
+            tipo_perfil_final = 1
         
         if user and user.id_organismo == 2:
             tipo_perfil_final = 3
@@ -213,8 +215,10 @@ async def import_perfiles(
             rejected_rows.append(row)
             continue
             
-        tipo_perfil_excel = str(row["id_tipo_perfil"]).strip()
-        tipo_perfil_final = int(tipo_perfil_excel) if tipo_perfil_excel.isdigit() else 1
+        try:
+            tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
+        except ValueError:
+            tipo_perfil_final = 1
         
         if user and user.id_organismo == 2:
             tipo_perfil_final = 3
