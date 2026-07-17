@@ -139,7 +139,9 @@ async def verify_perfiles(
         try:
             tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
         except ValueError:
-            tipo_perfil_final = 1
+            row["motivo_rechazo"] = "Tipo de perfil inválido o no numérico"
+            rejected_rows.append(row)
+            continue
         
         if user and user.id_organismo == 2:
             tipo_perfil_final = 3
@@ -218,7 +220,9 @@ async def import_perfiles(
         try:
             tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
         except ValueError:
-            tipo_perfil_final = 1
+            row["motivo_rechazo"] = "Tipo de perfil inválido o no numérico"
+            rejected_rows.append(row)
+            continue
         
         if user and user.id_organismo == 2:
             tipo_perfil_final = 3
