@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ConsultaPerfiles from './ConsultaPerfiles';
 import ImportacionPerfiles from './ImportacionPerfiles';
 import ValidacionPerfiles from './ValidacionPerfiles';
+import HistorialImportaciones from './HistorialImportaciones';
 
 const MainScreen = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('consulta');
@@ -55,6 +56,19 @@ const MainScreen = ({ user, onLogout }) => {
               ✅ Validación y Correos
             </button>
           )}
+
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('historial')}
+              style={{
+                width: '100%', padding: '1rem', textAlign: 'left', border: 'none',
+                background: activeTab === 'historial' ? '#34495e' : 'transparent',
+                color: 'white', cursor: 'pointer', fontSize: '1rem'
+              }}
+            >
+              📜 Historial Importaciones
+            </button>
+          )}
         </nav>
 
         <div style={{ padding: '1rem' }}>
@@ -74,6 +88,7 @@ const MainScreen = ({ user, onLogout }) => {
             {activeTab === 'consulta' && 'Consulta de Beneficiarios'}
             {activeTab === 'importacion' && 'Gestión de Importaciones'}
             {activeTab === 'validacion' && 'Validación Administrativa'}
+            {activeTab === 'historial' && 'Historial de Importaciones'}
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ fontWeight: 'bold', color: '#34495e' }}>{user?.username} ({user?.rol})</span>
@@ -82,8 +97,9 @@ const MainScreen = ({ user, onLogout }) => {
 
         <main style={{ flex: 1, background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           {activeTab === 'consulta' && <ConsultaPerfiles user={user} />}
-          {activeTab === 'importacion' && (isUsuario || isAdmin) && <ImportacionPerfiles />}
+          {activeTab === 'importacion' && (isUsuario || isAdmin) && <ImportacionPerfiles user={user} />}
           {activeTab === 'validacion' && isAdmin && <ValidacionPerfiles />}
+          {activeTab === 'historial' && isAdmin && <HistorialImportaciones />}
         </main>
 
         <footer style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.9rem', color: '#7f8c8d', borderTop: '1px solid #dee2e6', paddingTop: '1rem' }}>

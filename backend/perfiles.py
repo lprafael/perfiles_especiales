@@ -14,7 +14,9 @@ from security import get_current_user, check_permission
 from database import get_session
 from audit_utils import log_activity
 from email_service import email_service
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+import os
+import shutil
 
 router = APIRouter(prefix="/perfiles", tags=["Perfiles Especiales"])
 
@@ -89,9 +91,20 @@ async def get_perfiles(
         
     return perfiles
 
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+TEMPLATE_PATH = os.path.join(UPLOAD_DIR, "plantilla_perfiles.xlsx")
+
 @router.get("/template")
 async def get_template(current_user: dict = Depends(get_current_user)):
     """Descargar plantilla Excel para importación."""
+    if os.path.exists(TEMPLATE_PATH):
+        return FileResponse(
+            path=TEMPLATE_PATH,
+            filename="plantilla_perfiles.xlsx",
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
     df = pd.DataFrame(columns=["nombres", "apellidos", "documento", "id_tipo_perfil", "lote"])
     stream = io.BytesIO()
     with pd.ExcelWriter(stream, engine='openpyxl') as writer:
@@ -103,6 +116,35 @@ async def get_template(current_user: dict = Depends(get_current_user)):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=plantilla_perfiles.xlsx"}
     )
+
+@router.post("/template")
+async def upload_template(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Subir una nueva plantilla Excel (Solo Admin)."""
+    if current_user.get("role") not in ["admin", "sysadmin"]:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    
+    if not file.filename.endswith((".xlsx", ".xls")):
+        raise HTTPException(status_code=400, detail="El archivo debe ser un Excel (.xlsx, .xls)")
+        
+    with open(TEMPLATE_PATH, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    return {"message": "Plantilla actualizada exitosamente"}
+
+@router.delete("/template")
+async def delete_template(current_user: dict = Depends(get_current_user)):
+    """Eliminar la plantilla personalizada (Solo Admin)."""
+    if current_user.get("role") not in ["admin", "sysadmin"]:
+        raise HTTPException(status_code=403, detail="No autorizado")
+        
+    if os.path.exists(TEMPLATE_PATH):
+        os.remove(TEMPLATE_PATH)
+        return {"message": "Plantilla eliminada exitosamente"}
+    else:
+        return {"message": "No hay una plantilla personalizada para eliminar"}
 
 @router.post("/verify")
 async def verify_perfiles(
@@ -399,3 +441,91 @@ async def send_perfiles_email(
             
     background_tasks.add_task(process_and_send)
     return {"message": "El envío de correos se ha iniciado en segundo plano."}
+
+@router.get("/evidencias")
+async def get_evidencias(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Obtener el historial de importaciones (Solo Admin)."""
+    if current_user.get("role") not in ["admin", "sysadmin"]:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    # Obtener todas las evidencias
+    query = select(EvidenciaImportacion).order_by(EvidenciaImportacion.fecha_importacion.desc())
+    result = await session.execute(query)
+    evidencias = result.scalars().all()
+    
+    # Contar perfiles por evidencia
+    from sqlalchemy import func
+    count_query = select(PerfilEspecial.id_evidencia, func.count(PerfilEspecial.orden)).group_by(PerfilEspecial.id_evidencia)
+    count_result = await session.execute(count_query)
+    counts = {row[0]: row[1] for row in count_result.all()}
+    
+    response = []
+    for ev in evidencias:
+        response.append({
+            "id_evidencia": ev.id_evidencia,
+            "nombre_archivo": ev.nombre_archivo,
+            "fecha_importacion": ev.fecha_importacion,
+            "id_usuario": ev.id_usuario,
+            "cantidad_perfiles": counts.get(ev.id_evidencia, 0)
+        })
+        
+    return response
+
+@router.get("/evidencias/{id_evidencia}/download")
+async def download_evidencia(
+    id_evidencia: int,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Descargar el archivo Excel original de una importación (Solo Admin)."""
+    if current_user.get("role") not in ["admin", "sysadmin"]:
+        raise HTTPException(status_code=403, detail="No autorizado")
+        
+    result = await session.execute(select(EvidenciaImportacion).where(EvidenciaImportacion.id_evidencia == id_evidencia))
+    evidencia = result.scalar_one_or_none()
+    
+    if not evidencia:
+        raise HTTPException(status_code=404, detail="Evidencia no encontrada")
+        
+    stream = io.BytesIO(evidencia.archivo_binario)
+    
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={evidencia.nombre_archivo}"}
+    )
+
+@router.delete("/evidencias/{id_evidencia}")
+async def delete_evidencia(
+    id_evidencia: int,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Eliminar una importación y todos sus perfiles asociados (Solo Admin)."""
+    if current_user.get("role") not in ["admin", "sysadmin"]:
+        raise HTTPException(status_code=403, detail="No autorizado")
+        
+    # Verificar que exista la evidencia
+    result = await session.execute(select(EvidenciaImportacion).where(EvidenciaImportacion.id_evidencia == id_evidencia))
+    evidencia = result.scalar_one_or_none()
+    
+    if not evidencia:
+        raise HTTPException(status_code=404, detail="Evidencia no encontrada")
+        
+    # Buscar perfiles asociados
+    perfiles_result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.id_evidencia == id_evidencia))
+    perfiles = perfiles_result.scalars().all()
+    
+    # Eliminar perfiles
+    for p in perfiles:
+        await session.delete(p)
+        
+    # Eliminar la evidencia
+    await session.delete(evidencia)
+    
+    await session.commit()
+    
+    return {"message": f"Se ha eliminado la importación y sus {len(perfiles)} perfiles asociados."}

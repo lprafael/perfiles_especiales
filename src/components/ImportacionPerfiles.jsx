@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { API_BASE } from '../config';
 
-const ImportacionPerfiles = () => {
+const ImportacionPerfiles = ({ user }) => {
   const [file, setFile] = useState(null);
+  const [templateFile, setTemplateFile] = useState(null);
   const [loadingVerify, setLoadingVerify] = useState(false);
   const [loadingImport, setLoadingImport] = useState(false);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
+  const [templateMsg, setTemplateMsg] = useState("");
+
+  const isAdmin = user?.rol === 'admin' || user?.rol === 'sysadmin';
 
   const handleDownloadTemplate = async () => {
     try {
@@ -123,7 +128,7 @@ const ImportacionPerfiles = () => {
       <h2>Importación de Perfiles Especiales</h2>
       <p>Descargue la plantilla, complete los datos e importe el archivo modificado.</p>
 
-      <div style={{ marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
         <button 
           onClick={handleDownloadTemplate}
           style={{ padding: '0.75rem 1.5rem', background: '#27ae60', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
@@ -131,6 +136,84 @@ const ImportacionPerfiles = () => {
           ⬇ Descargar Plantilla Excel
         </button>
       </div>
+
+      {isAdmin && (
+        <div style={{ border: '1px solid #ccc', padding: '1.5rem', borderRadius: '8px', maxWidth: '500px', marginBottom: '2rem' }}>
+          <h3>Gestión de Plantilla (Admin)</h3>
+          <p style={{ fontSize: '0.9rem', color: '#7f8c8d' }}>Sube un archivo Excel para reemplazar la plantilla base.</p>
+          <input 
+            type="file" 
+            accept=".xlsx, .xls" 
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                setTemplateFile(e.target.files[0]);
+                setTemplateMsg("");
+              }
+            }}
+            style={{ marginBottom: '1rem', display: 'block' }}
+          />
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              onClick={async () => {
+                if (!templateFile) return alert("Seleccione un archivo primero");
+                setLoadingTemplate(true);
+                const formData = new FormData();
+                formData.append('file', templateFile);
+                try {
+                  const res = await fetch(`${API_BASE}/perfiles/template`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` },
+                    body: formData
+                  });
+                  if (res.ok) {
+                    setTemplateMsg("Plantilla subida exitosamente.");
+                    setTemplateFile(null);
+                  } else {
+                    const data = await res.json();
+                    setTemplateMsg(`Error: ${data.detail || 'al subir'}`);
+                  }
+                } catch (err) {
+                  setTemplateMsg("Error de conexión");
+                }
+                setLoadingTemplate(false);
+              }}
+              disabled={loadingTemplate || !templateFile}
+              style={{ flex: 1, padding: '0.75rem', background: loadingTemplate || !templateFile ? '#95a5a6' : '#2980b9', color: 'white', border: 'none', borderRadius: '4px', cursor: loadingTemplate || !templateFile ? 'not-allowed' : 'pointer' }}
+            >
+              Subir Plantilla
+            </button>
+            <button 
+              onClick={async () => {
+                if (!window.confirm("¿Seguro que desea eliminar la plantilla personalizada?")) return;
+                setLoadingTemplate(true);
+                try {
+                  const res = await fetch(`${API_BASE}/perfiles/template`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+                  });
+                  if (res.ok) {
+                    setTemplateMsg("Plantilla eliminada exitosamente.");
+                  } else {
+                    setTemplateMsg("Error al eliminar la plantilla.");
+                  }
+                } catch (err) {
+                  setTemplateMsg("Error de conexión");
+                }
+                setLoadingTemplate(false);
+              }}
+              disabled={loadingTemplate}
+              style={{ flex: 1, padding: '0.75rem', background: loadingTemplate ? '#95a5a6' : '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', cursor: loadingTemplate ? 'not-allowed' : 'pointer' }}
+            >
+              Eliminar Plantilla
+            </button>
+          </div>
+          {templateMsg && (
+            <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#ecf0f1', borderRadius: '4px', borderLeft: '4px solid #3498db' }}>
+              {templateMsg}
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ border: '1px solid #ccc', padding: '1.5rem', borderRadius: '8px', maxWidth: '500px' }}>
         <h3>Subir Archivo de Beneficiarios</h3>
