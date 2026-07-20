@@ -241,9 +241,8 @@ async def import_perfiles(
         await session.flush()
     except Exception as e:
         import traceback
-        with open("error_log.txt", "w") as f:
-            f.write(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+        print("ERROR EN IMPORTACION:", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error interno en BD: {str(e)}. (¿Se corrió la migración de la BD?)")
     
     required_cols = ["nombres", "apellidos", "documento", "id_tipo_perfil", "lote"]
     for col in required_cols:
