@@ -230,14 +230,20 @@ async def import_perfiles(
     except Exception as e:
         raise HTTPException(status_code=400, detail="El archivo no es un Excel válido")
         
-    evidencia = EvidenciaImportacion(
-        nombre_archivo=file.filename,
-        archivo_binario=content,
-        id_usuario=current_user["user_id"],
-        ip_origen=request.client.host if request.client else None
-    )
-    session.add(evidencia)
-    await session.flush()
+    try:
+        evidencia = EvidenciaImportacion(
+            nombre_archivo=file.filename,
+            archivo_binario=content,
+            id_usuario=current_user["user_id"],
+            ip_origen=request.client.host if request.client else None
+        )
+        session.add(evidencia)
+        await session.flush()
+    except Exception as e:
+        import traceback
+        with open("error_log.txt", "w") as f:
+            f.write(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
     
     required_cols = ["nombres", "apellidos", "documento", "id_tipo_perfil", "lote"]
     for col in required_cols:

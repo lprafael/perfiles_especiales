@@ -31,7 +31,11 @@ async def migrate():
         try:
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS id_usuario_carga INTEGER NOT NULL DEFAULT 1 REFERENCES sistema.usuarios(id);"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS id_usuario_aprob INTEGER REFERENCES sistema.usuarios(id);"))
-            print("Columns 'id_usuario_carga' and 'id_usuario_aprob' added (or already existed).")
+            await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS ip_origen VARCHAR(45);"))
+            await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS user_agent TEXT;"))
+            await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS device_id VARCHAR(255);"))
+            await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS id_evidencia INTEGER;"))
+            print("Columns 'id_usuario_carga', 'id_usuario_aprob', 'ip_origen', 'user_agent', 'device_id', 'id_evidencia' added (or already existed).")
         except Exception as e:
             print(f"Error adding new columns: {e}")
             
