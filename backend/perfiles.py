@@ -251,62 +251,64 @@ async def import_perfiles(
             
     df = df.fillna("")
     
-    res_user = await session.execute(select(Usuario).where(Usuario.id == current_user["user_id"]))
-    user = res_user.scalar_one_or_none()
-    
-    rejected_rows = []
-    added_count = 0
-    
-    for index, row in df.iterrows():
-        doc = str(row["documento"]).strip()
-        if not doc:
-            row["motivo_rechazo"] = "Documento vacío"
-            rejected_rows.append(row)
-            continue
-            
-        try:
-            tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
-        except ValueError:
-            row["motivo_rechazo"] = "Tipo de perfil inválido o no numérico"
-            rejected_rows.append(row)
-            continue
+    try:
+        res_user = await session.execute(select(Usuario).where(Usuario.id == current_user["user_id"]))
+        user = res_user.scalar_one_or_none()
         
-        if user and user.id_organismo == 2:
-            tipo_perfil_final = 3
-        elif user and user.id_organismo == 3:
-            if tipo_perfil_final not in [4, 5]:
-                row["motivo_rechazo"] = "Tipo de perfil no permitido para su organismo (solo 4 o 5)"
+        rejected_rows = []
+        added_count = 0
+        
+        for index, row in df.iterrows():
+            doc = str(row["documento"]).strip()
+            if not doc:
+                row["motivo_rechazo"] = "Documento vacío"
                 rejected_rows.append(row)
                 continue
                 
-        res_dup = await session.execute(select(PerfilEspecial).where(PerfilEspecial.cedula_identidad == doc))
-        dup = res_dup.scalar_one_or_none()
-        
-        if dup:
-            row["motivo_rechazo"] = "Documento duplicado"
-            rejected_rows.append(row)
-        else:
-            nuevo = PerfilEspecial(
-                nombre_apellido=f"{row['nombres']} {row['apellidos']}",
-                cedula_identidad=doc,
-                id_tipo_perfil=tipo_perfil_final,
-                Lote=str(row["lote"]),
-                id_estado_solicitud=1,
-                fecha_solicitud=datetime.now(),
-                id_usuario_carga=current_user["user_id"],
-                ip_origen=request.client.host if request.client else None,
-                user_agent=request.headers.get("user-agent"),
-                device_id=device_id,
-                id_evidencia=evidencia.id_evidencia
-            )
-            session.add(nuevo)
-            added_count += 1
+            try:
+                tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
+            except ValueError:
+                row["motivo_rechazo"] = "Tipo de perfil inválido o no numérico"
+                rejected_rows.append(row)
+                continue
             
-    try:
+            if user and user.id_organismo == 2:
+                tipo_perfil_final = 3
+            elif user and user.id_organismo == 3:
+                if tipo_perfil_final not in [4, 5]:
+                    row["motivo_rechazo"] = "Tipo de perfil no permitido para su organismo (solo 4 o 5)"
+                    rejected_rows.append(row)
+                    continue
+                    
+            res_dup = await session.execute(select(PerfilEspecial).where(PerfilEspecial.cedula_identidad == doc))
+            dup = res_dup.scalar_one_or_none()
+            
+            if dup:
+                row["motivo_rechazo"] = "Documento duplicado"
+                rejected_rows.append(row)
+            else:
+                nuevo = PerfilEspecial(
+                    nombre_apellido=f"{row['nombres']} {row['apellidos']}",
+                    cedula_identidad=doc,
+                    id_tipo_perfil=tipo_perfil_final,
+                    Lote=str(row["lote"]),
+                    id_estado_solicitud=1,
+                    fecha_solicitud=datetime.now(),
+                    id_usuario_carga=current_user["user_id"],
+                    ip_origen=request.client.host if request.client else None,
+                    user_agent=request.headers.get("user-agent"),
+                    device_id=device_id,
+                    id_evidencia=evidencia.id_evidencia
+                )
+                session.add(nuevo)
+                added_count += 1
+                
         await session.commit()
     except Exception as e:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al guardar perfiles en la base de datos: {str(e)}")
+        import traceback
+        print("ERROR DURANTE PROCESAMIENTO O COMMIT:", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error en base de datos al procesar o guardar perfiles: {str(e)}")
         
 
     if added_count > 0:
