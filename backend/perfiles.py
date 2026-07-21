@@ -293,7 +293,7 @@ async def import_perfiles(
                     id_tipo_perfil=tipo_perfil_final,
                     Lote=str(row["lote"]),
                     id_estado_solicitud=1,
-                    fecha_solicitud=datetime.now(),
+                    fecha_solicitud=local_time,
                     id_usuario_carga=current_user["user_id"],
                     ip_origen=request.client.host if request.client else None,
                     user_agent=request.headers.get("user-agent"),
