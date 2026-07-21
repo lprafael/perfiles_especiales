@@ -41,10 +41,10 @@ async def migrate():
             
         print("Fixing 'orden' sequence in public.perfiles_especiales if missing...")
         try:
-            await conn.execute(text("CREATE SEQUENCE IF NOT EXISTS perfiles_especiales_orden_seq;"))
-            await conn.execute(text("ALTER TABLE public.perfiles_especiales ALTER COLUMN orden SET DEFAULT nextval('perfiles_especiales_orden_seq');"))
-            await conn.execute(text("ALTER SEQUENCE perfiles_especiales_orden_seq OWNED BY public.perfiles_especiales.orden;"))
-            await conn.execute(text("SELECT setval('perfiles_especiales_orden_seq', COALESCE((SELECT MAX(orden) FROM public.perfiles_especiales), 1));"))
+            async with conn.begin_nested():
+                await conn.execute(text("CREATE SEQUENCE IF NOT EXISTS perfiles_especiales_orden_seq;"))
+                await conn.execute(text("ALTER TABLE public.perfiles_especiales ALTER COLUMN orden SET DEFAULT nextval('perfiles_especiales_orden_seq');"))
+                await conn.execute(text("SELECT setval('perfiles_especiales_orden_seq', COALESCE((SELECT MAX(orden) FROM public.perfiles_especiales), 1));"))
             print("'orden' sequence fixed successfully.")
         except Exception as e:
             print(f"Error fixing 'orden' sequence: {e}")
