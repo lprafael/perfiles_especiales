@@ -265,6 +265,7 @@ async def import_perfiles(
         rejected_rows = []
         seen_docs = set()
         added_count = 0
+        local_time = datetime.now()
         
         for index, row in df.iterrows():
             doc = str(row["documento"]).strip().upper()
