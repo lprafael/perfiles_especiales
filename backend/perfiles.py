@@ -170,13 +170,20 @@ async def verify_perfiles(
     user = res_user.scalar_one_or_none()
     
     rejected_rows = []
+    seen_docs = set()
     
     for index, row in df.iterrows():
-        doc = str(row["documento"]).strip()
+        doc = str(row["documento"]).strip().upper()
         if not doc:
             row["motivo_rechazo"] = "Documento vacío"
             rejected_rows.append(row)
             continue
+            
+        if doc in seen_docs:
+            row["motivo_rechazo"] = "Documento duplicado en el mismo archivo"
+            rejected_rows.append(row)
+            continue
+        seen_docs.add(doc)
             
         try:
             tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
@@ -256,14 +263,21 @@ async def import_perfiles(
         user = res_user.scalar_one_or_none()
         
         rejected_rows = []
+        seen_docs = set()
         added_count = 0
         
         for index, row in df.iterrows():
-            doc = str(row["documento"]).strip()
+            doc = str(row["documento"]).strip().upper()
             if not doc:
                 row["motivo_rechazo"] = "Documento vacío"
                 rejected_rows.append(row)
                 continue
+                
+            if doc in seen_docs:
+                row["motivo_rechazo"] = "Documento duplicado en el mismo archivo"
+                rejected_rows.append(row)
+                continue
+            seen_docs.add(doc)
                 
             try:
                 tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
@@ -287,11 +301,14 @@ async def import_perfiles(
                 row["motivo_rechazo"] = "Documento duplicado"
                 rejected_rows.append(row)
             else:
+                lote_val = str(row["lote"]).strip().upper()
+                lote_final = lote_val if lote_val and lote_val != "NAN" else None
+                
                 nuevo = PerfilEspecial(
-                    nombre_apellido=f"{row['nombres']} {row['apellidos']}",
+                    nombre_apellido=f"{row['nombres']} {row['apellidos']}".upper(),
                     cedula_identidad=doc,
                     id_tipo_perfil=tipo_perfil_final,
-                    Lote=str(row["lote"]),
+                    Lote=lote_final,
                     id_estado_solicitud=1,
                     fecha_solicitud=local_time,
                     id_usuario_carga=current_user["user_id"],
