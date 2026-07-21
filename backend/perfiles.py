@@ -349,9 +349,20 @@ async def get_unverified(
     result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.id_estado_solicitud == 1))
     perfiles = result.scalars().all()
     
+    # Pre-cargar relaciones
+    res_tipos = await session.execute(select(TipoPerfilEspecial))
+    tipos_dict = {t.id_tipo_especial: t for t in res_tipos.scalars().all()}
+    
+    res_usuarios = await session.execute(select(Usuario))
+    usuarios_dict = {u.id: u for u in res_usuarios.scalars().all()}
+    
+    res_estados = await session.execute(select(EstadoSolicitudPerfil))
+    estados_dict = {e.id_estado: e for e in res_estados.scalars().all()}
+    
     for p in perfiles:
-        res_tipo = await session.execute(select(TipoPerfilEspecial).where(TipoPerfilEspecial.id_tipo_especial == p.id_tipo_perfil))
-        p.tipo_perfil = res_tipo.scalar_one_or_none()
+        p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
+        p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
+        p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
         
     return perfiles
 
