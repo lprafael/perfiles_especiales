@@ -302,8 +302,13 @@ async def import_perfiles(
             session.add(nuevo)
             added_count += 1
             
-    await session.commit()
-    
+    try:
+        await session.commit()
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al guardar perfiles en la base de datos: {str(e)}")
+        
+
     if added_count > 0:
         await log_activity(
             session=session,
