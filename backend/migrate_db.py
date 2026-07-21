@@ -48,6 +48,18 @@ async def migrate():
             print("'orden' sequence fixed successfully.")
         except Exception as e:
             print(f"Error fixing 'orden' sequence: {e}")
+            
+        print("Fixing NOT NULL constraints for optional columns...")
+        try:
+            async with conn.begin_nested():
+                await conn.execute(text("ALTER TABLE public.perfiles_especiales ALTER COLUMN fecha_nacimiento DROP NOT NULL;"))
+                await conn.execute(text("ALTER TABLE public.perfiles_especiales ALTER COLUMN institucion DROP NOT NULL;"))
+                await conn.execute(text("ALTER TABLE public.perfiles_especiales ALTER COLUMN eps DROP NOT NULL;"))
+                await conn.execute(text("ALTER TABLE public.perfiles_especiales ALTER COLUMN serial_mdp DROP NOT NULL;"))
+            print("NOT NULL constraints removed successfully.")
+        except Exception as e:
+            print(f"Error removing NOT NULL constraints: {e}")
+
 
             
         print("Migrando estado de solicitudes y fechas...")
