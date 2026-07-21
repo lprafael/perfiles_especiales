@@ -1124,7 +1124,10 @@ class PerfilEspecialBase(BaseModel):
     fecha_aprobacion: Optional[datetime] = None
     fecha_emision: Optional[datetime] = None
     id_usuario_carga: Optional[int] = None
+    id_usuario_verif: Optional[int] = None
     id_usuario_aprob: Optional[int] = None
+    ip_aprobo: Optional[str] = None
+    device_id_aprobo: Optional[str] = None
 
 class PerfilEspecialCreate(PerfilEspecialBase):
     pass
@@ -1150,5 +1153,6 @@ class PerfilEspecialResponse(PerfilEspecialBase):
     tipo_perfil: Optional[TipoPerfilEspecialResponse] = None
     estado_solicitud: Optional[EstadoSolicitudResponse] = None
     usuario_carga: Optional[UsuarioCargaInfo] = None
+    usuario_verif: Optional[UsuarioCargaInfo] = None
     class Config:
         from_attributes = True

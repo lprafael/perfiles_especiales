@@ -9,6 +9,9 @@ const ValidacionPerfiles = () => {
   const [batchSize, setBatchSize] = useState(1500);
   const [sending, setSending] = useState(false);
 
+  const [pendingApproval, setPendingApproval] = useState([]);
+  const [selectedApprovalIds, setSelectedApprovalIds] = useState([]);
+
   const fetchUnverified = async () => {
     setLoading(true);
     try {
@@ -20,7 +23,7 @@ const ValidacionPerfiles = () => {
       if (res.ok) {
         const data = await res.json();
         setUnverified(data);
-        setSelectedIds([]); // Reset selection
+        setSelectedIds([]);
       }
     } catch (err) {
       console.error(err);
@@ -29,8 +32,29 @@ const ValidacionPerfiles = () => {
     setLoading(false);
   };
 
+  const fetchPendingApproval = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/perfiles/pending_approval`, {
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPendingApproval(data);
+        setSelectedApprovalIds([]);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error obteniendo listado pendientes de aprobación');
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
     fetchUnverified();
+    fetchPendingApproval();
   }, []);
 
   const handleSelectAll = (e) => {
@@ -47,9 +71,23 @@ const ValidacionPerfiles = () => {
     );
   };
 
-  const handleValidate = async () => {
+  const handleSelectAllApproval = (e) => {
+    if (e.target.checked) {
+      setSelectedApprovalIds(pendingApproval.map(p => p.orden));
+    } else {
+      setSelectedApprovalIds([]);
+    }
+  };
+
+  const handleSelectApproval = (id) => {
+    setSelectedApprovalIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleVerify = async () => {
     if (selectedIds.length === 0) {
-      alert("Seleccione al menos un registro para validar");
+      alert("Seleccione al menos un registro para verificar");
       return;
     }
     
@@ -64,10 +102,44 @@ const ValidacionPerfiles = () => {
         body: JSON.stringify(selectedIds)
       });
       if (res.ok) {
-        alert("Perfiles validados exitosamente");
+        alert("Perfiles verificados exitosamente");
         fetchUnverified();
+        fetchPendingApproval();
       } else {
-        alert("Error al validar");
+        alert("Error al verificar");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error de conexión");
+    }
+    setLoading(false);
+  };
+
+  const handleApprove = async () => {
+    if (selectedApprovalIds.length === 0) {
+      alert("Seleccione al menos un registro para aprobar");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const device_id = localStorage.getItem('device_id') || 'unknown-device';
+      const res = await fetch(`${API_BASE}/perfiles/approve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          ids: selectedApprovalIds,
+          device_id: device_id
+        })
+      });
+      if (res.ok) {
+        alert("Perfiles aprobados exitosamente");
+        fetchPendingApproval();
+      } else {
+        alert("Error al aprobar");
       }
     } catch (err) {
       console.error(err);
@@ -117,20 +189,20 @@ const ValidacionPerfiles = () => {
 
       <div style={{ marginBottom: '1rem' }}>
         <button 
-          onClick={handleValidate}
+          onClick={handleVerify}
           disabled={selectedIds.length === 0 || loading}
           style={{ 
             padding: '0.5rem 1rem', 
-            background: selectedIds.length === 0 ? '#bdc3c7' : '#f39c12', 
+            background: selectedIds.length === 0 ? '#bdc3c7' : '#3498db', 
             color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' 
           }}
         >
-          Validar Seleccionados ({selectedIds.length})
+          Verificar Seleccionados ({selectedIds.length})
         </button>
       </div>
 
       {loading ? <p>Cargando...</p> : (
-        <div style={{ overflowX: 'auto', maxHeight: '400px', marginBottom: '2rem' }}>
+        <div style={{ overflowX: 'auto', maxHeight: '300px', marginBottom: '2rem' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ position: 'sticky', top: 0, background: '#f0f0f0' }}>
               <tr>
@@ -162,7 +234,69 @@ const ValidacionPerfiles = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="5" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No hay registros pendientes de verificación.</td>
+                  <td colSpan="4" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No hay registros pendientes de verificación.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <hr style={{ margin: '2rem 0' }}/>
+      
+      <h2>Aprobación de Perfiles Especiales</h2>
+      <p>Listado de beneficiarios verificados pendientes de aprobación.</p>
+
+      <div style={{ marginBottom: '1rem' }}>
+        <button 
+          onClick={handleApprove}
+          disabled={selectedApprovalIds.length === 0 || loading}
+          style={{ 
+            padding: '0.5rem 1rem', 
+            background: selectedApprovalIds.length === 0 ? '#bdc3c7' : '#f39c12', 
+            color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' 
+          }}
+        >
+          Aprobar Seleccionados ({selectedApprovalIds.length})
+        </button>
+      </div>
+
+      {loading ? <p>Cargando...</p> : (
+        <div style={{ overflowX: 'auto', maxHeight: '300px', marginBottom: '2rem' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ position: 'sticky', top: 0, background: '#f0f0f0' }}>
+              <tr>
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
+                  <input 
+                    type="checkbox" 
+                    onChange={handleSelectAllApproval}
+                    checked={selectedApprovalIds.length === pendingApproval.length && pendingApproval.length > 0}
+                  />
+                </th>
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Documento</th>
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Nombre y Apellido</th>
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Lote</th>
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Verificado por</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingApproval.length > 0 ? pendingApproval.map(p => (
+                <tr key={p.orden}>
+                  <td style={{ padding: '0.5rem', border: '1px solid #ccc', textAlign: 'center' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedApprovalIds.includes(p.orden)}
+                      onChange={() => handleSelectApproval(p.orden)}
+                    />
+                  </td>
+                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.cedula_identidad}</td>
+                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.nombre_apellido}</td>
+                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.Lote || '-'}</td>
+                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.usuario_verif?.nombre_completo || '-'}</td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan="5" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No hay registros pendientes de aprobación.</td>
                 </tr>
               )}
             </tbody>

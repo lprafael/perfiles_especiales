@@ -30,12 +30,15 @@ async def migrate():
         print("Adding new columns to public.perfiles_especiales if they don't exist...")
         try:
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS id_usuario_carga INTEGER NOT NULL DEFAULT 1 REFERENCES sistema.usuarios(id);"))
+            await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS id_usuario_verif INTEGER REFERENCES sistema.usuarios(id);"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS id_usuario_aprob INTEGER REFERENCES sistema.usuarios(id);"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS ip_origen VARCHAR(45);"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS user_agent TEXT;"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS device_id VARCHAR(255);"))
+            await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS ip_aprobo VARCHAR(45);"))
+            await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS device_id_aprobo VARCHAR(255);"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS id_evidencia INTEGER;"))
-            print("Columns 'id_usuario_carga', 'id_usuario_aprob', 'ip_origen', 'user_agent', 'device_id', 'id_evidencia' added (or already existed).")
+            print("Columns 'id_usuario_carga', 'id_usuario_verif', 'id_usuario_aprob', 'ip_origen', 'user_agent', 'device_id', 'ip_aprobo', 'device_id_aprobo', 'id_evidencia' added (or already existed).")
         except Exception as e:
             print(f"Error adding new columns: {e}")
             

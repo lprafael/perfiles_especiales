@@ -380,6 +380,7 @@ async def get_unverified(
     for p in perfiles:
         p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
         p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
+        p.usuario_verif = usuarios_dict.get(p.id_usuario_verif)
         p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
         
     return perfiles
@@ -401,7 +402,7 @@ async def validate_perfiles(
     for p in perfiles:
         p.id_estado_solicitud = 2
         p.fecha_verificacion = datetime.now()
-        p.id_usuario_aprob = current_user["user_id"]
+        p.id_usuario_verif = current_user["user_id"]
         
     await session.commit()
     
@@ -416,6 +417,79 @@ async def validate_perfiles(
         )
         
     return {"message": f"{len(perfiles)} perfiles verificados exitosamente."}
+
+@router.get("/pending_approval", response_model=List[PerfilEspecialResponse])
+async def get_pending_approval(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Listar beneficiarios verificados pendientes de aprobación."""
+    if current_user.get("role") not in ["admin", "sysadmin", "manager"]:
+         raise HTTPException(status_code=403, detail="No autorizado")
+
+    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.id_estado_solicitud == 2))
+    perfiles = result.scalars().all()
+    
+    # Pre-cargar relaciones
+    res_tipos = await session.execute(select(TipoPerfilEspecial))
+    tipos_dict = {t.id_tipo_especial: t for t in res_tipos.scalars().all()}
+    
+    res_usuarios = await session.execute(select(Usuario))
+    usuarios_dict = {u.id: u for u in res_usuarios.scalars().all()}
+    
+    res_estados = await session.execute(select(EstadoSolicitudPerfil))
+    estados_dict = {e.id_estado: e for e in res_estados.scalars().all()}
+    
+    for p in perfiles:
+        p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
+        p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
+        p.usuario_verif = usuarios_dict.get(p.id_usuario_verif)
+        p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
+        
+    return perfiles
+
+from pydantic import BaseModel
+class ApproveRequest(BaseModel):
+    ids: List[int]
+    device_id: Optional[str] = None
+
+@router.put("/approve")
+async def approve_perfiles(
+    request: Request,
+    payload: ApproveRequest,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Marcar perfiles como aprobados."""
+    if current_user.get("role") not in ["admin", "sysadmin", "manager"]:
+         raise HTTPException(status_code=403, detail="No autorizado")
+
+    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.orden.in_(payload.ids)))
+    perfiles = result.scalars().all()
+    
+    ip_aprobo = request.client.host if request.client else None
+    
+    for p in perfiles:
+        p.id_estado_solicitud = 3 # Aprobado
+        p.fecha_aprobacion = datetime.now()
+        p.id_usuario_aprob = current_user["user_id"]
+        p.ip_aprobo = ip_aprobo
+        p.device_id_aprobo = payload.device_id
+        
+    await session.commit()
+    
+    if perfiles:
+        await log_activity(
+            session=session,
+            request=request,
+            current_user=current_user,
+            action="update",
+            table="perfiles_especiales",
+            details=f"Se aprobaron {len(perfiles)} perfiles."
+        )
+        
+    return {"message": f"{len(perfiles)} perfiles aprobados exitosamente."}
+
 
 @router.post("/send_email")
 async def send_perfiles_email(
