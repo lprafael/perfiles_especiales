@@ -448,6 +448,37 @@ async def get_pending_approval(
         
     return perfiles
 
+@router.get("/pending_emission")
+async def get_pending_emission(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Listar beneficiarios aprobados pendientes de emisión por correo."""
+    if current_user.get("role") not in ["admin", "sysadmin", "manager"]:
+         raise HTTPException(status_code=403, detail="No autorizado")
+
+    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.id_estado_solicitud == 3))
+    perfiles = result.scalars().all()
+    
+    # Pre-cargar relaciones
+    res_tipos = await session.execute(select(TipoPerfilEspecial))
+    tipos_dict = {t.id_tipo_especial: t for t in res_tipos.scalars().all()}
+    
+    res_usuarios = await session.execute(select(Usuario))
+    usuarios_dict = {u.id: u for u in res_usuarios.scalars().all()}
+    
+    res_estados = await session.execute(select(EstadoSolicitudPerfil))
+    estados_dict = {e.id_estado: e for e in res_estados.scalars().all()}
+    
+    for p in perfiles:
+        p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
+        p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
+        p.usuario_verif = usuarios_dict.get(p.id_usuario_verif)
+        p.usuario_aprob = usuarios_dict.get(p.id_usuario_aprob)
+        p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
+        
+    return perfiles
+
 from pydantic import BaseModel
 class ApproveRequest(BaseModel):
     ids: List[int]
@@ -496,33 +527,48 @@ async def send_perfiles_email(
     background_tasks: BackgroundTasks,
     correos: str = Form(...), # Correos separados por coma
     cantidad_por_correo: int = Form(1500),
+    asunto: str = Form(None),
+    cuerpo: str = Form(None),
+    eps: str = Form(...),
+    ids: str = Form(...),
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """Enviar perfiles verificados por correo en lotes."""
+    """Enviar perfiles seleccionados por correo en lotes y marcarlos como emitidos."""
     if current_user.get("role") not in ["admin", "sysadmin"]:
          raise HTTPException(status_code=403, detail="No autorizado")
          
-    # Traer todos los verificados (estado 2)
-    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.id_estado_solicitud == 2))
-    perfiles = result.scalars().all()
-    
-    if not perfiles:
-        raise HTTPException(status_code=400, detail="No hay perfiles verificados para enviar.")
-        
+    id_list = [int(i.strip()) for i in ids.split(",") if i.strip()]
+    if not id_list:
+        raise HTTPException(status_code=400, detail="No se seleccionaron perfiles para enviar.")
+
     correos_list = [c.strip() for c in correos.split(",") if c.strip()]
     if not correos_list:
         raise HTTPException(status_code=400, detail="Debe proveer al menos un correo válido.")
+
+    # Traer los seleccionados
+    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.orden.in_(id_list)))
+    perfiles = result.scalars().all()
+    
+    if not perfiles:
+        raise HTTPException(status_code=400, detail="No se encontraron los perfiles especificados.")
         
     data = []
     for p in perfiles:
+        p.id_estado_solicitud = 5 # Emitido
+        p.fecha_emision = datetime.now()
+        p.eps = eps
+        
         data.append({
             "Nombre y Apellido": p.nombre_apellido,
             "Documento": p.cedula_identidad,
             "Lote": p.Lote,
             "TipoPerfil ID": p.id_tipo_perfil,
-            "Estado ID": p.id_estado_solicitud
+            "Estado ID": p.id_estado_solicitud,
+            "EPS": p.eps
         })
+        
+    await session.commit()
         
     df = pd.DataFrame(data)
     total = len(df)
@@ -547,10 +593,13 @@ async def send_perfiles_email(
                 'content_type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             }]
             
+            final_subject = asunto if asunto else f"Listado de Perfiles Verificados - Lote {i+1}"
+            final_body = cuerpo if cuerpo else f"Adjunto encontrará el lote {i+1} de perfiles verificados (Total en este archivo: {len(chunk_df)})."
+            
             email_service.send_email(
                 to_email=correo_destino,
-                subject=f"Listado de Perfiles Verificados - Lote {i+1}",
-                body=f"Adjunto encontrará el lote {i+1} de perfiles verificados (Total en este archivo: {len(chunk_df)}).",
+                subject=final_subject,
+                body=final_body,
                 attachments=attachments
             )
             
