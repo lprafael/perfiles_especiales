@@ -87,6 +87,7 @@ async def get_perfiles(
     for p in perfiles:
         p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
         p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
+        p.usuario_verif = usuarios_dict.get(p.id_usuario_verif)
         p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
         
     return perfiles
