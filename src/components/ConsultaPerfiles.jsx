@@ -12,6 +12,33 @@ const ConsultaPerfiles = ({ user }) => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
 
+  const [editingSerial, setEditingSerial] = useState(null);
+  const [serialValue, setSerialValue] = useState("");
+
+  const handleSaveSerial = async (orden) => {
+    try {
+      const res = await fetch(`${API_BASE}/perfiles/${orden}/serial_mdp`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ serial_mdp: serialValue })
+      });
+      if (res.ok) {
+        const updatedProfile = await res.json();
+        setPerfiles(prev => prev.map(p => p.orden === orden ? updatedProfile : p));
+        setEditingSerial(null);
+        setSerialValue('');
+      } else {
+        alert('Error al guardar el Serial MDP');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión al guardar el Serial MDP');
+    }
+  };
+
   // Estados para ordenamiento y filtrado por columna
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [columnFilters, setColumnFilters] = useState({
@@ -249,7 +276,33 @@ const ConsultaPerfiles = ({ user }) => {
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.nombre_apellido}</td>
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.tipo_perfil ? p.tipo_perfil.tipo_especial : p.id_tipo_perfil}</td>
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.Lote || '-'}</td>
-                    <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.serial_mdp || '-'}</td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc', minWidth: '150px' }}>
+                      {user && (user.rol === 'admin' || user.rol === 'sysadmin') ? (
+                        editingSerial === p.orden ? (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <input 
+                              type="text" 
+                              value={serialValue} 
+                              onChange={e => setSerialValue(e.target.value)} 
+                              style={{ width: '80px', padding: '2px' }}
+                            />
+                            <button onClick={() => handleSaveSerial(p.orden)} style={{ padding: '2px 4px', cursor: 'pointer' }} title="Guardar">💾</button>
+                            <button onClick={() => setEditingSerial(null)} style={{ padding: '2px 4px', cursor: 'pointer' }} title="Cancelar">❌</button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>{p.serial_mdp || '-'}</span>
+                            <button 
+                              onClick={() => { setEditingSerial(p.orden); setSerialValue(p.serial_mdp || ''); }}
+                              style={{ padding: '2px', cursor: 'pointer', border: 'none', background: 'none' }}
+                              title="Editar Serial"
+                            >✏️</button>
+                          </div>
+                        )
+                      ) : (
+                        p.serial_mdp || '-'
+                      )}
+                    </td>
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc', fontWeight: 'bold', color: estadoColor }}>
                       {estadoTxt}
                     </td>

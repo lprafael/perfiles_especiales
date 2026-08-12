@@ -1148,6 +1148,9 @@ class UsuarioCargaInfo(BaseModel):
     class Config:
         from_attributes = True
 
+class SerialUpdate(BaseModel):
+    serial_mdp: str
+
 class PerfilEspecialResponse(PerfilEspecialBase):
     orden: int
     tipo_perfil: Optional[TipoPerfilEspecialResponse] = None

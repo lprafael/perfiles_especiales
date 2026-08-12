@@ -9,7 +9,7 @@ import math
 from datetime import datetime
 
 from models import PerfilEspecial, TipoPerfilEspecial, Usuario, EstadoSolicitudPerfil, EvidenciaImportacion
-from schemas import PerfilEspecialResponse
+from schemas import PerfilEspecialResponse, SerialUpdate
 from security import get_current_user, check_permission
 from database import get_session
 from audit_utils import log_activity
@@ -694,3 +694,45 @@ async def delete_evidencia(
     await session.commit()
     
     return {"message": f"Se ha eliminado la importación y sus {len(perfiles)} perfiles asociados."}
+
+@router.put("/{orden}/serial_mdp", response_model=PerfilEspecialResponse)
+async def update_serial_mdp(
+    orden: int,
+    payload: SerialUpdate,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Actualiza el Serial MDP de un perfil y cambia su estado a 'Emitido' (5).
+    Solo para administradores y sysadmins.
+    """
+    if current_user.get("role") not in ["admin", "sysadmin"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tiene permisos para modificar el serial.")
+
+    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.orden == orden))
+    perfil = result.scalar_one_or_none()
+    
+    if not perfil:
+        raise HTTPException(status_code=404, detail="Perfil no encontrado")
+        
+    perfil.serial_mdp = payload.serial_mdp
+    perfil.id_estado_solicitud = 5 # Emitido
+    perfil.fecha_emision = datetime.now()
+    
+    await session.commit()
+    await session.refresh(perfil)
+    
+    # Pre-cargar relaciones para la respuesta
+    res_tipo = await session.execute(select(TipoPerfilEspecial).where(TipoPerfilEspecial.id_tipo_especial == perfil.id_tipo_perfil))
+    perfil.tipo_perfil = res_tipo.scalar_one_or_none()
+    
+    res_usu_carga = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_carga))
+    perfil.usuario_carga = res_usu_carga.scalar_one_or_none()
+    
+    res_usu_verif = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_verif))
+    perfil.usuario_verif = res_usu_verif.scalar_one_or_none()
+    
+    res_estado = await session.execute(select(EstadoSolicitudPerfil).where(EstadoSolicitudPerfil.id_estado == perfil.id_estado_solicitud))
+    perfil.estado_solicitud = res_estado.scalar_one_or_none()
+    
+    return perfil
