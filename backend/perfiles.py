@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_
+from sqlalchemy import or_, cast, String
 from typing import List, Optional
 import pandas as pd
 import io
@@ -58,8 +58,8 @@ async def get_perfiles(
         search_term = f"%{q}%"
         query = query.where(
             or_(
-                PerfilEspecial.cedula_identidad.ilike(search_term),
-                PerfilEspecial.nombre_apellido.ilike(search_term)
+                cast(PerfilEspecial.cedula_identidad, String).ilike(search_term),
+                cast(PerfilEspecial.nombre_apellido, String).ilike(search_term)
             )
         )
     elif documento: # Por compatibilidad
