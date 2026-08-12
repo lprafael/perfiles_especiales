@@ -283,8 +283,13 @@ const ConsultaPerfiles = ({ user }) => {
                             <input 
                               type="text" 
                               value={serialValue} 
-                              onChange={e => setSerialValue(e.target.value)} 
+                              onChange={e => setSerialValue(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') handleSaveSerial(p.orden);
+                                if (e.key === 'Escape') setEditingSerial(null);
+                              }}
                               style={{ width: '80px', padding: '2px' }}
+                              autoFocus
                             />
                             <button onClick={() => handleSaveSerial(p.orden)} style={{ padding: '2px 4px', cursor: 'pointer' }} title="Guardar">💾</button>
                             <button onClick={() => setEditingSerial(null)} style={{ padding: '2px 4px', cursor: 'pointer' }} title="Cancelar">❌</button>
