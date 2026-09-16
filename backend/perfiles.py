@@ -167,61 +167,102 @@ async def verify_perfiles(
             
     df = df.fillna("")
     
-    res_user = await session.execute(select(Usuario).where(Usuario.id == current_user["user_id"]))
-    user = res_user.scalar_one_or_none()
-    
-    rejected_rows = []
-    seen_docs = set()
-    
-    for index, row in df.iterrows():
-        doc = str(row["documento"]).strip().upper()
-        if not doc:
-            row["motivo_rechazo"] = "Documento vacío"
-            rejected_rows.append(row)
-            continue
+    try:
+        user = None
+        user_id = current_user.get("user_id")
+        if user_id:
+            res_user = await session.execute(select(Usuario).where(Usuario.id == user_id))
+            user = res_user.scalars().first()
+        if not user and current_user.get("sub"):
+            res_user = await session.execute(select(Usuario).where(Usuario.username == current_user.get("sub")))
+            user = res_user.scalars().first()
             
-        if doc in seen_docs:
-            row["motivo_rechazo"] = "Documento duplicado en el mismo archivo"
-            rejected_rows.append(row)
-            continue
-        seen_docs.add(doc)
-            
-        try:
-            tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
-        except ValueError:
-            row["motivo_rechazo"] = "Tipo de perfil inválido o no numérico"
-            rejected_rows.append(row)
-            continue
+        is_admin = current_user.get("role") in ["admin", "sysadmin"]
         
-        if user and user.id_organismo == 2:
-            tipo_perfil_final = 3
-        elif user and user.id_organismo == 3:
-            if tipo_perfil_final not in [4, 5]:
-                row["motivo_rechazo"] = "Tipo de perfil no permitido para su organismo (solo 4 o 5)"
-                rejected_rows.append(row)
+        # Extraer y normalizar documentos para consulta en bloque
+        docs_to_check = []
+        for _, row in df.iterrows():
+            d = str(row["documento"]).strip()
+            if d.endswith(".0"):
+                d = d[:-2]
+            d = d.upper()
+            if d:
+                docs_to_check.append(d)
+                
+        existing_docs = set()
+        if docs_to_check:
+            chunk_size = 1000
+            for i in range(0, len(docs_to_check), chunk_size):
+                chunk = docs_to_check[i:i + chunk_size]
+                res_dup = await session.execute(
+                    select(PerfilEspecial.cedula_identidad).where(PerfilEspecial.cedula_identidad.in_(chunk))
+                )
+                for c in res_dup.scalars().all():
+                    if c:
+                        existing_docs.add(str(c).strip().upper())
+                        
+        rejected_rows = []
+        seen_docs = set()
+        
+        for index, row in df.iterrows():
+            row_dict = row.to_dict()
+            doc = str(row["documento"]).strip()
+            if doc.endswith(".0"):
+                doc = doc[:-2]
+            doc = doc.upper()
+            row_dict["documento"] = doc
+            
+            if not doc:
+                row_dict["motivo_rechazo"] = "Documento vacío"
+                rejected_rows.append(row_dict)
                 continue
                 
-        res_dup = await session.execute(select(PerfilEspecial).where(PerfilEspecial.cedula_identidad == doc))
-        dup = res_dup.scalar_one_or_none()
-        
-        if dup:
-            row["motivo_rechazo"] = "Documento duplicado"
-            rejected_rows.append(row)
+            if doc in seen_docs:
+                row_dict["motivo_rechazo"] = "Documento duplicado en el mismo archivo"
+                rejected_rows.append(row_dict)
+                continue
+            seen_docs.add(doc)
+                
+            try:
+                tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
+            except ValueError:
+                row_dict["motivo_rechazo"] = "Tipo de perfil inválido o no numérico"
+                rejected_rows.append(row_dict)
+                continue
             
-    if rejected_rows:
-        rejected_df = pd.DataFrame(rejected_rows)
-        stream = io.BytesIO()
-        with pd.ExcelWriter(stream, engine='openpyxl') as writer:
-            rejected_df.to_excel(writer, index=False)
-        stream.seek(0)
-        
-        return StreamingResponse(
-            stream,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": "attachment; filename=rechazados.xlsx"}
-        )
-        
-    return {"message": "El archivo es válido. No se encontraron errores ni duplicados."}
+            if not is_admin:
+                if user and user.id_organismo == 2:
+                    tipo_perfil_final = 3
+                elif user and user.id_organismo == 3:
+                    if tipo_perfil_final not in [4, 5]:
+                        row_dict["motivo_rechazo"] = "Tipo de perfil no permitido para su organismo (solo 4 o 5)"
+                        rejected_rows.append(row_dict)
+                        continue
+                        
+            if doc in existing_docs:
+                row_dict["motivo_rechazo"] = "Documento duplicado"
+                rejected_rows.append(row_dict)
+                
+        if rejected_rows:
+            rejected_df = pd.DataFrame(rejected_rows)
+            stream = io.BytesIO()
+            with pd.ExcelWriter(stream, engine='openpyxl') as writer:
+                rejected_df.to_excel(writer, index=False)
+            stream.seek(0)
+            
+            return StreamingResponse(
+                stream,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": "attachment; filename=rechazados.xlsx"}
+            )
+            
+        return {"message": "El archivo es válido. No se encontraron errores ni duplicados."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al verificar perfiles: {str(e)}")
 
 @router.post("/import")
 async def import_perfiles(
@@ -238,11 +279,24 @@ async def import_perfiles(
     except Exception as e:
         raise HTTPException(status_code=400, detail="El archivo no es un Excel válido")
         
+    user = None
+    user_id = current_user.get("user_id")
+    if user_id:
+        res_user = await session.execute(select(Usuario).where(Usuario.id == user_id))
+        user = res_user.scalars().first()
+    if not user and current_user.get("sub"):
+        res_user = await session.execute(select(Usuario).where(Usuario.username == current_user.get("sub")))
+        user = res_user.scalars().first()
+        if user:
+            user_id = user.id
+            
+    final_user_id = user_id or (user.id if user else 1)
+        
     try:
         evidencia = EvidenciaImportacion(
             nombre_archivo=file.filename,
             archivo_binario=content,
-            id_usuario=current_user["user_id"],
+            id_usuario=final_user_id,
             ip_origen=request.client.host if request.client else None
         )
         session.add(evidencia)
@@ -260,48 +314,73 @@ async def import_perfiles(
     df = df.fillna("")
     
     try:
-        res_user = await session.execute(select(Usuario).where(Usuario.id == current_user["user_id"]))
-        user = res_user.scalar_one_or_none()
+        is_admin = current_user.get("role") in ["admin", "sysadmin"]
         
+        # Extraer y normalizar documentos para consulta en bloque
+        docs_to_check = []
+        for _, row in df.iterrows():
+            d = str(row["documento"]).strip()
+            if d.endswith(".0"):
+                d = d[:-2]
+            d = d.upper()
+            if d:
+                docs_to_check.append(d)
+                
+        existing_docs = set()
+        if docs_to_check:
+            chunk_size = 1000
+            for i in range(0, len(docs_to_check), chunk_size):
+                chunk = docs_to_check[i:i + chunk_size]
+                res_dup = await session.execute(
+                    select(PerfilEspecial.cedula_identidad).where(PerfilEspecial.cedula_identidad.in_(chunk))
+                )
+                for c in res_dup.scalars().all():
+                    if c:
+                        existing_docs.add(str(c).strip().upper())
+                        
         rejected_rows = []
         seen_docs = set()
         added_count = 0
         local_time = datetime.now()
         
         for index, row in df.iterrows():
-            doc = str(row["documento"]).strip().upper()
+            row_dict = row.to_dict()
+            doc = str(row["documento"]).strip()
+            if doc.endswith(".0"):
+                doc = doc[:-2]
+            doc = doc.upper()
+            row_dict["documento"] = doc
+            
             if not doc:
-                row["motivo_rechazo"] = "Documento vacío"
-                rejected_rows.append(row)
+                row_dict["motivo_rechazo"] = "Documento vacío"
+                rejected_rows.append(row_dict)
                 continue
                 
             if doc in seen_docs:
-                row["motivo_rechazo"] = "Documento duplicado en el mismo archivo"
-                rejected_rows.append(row)
+                row_dict["motivo_rechazo"] = "Documento duplicado en el mismo archivo"
+                rejected_rows.append(row_dict)
                 continue
             seen_docs.add(doc)
                 
             try:
                 tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
             except ValueError:
-                row["motivo_rechazo"] = "Tipo de perfil inválido o no numérico"
-                rejected_rows.append(row)
+                row_dict["motivo_rechazo"] = "Tipo de perfil inválido o no numérico"
+                rejected_rows.append(row_dict)
                 continue
             
-            if user and user.id_organismo == 2:
-                tipo_perfil_final = 3
-            elif user and user.id_organismo == 3:
-                if tipo_perfil_final not in [4, 5]:
-                    row["motivo_rechazo"] = "Tipo de perfil no permitido para su organismo (solo 4 o 5)"
-                    rejected_rows.append(row)
-                    continue
-                    
-            res_dup = await session.execute(select(PerfilEspecial).where(PerfilEspecial.cedula_identidad == doc))
-            dup = res_dup.scalar_one_or_none()
-            
-            if dup:
-                row["motivo_rechazo"] = "Documento duplicado"
-                rejected_rows.append(row)
+            if not is_admin:
+                if user and user.id_organismo == 2:
+                    tipo_perfil_final = 3
+                elif user and user.id_organismo == 3:
+                    if tipo_perfil_final not in [4, 5]:
+                        row_dict["motivo_rechazo"] = "Tipo de perfil no permitido para su organismo (solo 4 o 5)"
+                        rejected_rows.append(row_dict)
+                        continue
+                        
+            if doc in existing_docs:
+                row_dict["motivo_rechazo"] = "Documento duplicado"
+                rejected_rows.append(row_dict)
             else:
                 lote_val = str(row["lote"]).strip().upper()
                 lote_final = lote_val if lote_val and lote_val != "NAN" else None
@@ -313,7 +392,7 @@ async def import_perfiles(
                     Lote=lote_final,
                     id_estado_solicitud=1,
                     fecha_solicitud=local_time,
-                    id_usuario_carga=current_user["user_id"],
+                    id_usuario_carga=final_user_id,
                     ip_origen=request.client.host if request.client else None,
                     user_agent=request.headers.get("user-agent"),
                     device_id=device_id,
@@ -321,6 +400,7 @@ async def import_perfiles(
                 )
                 session.add(nuevo)
                 added_count += 1
+                existing_docs.add(doc)
                 
         await session.commit()
     except Exception as e:

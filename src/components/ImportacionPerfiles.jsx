@@ -109,13 +109,24 @@ const ImportacionPerfiles = ({ user }) => {
           }
         }
       } else {
-        const errorData = await res.json();
-        alert(`Error: ${errorData.detail || 'al procesar archivo'}`);
-        setStatusMsg("Ocurrió un error al procesar el archivo.");
+        let errorMsg = 'Ocurrió un error al procesar el archivo.';
+        try {
+          const errorData = await res.json();
+          errorMsg = errorData.detail || errorMsg;
+        } catch (_) {
+          try {
+            const rawText = await res.text();
+            errorMsg = rawText || `Error en el servidor (${res.status})`;
+          } catch (__) {
+            errorMsg = `Error en el servidor (${res.status})`;
+          }
+        }
+        alert(`Error: ${errorMsg}`);
+        setStatusMsg(`Error: ${errorMsg}`);
       }
     } catch (err) {
       console.error(err);
-      alert("Error de conexión");
+      alert(`Error de conexión o procesamiento: ${err.message || 'Error inesperado'}`);
       setStatusMsg("Error de conexión con el servidor.");
     }
     
@@ -169,11 +180,21 @@ const ImportacionPerfiles = ({ user }) => {
                     setTemplateMsg("Plantilla subida exitosamente.");
                     setTemplateFile(null);
                   } else {
-                    const data = await res.json();
-                    setTemplateMsg(`Error: ${data.detail || 'al subir'}`);
+                    let errDetail = 'Error al subir';
+                    try {
+                      const data = await res.json();
+                      errDetail = data.detail || errDetail;
+                    } catch (_) {
+                      try {
+                        errDetail = (await res.text()) || `Error ${res.status}`;
+                      } catch (__) {
+                        errDetail = `Error ${res.status}`;
+                      }
+                    }
+                    setTemplateMsg(`Error: ${errDetail}`);
                   }
                 } catch (err) {
-                  setTemplateMsg("Error de conexión");
+                  setTemplateMsg("Error de conexión con el servidor");
                 }
                 setLoadingTemplate(false);
               }}
