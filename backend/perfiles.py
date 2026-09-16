@@ -147,6 +147,32 @@ async def delete_template(current_user: dict = Depends(get_current_user)):
     else:
         return {"message": "No hay una plantilla personalizada para eliminar"}
 
+def format_duplicado_observacion(prev: dict, tipos_dict: dict, estados_dict: dict) -> str:
+    tipo_raw = tipos_dict.get(prev.get("id_tipo_perfil"))
+    if tipo_raw:
+        tipo_str = str(tipo_raw).strip()
+        tipo_nombre = tipo_str if tipo_str.lower().startswith("perfil") else f"Perfil {tipo_str}"
+    else:
+        tipo_nombre = f"Perfil {prev.get('id_tipo_perfil')}" if prev.get("id_tipo_perfil") else "Perfil Especial"
+        
+    lote_raw = prev.get("lote")
+    if lote_raw is not None and str(lote_raw).strip() and str(lote_raw).strip().upper() not in ["NAN", "NONE"]:
+        lote_clean = str(lote_raw).strip()
+        if lote_clean.lower().startswith("lote"):
+            lote_txt = f" en el {lote_clean},"
+        else:
+            lote_txt = f" en el Lote {lote_clean},"
+    else:
+        lote_txt = " en el Lote [no registrado],"
+        
+    fecha_val = prev.get("fecha_solicitud")
+    fecha_str = fecha_val.strftime("%d/%m/%Y") if fecha_val else "[fecha no registrada]"
+    
+    estado_nombre = estados_dict.get(prev.get("id_estado_solicitud"))
+    estado_txt = f" con estado '{estado_nombre}'" if estado_nombre else ""
+    
+    return f"Ya cuenta con {tipo_nombre} solicitado{lote_txt} en fecha {fecha_str}{estado_txt}"
+
 @router.post("/verify")
 async def verify_perfiles(
     file: UploadFile = File(...),
@@ -206,19 +232,21 @@ async def verify_perfiles(
                         PerfilEspecial.cedula_identidad,
                         PerfilEspecial.id_tipo_perfil,
                         PerfilEspecial.fecha_solicitud,
-                        PerfilEspecial.id_estado_solicitud
+                        PerfilEspecial.id_estado_solicitud,
+                        PerfilEspecial.Lote
                     )
                     .where(PerfilEspecial.cedula_identidad.in_(chunk))
                     .order_by(PerfilEspecial.fecha_solicitud.desc().nulls_last())
                 )
-                for c_doc, c_tipo, c_fecha, c_estado in res_dup.all():
+                for c_doc, c_tipo, c_fecha, c_estado, c_lote in res_dup.all():
                     if c_doc:
                         c_doc_str = str(c_doc).strip().upper()
                         if c_doc_str not in existing_profiles:
                             existing_profiles[c_doc_str] = {
                                 "id_tipo_perfil": c_tipo,
                                 "fecha_solicitud": c_fecha,
-                                "id_estado_solicitud": c_estado
+                                "id_estado_solicitud": c_estado,
+                                "lote": c_lote
                             }
                         
         rejected_rows = []
@@ -265,14 +293,8 @@ async def verify_perfiles(
                         
             if doc in existing_profiles:
                 prev = existing_profiles[doc]
-                tipo_nombre = tipos_dict.get(prev["id_tipo_perfil"]) or (f"Perfil {prev['id_tipo_perfil']}" if prev.get("id_tipo_perfil") else "Perfil Especial")
-                fecha_val = prev.get("fecha_solicitud")
-                fecha_str = fecha_val.strftime("%d/%m/%Y") if fecha_val else "fecha no registrada"
-                estado_nombre = estados_dict.get(prev.get("id_estado_solicitud"))
-                estado_txt = f" con estado '{estado_nombre}'" if estado_nombre else ""
-                
                 row_dict["motivo_rechazo"] = "Documento duplicado"
-                row_dict["observacion"] = f"Ya cuenta con {tipo_nombre} solicitado en fecha {fecha_str}{estado_txt}"
+                row_dict["observacion"] = format_duplicado_observacion(prev, tipos_dict, estados_dict)
                 rejected_rows.append(row_dict)
                 
         if rejected_rows:
@@ -375,19 +397,21 @@ async def import_perfiles(
                         PerfilEspecial.cedula_identidad,
                         PerfilEspecial.id_tipo_perfil,
                         PerfilEspecial.fecha_solicitud,
-                        PerfilEspecial.id_estado_solicitud
+                        PerfilEspecial.id_estado_solicitud,
+                        PerfilEspecial.Lote
                     )
                     .where(PerfilEspecial.cedula_identidad.in_(chunk))
                     .order_by(PerfilEspecial.fecha_solicitud.desc().nulls_last())
                 )
-                for c_doc, c_tipo, c_fecha, c_estado in res_dup.all():
+                for c_doc, c_tipo, c_fecha, c_estado, c_lote in res_dup.all():
                     if c_doc:
                         c_doc_str = str(c_doc).strip().upper()
                         if c_doc_str not in existing_profiles:
                             existing_profiles[c_doc_str] = {
                                 "id_tipo_perfil": c_tipo,
                                 "fecha_solicitud": c_fecha,
-                                "id_estado_solicitud": c_estado
+                                "id_estado_solicitud": c_estado,
+                                "lote": c_lote
                             }
                         
         rejected_rows = []
@@ -436,14 +460,8 @@ async def import_perfiles(
                         
             if doc in existing_profiles:
                 prev = existing_profiles[doc]
-                tipo_nombre = tipos_dict.get(prev["id_tipo_perfil"]) or (f"Perfil {prev['id_tipo_perfil']}" if prev.get("id_tipo_perfil") else "Perfil Especial")
-                fecha_val = prev.get("fecha_solicitud")
-                fecha_str = fecha_val.strftime("%d/%m/%Y") if fecha_val else "fecha no registrada"
-                estado_nombre = estados_dict.get(prev.get("id_estado_solicitud"))
-                estado_txt = f" con estado '{estado_nombre}'" if estado_nombre else ""
-                
                 row_dict["motivo_rechazo"] = "Documento duplicado"
-                row_dict["observacion"] = f"Ya cuenta con {tipo_nombre} solicitado en fecha {fecha_str}{estado_txt}"
+                row_dict["observacion"] = format_duplicado_observacion(prev, tipos_dict, estados_dict)
                 rejected_rows.append(row_dict)
             else:
                 lote_val = str(row["lote"]).strip().upper()
@@ -467,7 +485,8 @@ async def import_perfiles(
                 existing_profiles[doc] = {
                     "id_tipo_perfil": tipo_perfil_final,
                     "fecha_solicitud": local_time,
-                    "id_estado_solicitud": 1
+                    "id_estado_solicitud": 1,
+                    "lote": lote_final
                 }
                 
         await session.commit()
