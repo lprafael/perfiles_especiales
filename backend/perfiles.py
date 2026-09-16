@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_, cast, String
+from sqlalchemy import or_, cast, String, nulls_last
 from typing import List, Optional
 import pandas as pd
 import io
@@ -179,6 +179,13 @@ async def verify_perfiles(
             
         is_admin = current_user.get("role") in ["admin", "sysadmin"]
         
+        # Mapear nombres de tipos de perfil y estados para la observación
+        res_tipos = await session.execute(select(TipoPerfilEspecial))
+        tipos_dict = {t.id_tipo_especial: t.tipo_especial for t in res_tipos.scalars().all()}
+        
+        res_estados = await session.execute(select(EstadoSolicitudPerfil))
+        estados_dict = {e.id_estado: e.descripcion for e in res_estados.scalars().all()}
+        
         # Extraer y normalizar documentos para consulta en bloque
         docs_to_check = []
         for _, row in df.iterrows():
@@ -189,17 +196,30 @@ async def verify_perfiles(
             if d:
                 docs_to_check.append(d)
                 
-        existing_docs = set()
+        existing_profiles = {}
         if docs_to_check:
             chunk_size = 1000
             for i in range(0, len(docs_to_check), chunk_size):
                 chunk = docs_to_check[i:i + chunk_size]
                 res_dup = await session.execute(
-                    select(PerfilEspecial.cedula_identidad).where(PerfilEspecial.cedula_identidad.in_(chunk))
+                    select(
+                        PerfilEspecial.cedula_identidad,
+                        PerfilEspecial.id_tipo_perfil,
+                        PerfilEspecial.fecha_solicitud,
+                        PerfilEspecial.id_estado_solicitud
+                    )
+                    .where(PerfilEspecial.cedula_identidad.in_(chunk))
+                    .order_by(PerfilEspecial.fecha_solicitud.desc().nulls_last())
                 )
-                for c in res_dup.scalars().all():
-                    if c:
-                        existing_docs.add(str(c).strip().upper())
+                for c_doc, c_tipo, c_fecha, c_estado in res_dup.all():
+                    if c_doc:
+                        c_doc_str = str(c_doc).strip().upper()
+                        if c_doc_str not in existing_profiles:
+                            existing_profiles[c_doc_str] = {
+                                "id_tipo_perfil": c_tipo,
+                                "fecha_solicitud": c_fecha,
+                                "id_estado_solicitud": c_estado
+                            }
                         
         rejected_rows = []
         seen_docs = set()
@@ -214,11 +234,13 @@ async def verify_perfiles(
             
             if not doc:
                 row_dict["motivo_rechazo"] = "Documento vacío"
+                row_dict["observacion"] = "La fila no contiene un número de documento válido"
                 rejected_rows.append(row_dict)
                 continue
                 
             if doc in seen_docs:
                 row_dict["motivo_rechazo"] = "Documento duplicado en el mismo archivo"
+                row_dict["observacion"] = "El número de documento ya fue listado en una fila anterior de esta misma planilla"
                 rejected_rows.append(row_dict)
                 continue
             seen_docs.add(doc)
@@ -227,6 +249,7 @@ async def verify_perfiles(
                 tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
             except ValueError:
                 row_dict["motivo_rechazo"] = "Tipo de perfil inválido o no numérico"
+                row_dict["observacion"] = f"El valor '{row.get('id_tipo_perfil')}' no es un identificador numérico de perfil válido"
                 rejected_rows.append(row_dict)
                 continue
             
@@ -236,11 +259,20 @@ async def verify_perfiles(
                 elif user and user.id_organismo == 3:
                     if tipo_perfil_final not in [4, 5]:
                         row_dict["motivo_rechazo"] = "Tipo de perfil no permitido para su organismo (solo 4 o 5)"
+                        row_dict["observacion"] = f"El tipo de perfil {tipo_perfil_final} no está autorizado para su organismo (solo se permiten tipos 4 o 5)"
                         rejected_rows.append(row_dict)
                         continue
                         
-            if doc in existing_docs:
+            if doc in existing_profiles:
+                prev = existing_profiles[doc]
+                tipo_nombre = tipos_dict.get(prev["id_tipo_perfil"]) or (f"Perfil {prev['id_tipo_perfil']}" if prev.get("id_tipo_perfil") else "Perfil Especial")
+                fecha_val = prev.get("fecha_solicitud")
+                fecha_str = fecha_val.strftime("%d/%m/%Y") if fecha_val else "fecha no registrada"
+                estado_nombre = estados_dict.get(prev.get("id_estado_solicitud"))
+                estado_txt = f" con estado '{estado_nombre}'" if estado_nombre else ""
+                
                 row_dict["motivo_rechazo"] = "Documento duplicado"
+                row_dict["observacion"] = f"Ya cuenta con {tipo_nombre} solicitado en fecha {fecha_str}{estado_txt}"
                 rejected_rows.append(row_dict)
                 
         if rejected_rows:
@@ -316,6 +348,13 @@ async def import_perfiles(
     try:
         is_admin = current_user.get("role") in ["admin", "sysadmin"]
         
+        # Mapear nombres de tipos de perfil y estados para la observación
+        res_tipos = await session.execute(select(TipoPerfilEspecial))
+        tipos_dict = {t.id_tipo_especial: t.tipo_especial for t in res_tipos.scalars().all()}
+        
+        res_estados = await session.execute(select(EstadoSolicitudPerfil))
+        estados_dict = {e.id_estado: e.descripcion for e in res_estados.scalars().all()}
+        
         # Extraer y normalizar documentos para consulta en bloque
         docs_to_check = []
         for _, row in df.iterrows():
@@ -326,17 +365,30 @@ async def import_perfiles(
             if d:
                 docs_to_check.append(d)
                 
-        existing_docs = set()
+        existing_profiles = {}
         if docs_to_check:
             chunk_size = 1000
             for i in range(0, len(docs_to_check), chunk_size):
                 chunk = docs_to_check[i:i + chunk_size]
                 res_dup = await session.execute(
-                    select(PerfilEspecial.cedula_identidad).where(PerfilEspecial.cedula_identidad.in_(chunk))
+                    select(
+                        PerfilEspecial.cedula_identidad,
+                        PerfilEspecial.id_tipo_perfil,
+                        PerfilEspecial.fecha_solicitud,
+                        PerfilEspecial.id_estado_solicitud
+                    )
+                    .where(PerfilEspecial.cedula_identidad.in_(chunk))
+                    .order_by(PerfilEspecial.fecha_solicitud.desc().nulls_last())
                 )
-                for c in res_dup.scalars().all():
-                    if c:
-                        existing_docs.add(str(c).strip().upper())
+                for c_doc, c_tipo, c_fecha, c_estado in res_dup.all():
+                    if c_doc:
+                        c_doc_str = str(c_doc).strip().upper()
+                        if c_doc_str not in existing_profiles:
+                            existing_profiles[c_doc_str] = {
+                                "id_tipo_perfil": c_tipo,
+                                "fecha_solicitud": c_fecha,
+                                "id_estado_solicitud": c_estado
+                            }
                         
         rejected_rows = []
         seen_docs = set()
@@ -353,11 +405,13 @@ async def import_perfiles(
             
             if not doc:
                 row_dict["motivo_rechazo"] = "Documento vacío"
+                row_dict["observacion"] = "La fila no contiene un número de documento válido"
                 rejected_rows.append(row_dict)
                 continue
                 
             if doc in seen_docs:
                 row_dict["motivo_rechazo"] = "Documento duplicado en el mismo archivo"
+                row_dict["observacion"] = "El número de documento ya fue listado en una fila anterior de esta misma planilla"
                 rejected_rows.append(row_dict)
                 continue
             seen_docs.add(doc)
@@ -366,6 +420,7 @@ async def import_perfiles(
                 tipo_perfil_final = int(float(str(row["id_tipo_perfil"]).strip()))
             except ValueError:
                 row_dict["motivo_rechazo"] = "Tipo de perfil inválido o no numérico"
+                row_dict["observacion"] = f"El valor '{row.get('id_tipo_perfil')}' no es un identificador numérico de perfil válido"
                 rejected_rows.append(row_dict)
                 continue
             
@@ -375,11 +430,20 @@ async def import_perfiles(
                 elif user and user.id_organismo == 3:
                     if tipo_perfil_final not in [4, 5]:
                         row_dict["motivo_rechazo"] = "Tipo de perfil no permitido para su organismo (solo 4 o 5)"
+                        row_dict["observacion"] = f"El tipo de perfil {tipo_perfil_final} no está autorizado para su organismo (solo se permiten tipos 4 o 5)"
                         rejected_rows.append(row_dict)
                         continue
                         
-            if doc in existing_docs:
+            if doc in existing_profiles:
+                prev = existing_profiles[doc]
+                tipo_nombre = tipos_dict.get(prev["id_tipo_perfil"]) or (f"Perfil {prev['id_tipo_perfil']}" if prev.get("id_tipo_perfil") else "Perfil Especial")
+                fecha_val = prev.get("fecha_solicitud")
+                fecha_str = fecha_val.strftime("%d/%m/%Y") if fecha_val else "fecha no registrada"
+                estado_nombre = estados_dict.get(prev.get("id_estado_solicitud"))
+                estado_txt = f" con estado '{estado_nombre}'" if estado_nombre else ""
+                
                 row_dict["motivo_rechazo"] = "Documento duplicado"
+                row_dict["observacion"] = f"Ya cuenta con {tipo_nombre} solicitado en fecha {fecha_str}{estado_txt}"
                 rejected_rows.append(row_dict)
             else:
                 lote_val = str(row["lote"]).strip().upper()
@@ -400,7 +464,11 @@ async def import_perfiles(
                 )
                 session.add(nuevo)
                 added_count += 1
-                existing_docs.add(doc)
+                existing_profiles[doc] = {
+                    "id_tipo_perfil": tipo_perfil_final,
+                    "fecha_solicitud": local_time,
+                    "id_estado_solicitud": 1
+                }
                 
         await session.commit()
     except Exception as e:
