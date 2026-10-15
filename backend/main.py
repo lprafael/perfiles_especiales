@@ -21,6 +21,16 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": f"Error interno en el servidor: {str(exc)}"}
     )
 
+@app.on_event("startup")
+async def on_startup():
+    try:
+        from migrate_db import migrate
+        print("Verificando migraciones de base de datos...")
+        await migrate()
+        print("Migraciones verificadas con éxito.")
+    except Exception as e:
+        print(f"Error ejecutando migraciones al inicio: {e}")
+
 # Incluir router de autenticación
 app.include_router(auth.router)
 app.include_router(perfiles.router)

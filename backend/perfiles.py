@@ -87,14 +87,19 @@ async def get_perfiles(
     perfiles_ordens = [p.orden for p in perfiles]
     obs_map = {orden: [] for orden in perfiles_ordens}
     if perfiles_ordens:
-        res_obs = await session.execute(
-            select(PerfilObservacion)
-            .where(PerfilObservacion.orden.in_(perfiles_ordens))
-            .order_by(PerfilObservacion.fecha_creacion.desc())
-        )
-        for obs in res_obs.scalars().all():
-            obs.usuario = usuarios_dict.get(obs.id_usuario)
-            obs_map[obs.orden].append(obs)
+        try:
+            res_obs = await session.execute(
+                select(PerfilObservacion)
+                .where(PerfilObservacion.orden.in_(perfiles_ordens))
+                .order_by(PerfilObservacion.fecha_creacion.desc())
+            )
+            for obs in res_obs.scalars().all():
+                obs.usuario = usuarios_dict.get(obs.id_usuario)
+                obs_map[obs.orden].append(obs)
+        except Exception as e:
+            # En caso de que la tabla aún no haya sido migrada en el servidor de producción
+            print(f"Advertencia: no se pudieron cargar las observaciones: {e}")
+            obs_map = {orden: [] for orden in perfiles_ordens}
     
     # Asignar relaciones
     for p in perfiles:
