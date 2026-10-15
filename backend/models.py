@@ -777,7 +777,7 @@ class PerfilEspecial(Base):
     usuario_verif = relationship("Usuario", foreign_keys=[id_usuario_verif])
     usuario_aprob = relationship("Usuario", foreign_keys=[id_usuario_aprob])
     evidencia = relationship("EvidenciaImportacion", backref="perfiles_importados")
-    observaciones = relationship("PerfilObservacion", back_populates="perfil", order_by="PerfilObservacion.fecha_creacion.desc()")
+    observaciones = relationship("PerfilObservacion", back_populates="perfil", lazy="noload")
 
 class PerfilObservacion(Base):
     __tablename__ = "perfiles_observaciones"
