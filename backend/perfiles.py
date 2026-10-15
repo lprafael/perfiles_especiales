@@ -932,12 +932,16 @@ async def get_observaciones_perfil(
     """
     Obtiene todas las observaciones de una tarjeta/perfil ordenadas de más reciente a más antigua.
     """
-    result = await session.execute(
-        select(PerfilObservacion)
-        .where(PerfilObservacion.orden == orden)
-        .order_by(PerfilObservacion.fecha_creacion.desc())
-    )
-    observaciones = result.scalars().all()
+    try:
+        result = await session.execute(
+            select(PerfilObservacion)
+            .where(PerfilObservacion.orden == orden)
+            .order_by(PerfilObservacion.fecha_creacion.desc())
+        )
+        observaciones = result.scalars().all()
+    except Exception as e:
+        print(f"Advertencia: no se pudo consultar observaciones: {e}")
+        return []
     
     # Pre-cargar usuario autor
     if observaciones:
@@ -977,7 +981,30 @@ async def create_observacion_perfil(
         fecha_creacion=datetime.now()
     )
     session.add(nueva_obs)
-    await session.commit()
+    try:
+        await session.commit()
+    except Exception as e:
+        await session.rollback()
+        # Si la tabla no existe en la base de datos, crearla automáticamente y reintentar
+        if "perfiles_observaciones" in str(e).lower() or "undefinedtable" in str(e).lower() or "does not exist" in str(e).lower():
+            from sqlalchemy import text
+            await session.execute(text("""
+                CREATE TABLE IF NOT EXISTS public.perfiles_observaciones (
+                    id_observacion SERIAL PRIMARY KEY,
+                    orden INTEGER NOT NULL REFERENCES public.perfiles_especiales(orden) ON DELETE CASCADE,
+                    observacion TEXT NOT NULL,
+                    fecha_creacion TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+                    id_usuario INTEGER NOT NULL REFERENCES sistema.usuarios(id),
+                    atendido BOOLEAN DEFAULT FALSE,
+                    resuelto BOOLEAN DEFAULT FALSE
+                );
+            """))
+            await session.commit()
+            session.add(nueva_obs)
+            await session.commit()
+        else:
+            raise e
+
     await session.refresh(nueva_obs)
     
     # Cargar datos del usuario creador
