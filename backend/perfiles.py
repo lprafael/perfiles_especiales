@@ -8,8 +8,8 @@ import io
 import math
 from datetime import datetime
 
-from models import PerfilEspecial, TipoPerfilEspecial, Usuario, EstadoSolicitudPerfil, EvidenciaImportacion
-from schemas import PerfilEspecialResponse, SerialUpdate
+from models import PerfilEspecial, TipoPerfilEspecial, Usuario, EstadoSolicitudPerfil, EvidenciaImportacion, PerfilObservacion
+from schemas import PerfilEspecialResponse, SerialUpdate, PerfilObservacionCreate, PerfilObservacionResponse, PerfilObservacionUpdate
 from security import get_current_user, check_permission
 from database import get_session
 from audit_utils import log_activity
@@ -82,13 +82,27 @@ async def get_perfiles(
     # Pre-cargar los estados en memoria
     res_estados = await session.execute(select(EstadoSolicitudPerfil))
     estados_dict = {e.id_estado: e for e in res_estados.scalars().all()}
+
+    # Pre-cargar observaciones de los perfiles consultados
+    perfiles_ordens = [p.orden for p in perfiles]
+    obs_map = {orden: [] for orden in perfiles_ordens}
+    if perfiles_ordens:
+        res_obs = await session.execute(
+            select(PerfilObservacion)
+            .where(PerfilObservacion.orden.in_(perfiles_ordens))
+            .order_by(PerfilObservacion.fecha_creacion.desc())
+        )
+        for obs in res_obs.scalars().all():
+            obs.usuario = usuarios_dict.get(obs.id_usuario)
+            obs_map[obs.orden].append(obs)
     
-    # Asignar la relación desde el diccionario
+    # Asignar relaciones
     for p in perfiles:
         p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
         p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
         p.usuario_verif = usuarios_dict.get(p.id_usuario_verif)
         p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
+        p.observaciones = obs_map.get(p.orden, [])
         
     return perfiles
 
@@ -903,3 +917,99 @@ async def update_serial_mdp(
     perfil.estado_solicitud = res_estado.scalar_one_or_none()
     
     return perfil
+
+@router.get("/{orden}/observaciones", response_model=List[PerfilObservacionResponse])
+async def get_observaciones_perfil(
+    orden: int,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Obtiene todas las observaciones de una tarjeta/perfil ordenadas de más reciente a más antigua.
+    """
+    result = await session.execute(
+        select(PerfilObservacion)
+        .where(PerfilObservacion.orden == orden)
+        .order_by(PerfilObservacion.fecha_creacion.desc())
+    )
+    observaciones = result.scalars().all()
+    
+    # Pre-cargar usuario autor
+    if observaciones:
+        user_ids = list({o.id_usuario for o in observaciones})
+        res_usuarios = await session.execute(select(Usuario).where(Usuario.id.in_(user_ids)))
+        usr_dict = {u.id: u for u in res_usuarios.scalars().all()}
+        for o in observaciones:
+            o.usuario = usr_dict.get(o.id_usuario)
+            
+    return observaciones
+
+@router.post("/{orden}/observaciones", response_model=PerfilObservacionResponse)
+async def create_observacion_perfil(
+    orden: int,
+    payload: PerfilObservacionCreate,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Carga una nueva observación para la tarjeta/perfil.
+    Registra automáticamente el usuario actual y la fecha de creación.
+    """
+    texto = payload.observacion.strip()
+    if not texto:
+        raise HTTPException(status_code=400, detail="La observación no puede estar vacía")
+
+    # Verificar que el perfil exista
+    res_perfil = await session.execute(select(PerfilEspecial).where(PerfilEspecial.orden == orden))
+    perfil = res_perfil.scalar_one_or_none()
+    if not perfil:
+        raise HTTPException(status_code=404, detail="Perfil no encontrado")
+
+    nueva_obs = PerfilObservacion(
+        orden=orden,
+        observacion=texto,
+        id_usuario=current_user["user_id"],
+        fecha_creacion=datetime.now()
+    )
+    session.add(nueva_obs)
+    await session.commit()
+    await session.refresh(nueva_obs)
+    
+    # Cargar datos del usuario creador
+    res_u = await session.execute(select(Usuario).where(Usuario.id == current_user["user_id"]))
+    nueva_obs.usuario = res_u.scalar_one_or_none()
+    
+    return nueva_obs
+
+@router.patch("/observaciones/{id_observacion}", response_model=PerfilObservacionResponse)
+async def update_observacion_status(
+    id_observacion: int,
+    payload: PerfilObservacionUpdate,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Actualiza el estado de una observación: atendido, resuelto o texto.
+    """
+    result = await session.execute(select(PerfilObservacion).where(PerfilObservacion.id_observacion == id_observacion))
+    obs = result.scalar_one_or_none()
+    if not obs:
+        raise HTTPException(status_code=404, detail="Observación no encontrada")
+
+    if payload.atendido is not None:
+        obs.atendido = payload.atendido
+    if payload.resuelto is not None:
+        obs.resuelto = payload.resuelto
+    if payload.observacion is not None and payload.observacion.strip():
+        obs.observacion = payload.observacion.strip()
+
+    await session.commit()
+    await session.refresh(obs)
+
+    res_u = await session.execute(select(Usuario).where(Usuario.id == obs.id_usuario))
+    obs.usuario = res_u.scalar_one_or_none()
+
+    return obs
+
+
+

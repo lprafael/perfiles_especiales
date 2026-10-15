@@ -1144,6 +1144,7 @@ class PerfilEspecialUpdate(BaseModel):
     id_estado_solicitud: Optional[int] = None
 
 class UsuarioCargaInfo(BaseModel):
+    id: Optional[int] = None
     nombre_completo: str
     class Config:
         from_attributes = True
@@ -1151,11 +1152,32 @@ class UsuarioCargaInfo(BaseModel):
 class SerialUpdate(BaseModel):
     serial_mdp: str
 
+class PerfilObservacionCreate(BaseModel):
+    observacion: str
+
+class PerfilObservacionUpdate(BaseModel):
+    atendido: Optional[bool] = None
+    resuelto: Optional[bool] = None
+    observacion: Optional[str] = None
+
+class PerfilObservacionResponse(BaseModel):
+    id_observacion: int
+    orden: int
+    observacion: str
+    fecha_creacion: datetime
+    id_usuario: int
+    atendido: bool = False
+    resuelto: bool = False
+    usuario: Optional[UsuarioCargaInfo] = None
+    class Config:
+        from_attributes = True
+
 class PerfilEspecialResponse(PerfilEspecialBase):
     orden: int
     tipo_perfil: Optional[TipoPerfilEspecialResponse] = None
     estado_solicitud: Optional[EstadoSolicitudResponse] = None
     usuario_carga: Optional[UsuarioCargaInfo] = None
     usuario_verif: Optional[UsuarioCargaInfo] = None
+    observaciones: List[PerfilObservacionResponse] = []
     class Config:
         from_attributes = True

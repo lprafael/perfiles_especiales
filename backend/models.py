@@ -777,3 +777,19 @@ class PerfilEspecial(Base):
     usuario_verif = relationship("Usuario", foreign_keys=[id_usuario_verif])
     usuario_aprob = relationship("Usuario", foreign_keys=[id_usuario_aprob])
     evidencia = relationship("EvidenciaImportacion", backref="perfiles_importados")
+    observaciones = relationship("PerfilObservacion", back_populates="perfil", order_by="PerfilObservacion.fecha_creacion.desc()")
+
+class PerfilObservacion(Base):
+    __tablename__ = "perfiles_observaciones"
+    __table_args__ = {"schema": "public"}
+    
+    id_observacion = Column(Integer, primary_key=True, autoincrement=True)
+    orden = Column(Integer, ForeignKey('public.perfiles_especiales.orden', ondelete='CASCADE'), nullable=False)
+    observacion = Column(Text, nullable=False)
+    fecha_creacion = Column(DateTime, default=func.now(), nullable=False)
+    id_usuario = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=False)
+    atendido = Column(Boolean, default=False, nullable=False)
+    resuelto = Column(Boolean, default=False, nullable=False)
+    
+    perfil = relationship("PerfilEspecial", back_populates="observaciones")
+    usuario = relationship("Usuario", foreign_keys=[id_usuario])

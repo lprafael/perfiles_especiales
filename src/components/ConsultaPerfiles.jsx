@@ -15,6 +15,110 @@ const ConsultaPerfiles = ({ user }) => {
   const [editingSerial, setEditingSerial] = useState(null);
   const [serialValue, setSerialValue] = useState("");
 
+  // Estados para Observaciones
+  const [selectedPerfilObs, setSelectedPerfilObs] = useState(null); // Perfil cuyo modal de observaciones está abierto
+  const [observacionesList, setObservacionesList] = useState([]);
+  const [loadingObs, setLoadingObs] = useState(false);
+  const [newObsText, setNewObsText] = useState("");
+  const [submittingObs, setSubmittingObs] = useState(false);
+
+  const openObservaciones = async (perfil) => {
+    setSelectedPerfilObs(perfil);
+    setNewObsText("");
+    setLoadingObs(true);
+    try {
+      const res = await fetch(`${API_BASE}/perfiles/${perfil.orden}/observaciones`, {
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setObservacionesList(data);
+      } else {
+        setObservacionesList(perfil.observaciones || []);
+      }
+    } catch (err) {
+      console.error(err);
+      setObservacionesList(perfil.observaciones || []);
+    }
+    setLoadingObs(false);
+  };
+
+  const handleAddObservacion = async (e) => {
+    e.preventDefault();
+    if (!newObsText.trim()) return;
+    setSubmittingObs(true);
+    try {
+      const res = await fetch(`${API_BASE}/perfiles/${selectedPerfilObs.orden}/observaciones`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ observacion: newObsText })
+      });
+      if (res.ok) {
+        const createdObs = await res.json();
+        const updatedList = [createdObs, ...observacionesList];
+        setObservacionesList(updatedList);
+        setNewObsText("");
+        
+        // Actualizar el perfil en el listado principal
+        setPerfiles(prev => prev.map(p => {
+          if (p.orden === selectedPerfilObs.orden) {
+            return {
+              ...p,
+              observaciones: [createdObs, ...(p.observaciones || [])]
+            };
+          }
+          return p;
+        }));
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.detail || 'Error al guardar observación');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión al guardar la observación');
+    }
+    setSubmittingObs(false);
+  };
+
+  const handleToggleObsStatus = async (obsId, field, currentValue) => {
+    try {
+      const res = await fetch(`${API_BASE}/perfiles/observaciones/${obsId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ [field]: !currentValue })
+      });
+      if (res.ok) {
+        const updatedObs = await res.json();
+        // Actualizar en la lista del modal
+        setObservacionesList(prev => prev.map(o => o.id_observacion === obsId ? updatedObs : o));
+        
+        // Actualizar en el estado de perfiles principal
+        setPerfiles(prev => prev.map(p => {
+          if (p.orden === updatedObs.orden) {
+            return {
+              ...p,
+              observaciones: (p.observaciones || []).map(o => o.id_observacion === obsId ? updatedObs : o)
+            };
+          }
+          return p;
+        }));
+      } else {
+        alert('Error al actualizar el estado de la observación');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión');
+    }
+  };
+
   const handleSaveSerial = async (orden) => {
     try {
       const res = await fetch(`${API_BASE}/perfiles/${orden}/serial_mdp`, {
@@ -48,7 +152,8 @@ const ConsultaPerfiles = ({ user }) => {
     Lote: '',
     serial_mdp: '',
     estado: '',
-    usuario_carga: ''
+    usuario_carga: '',
+    observaciones_filter: '' // '', 'con_obs', 'pendientes_resolver', 'resueltas', 'atendidas', 'pendientes_atender'
   });
 
   const fetchPerfiles = async (doc = '') => {
@@ -120,6 +225,24 @@ const ConsultaPerfiles = ({ user }) => {
       });
     }
 
+    // Filtrar por estado de observaciones (pendientes de resolver, etc.)
+    if (columnFilters.observaciones_filter) {
+      if (columnFilters.observaciones_filter === 'pendientes_resolver') {
+        // Al menos una observación con resuelto = false
+        result = result.filter(p => (p.observaciones || []).some(o => !o.resuelto));
+      } else if (columnFilters.observaciones_filter === 'resueltas') {
+        // Tiene observaciones y todas están resueltas
+        result = result.filter(p => (p.observaciones || []).length > 0 && (p.observaciones || []).every(o => o.resuelto));
+      } else if (columnFilters.observaciones_filter === 'pendientes_atender') {
+        // Al menos una observación con atendido = false
+        result = result.filter(p => (p.observaciones || []).some(o => !o.atendido));
+      } else if (columnFilters.observaciones_filter === 'con_obs') {
+        result = result.filter(p => (p.observaciones || []).length > 0);
+      } else if (columnFilters.observaciones_filter === 'sin_obs') {
+        result = result.filter(p => (!p.observaciones || p.observaciones.length === 0));
+      }
+    }
+
     // Aplicar ordenamiento
     if (sortConfig.key) {
       result.sort((a, b) => {
@@ -141,6 +264,9 @@ const ConsultaPerfiles = ({ user }) => {
         } else if (sortConfig.key === 'usuario_carga') {
           aValue = a.usuario_carga ? a.usuario_carga.nombre_completo : '-';
           bValue = b.usuario_carga ? b.usuario_carga.nombre_completo : '-';
+        } else if (sortConfig.key === 'observaciones') {
+          aValue = (a.observaciones || []).length;
+          bValue = (b.observaciones || []).length;
         }
 
         if (aValue === null || aValue === undefined) aValue = '';
@@ -173,7 +299,7 @@ const ConsultaPerfiles = ({ user }) => {
   const clearFilters = () => {
     setSearch(''); 
     setColumnFilters({ 
-      cedula_identidad: '', nombre_apellido: '', perfil: '', Lote: '', serial_mdp: '', estado: '', usuario_carga: '' 
+      cedula_identidad: '', nombre_apellido: '', perfil: '', Lote: '', serial_mdp: '', estado: '', usuario_carga: '', observaciones_filter: '' 
     });
     setSortConfig({ key: null, direction: 'asc' });
     setPerfiles([]);
@@ -243,6 +369,25 @@ const ConsultaPerfiles = ({ user }) => {
                   </div>
                 </th>
                 
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc', verticalAlign: 'top', textAlign: 'center', minWidth: '130px' }} onClick={() => requestSort('observaciones')}>
+                  Observaciones {sortConfig.key === 'observaciones' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                  <div style={{ marginTop: '5px' }}>
+                    <select
+                      value={columnFilters.observaciones_filter}
+                      onChange={(e) => handleFilterChange(e, 'observaciones_filter')}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '2px', fontSize: '0.8rem' }}
+                    >
+                      <option value="">Todas</option>
+                      <option value="pendientes_resolver">⚠️ Pendientes Resolver</option>
+                      <option value="resueltas">✅ Resueltas</option>
+                      <option value="pendientes_atender">🕒 Pendientes Atender</option>
+                      <option value="con_obs">💬 Con Observaciones</option>
+                      <option value="sin_obs">Sin Observaciones</option>
+                    </select>
+                  </div>
+                </th>
+                
                 {/* Fechas */}
                 <th style={{ padding: '0.5rem', border: '1px solid #ccc', cursor: 'pointer', verticalAlign: 'top', fontSize: '0.85rem' }} onClick={() => requestSort('fecha_solicitud')}>
                   F. Solicitud {sortConfig.key === 'fecha_solicitud' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
@@ -269,6 +414,10 @@ const ConsultaPerfiles = ({ user }) => {
                 if (p.id_estado_solicitud === 3) estadoColor = 'green';  // Aprobado
                 if (p.id_estado_solicitud === 4) estadoColor = 'red';    // Rechazado
                 if (p.id_estado_solicitud === 5) estadoColor = 'purple'; // Emitido
+
+                const obsList = p.observaciones || [];
+                const obsCount = obsList.length;
+                const pendientesResolverCount = obsList.filter(o => !o.resuelto).length;
 
                 return (
                   <tr key={p.orden}>
@@ -314,6 +463,39 @@ const ConsultaPerfiles = ({ user }) => {
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
                       {p.usuario_carga ? p.usuario_carga.nombre_completo : '-'}
                     </td>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc', textAlign: 'center' }}>
+                      <button 
+                        onClick={() => openObservaciones(p)}
+                        style={{
+                          padding: '4px 8px',
+                          cursor: 'pointer',
+                          backgroundColor: pendientesResolverCount > 0 ? '#fff3e0' : obsCount > 0 ? '#e8f5e9' : '#f5f5f5',
+                          border: `1px solid ${pendientesResolverCount > 0 ? '#ffb74d' : obsCount > 0 ? '#a5d6a7' : '#e0e0e0'}`,
+                          borderRadius: '4px',
+                          fontSize: '0.85rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                        title={pendientesResolverCount > 0 ? `${pendientesResolverCount} pendiente(s) de resolver` : "Ver / Agregar observaciones"}
+                      >
+                        <span>💬 {obsCount}</span>
+                        {pendientesResolverCount > 0 ? (
+                          <span style={{
+                            backgroundColor: '#e65100',
+                            color: 'white',
+                            fontSize: '0.7rem',
+                            padding: '1px 5px',
+                            borderRadius: '10px',
+                            fontWeight: 'bold'
+                          }}>
+                            {pendientesResolverCount} pend.
+                          </span>
+                        ) : obsCount > 0 ? (
+                          <span style={{ color: '#2e7d32', fontSize: '0.85rem' }}>✓</span>
+                        ) : null}
+                      </button>
+                    </td>
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc', fontSize: '0.85rem' }}>{formatDate(p.fecha_solicitud)}</td>
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc', fontSize: '0.85rem' }}>{formatDate(p.fecha_verificacion)}</td>
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc', fontSize: '0.85rem' }}>{formatDate(p.fecha_aprobacion)}</td>
@@ -322,11 +504,228 @@ const ConsultaPerfiles = ({ user }) => {
                 );
               }) : (
                 <tr>
-                  <td colSpan="11" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No se encontraron registros en esta vista.</td>
+                  <td colSpan="12" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No se encontraron registros en esta vista.</td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Modal de Observaciones */}
+      {selectedPerfilObs && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '680px',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '1rem',
+              borderBottom: '1px solid #eee',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: '#f8f9fa'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#333' }}>
+                  Observaciones - Tarjeta #{selectedPerfilObs.orden}
+                </h3>
+                <small style={{ color: '#666' }}>
+                  {selectedPerfilObs.nombre_apellido} | CI: {selectedPerfilObs.cedula_identidad}
+                </small>
+              </div>
+              <button 
+                onClick={() => setSelectedPerfilObs(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.4rem',
+                  cursor: 'pointer',
+                  color: '#888'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body - Lista de notas */}
+            <div style={{
+              padding: '1rem',
+              overflowY: 'auto',
+              flex: 1,
+              backgroundColor: '#fafafa'
+            }}>
+              {loadingObs ? (
+                <p style={{ textAlign: 'center', color: '#666' }}>Cargando observaciones...</p>
+              ) : observacionesList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#888' }}>
+                  <span style={{ fontSize: '2rem' }}>📝</span>
+                  <p style={{ margin: '8px 0 0' }}>No hay observaciones registradas para esta tarjeta.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {observacionesList.map((obs) => (
+                    <div 
+                      key={obs.id_observacion}
+                      style={{
+                        background: 'white',
+                        border: `1px solid ${obs.resuelto ? '#c8e6c9' : obs.atendido ? '#bbdefb' : '#ffccbc'}`,
+                        borderLeft: `5px solid ${obs.resuelto ? '#4caf50' : obs.atendido ? '#2196f3' : '#ff5722'}`,
+                        borderRadius: '6px',
+                        padding: '0.75rem 1rem',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '6px',
+                        fontSize: '0.82rem',
+                        color: '#666'
+                      }}>
+                        <span style={{ fontWeight: 'bold', color: '#1976d2' }}>
+                          👤 {obs.usuario ? obs.usuario.nombre_completo : `Usuario #${obs.id_usuario}`}
+                        </span>
+                        <span>🕒 {formatDate(obs.fecha_creacion)}</span>
+                      </div>
+                      
+                      <p style={{
+                        margin: '0 0 10px 0',
+                        color: '#333',
+                        whiteSpace: 'pre-wrap',
+                        fontSize: '0.92rem',
+                        lineHeight: '1.4'
+                      }}>
+                        {obs.observacion}
+                      </p>
+
+                      {/* Controles Atendido / Resuelto */}
+                      <div style={{
+                        display: 'flex',
+                        gap: '15px',
+                        paddingTop: '8px',
+                        borderTop: '1px dashed #eee',
+                        fontSize: '0.85rem'
+                      }}>
+                        <label style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          color: obs.atendido ? '#1565c0' : '#666',
+                          fontWeight: obs.atendido ? 'bold' : 'normal'
+                        }}>
+                          <input 
+                            type="checkbox"
+                            checked={!!obs.atendido}
+                            onChange={() => handleToggleObsStatus(obs.id_observacion, 'atendido', obs.atendido)}
+                          />
+                          <span>👀 Atendido</span>
+                        </label>
+
+                        <label style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          color: obs.resuelto ? '#2e7d32' : '#d84315',
+                          fontWeight: 'bold'
+                        }}>
+                          <input 
+                            type="checkbox"
+                            checked={!!obs.resuelto}
+                            onChange={() => handleToggleObsStatus(obs.id_observacion, 'resuelto', obs.resuelto)}
+                          />
+                          <span>{obs.resuelto ? '✅ Resuelto' : '⏳ Pendiente de resolver'}</span>
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer - Formulario nueva observación */}
+            <form onSubmit={handleAddObservacion} style={{
+              padding: '1rem',
+              borderTop: '1px solid #eee',
+              backgroundColor: 'white'
+            }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '6px', color: '#444' }}>
+                Agregar nueva observación:
+              </label>
+              <textarea
+                value={newObsText}
+                onChange={(e) => setNewObsText(e.target.value)}
+                placeholder="Escribe un comentario o nota sobre esta tarjeta..."
+                rows="3"
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                  fontSize: '0.9rem',
+                  resize: 'vertical'
+                }}
+                disabled={submittingObs}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPerfilObs(null)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    border: '1px solid #ccc',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer'
+                  }}
+                  disabled={submittingObs}
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingObs || !newObsText.trim()}
+                  style={{
+                    padding: '6px 16px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    backgroundColor: submittingObs || !newObsText.trim() ? '#90caf9' : '#1976d2',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    cursor: submittingObs || !newObsText.trim() ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {submittingObs ? 'Guardando...' : 'Guardar Observación'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

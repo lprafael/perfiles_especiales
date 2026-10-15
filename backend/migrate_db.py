@@ -38,9 +38,28 @@ async def migrate():
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS ip_aprobo VARCHAR(45);"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS device_id_aprobo VARCHAR(255);"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS id_evidencia INTEGER;"))
-            print("Columns 'id_usuario_carga', 'id_usuario_verif', 'id_usuario_aprob', 'ip_origen', 'user_agent', 'device_id', 'ip_aprobo', 'device_id_aprobo', 'id_evidencia' added (or already existed).")
+            print("Base columns verified.")
         except Exception as e:
             print(f"Error adding new columns: {e}")
+
+        print("Creating table public.perfiles_observaciones if it doesn't exist...")
+        try:
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS public.perfiles_observaciones (
+                    id_observacion SERIAL PRIMARY KEY,
+                    orden INTEGER NOT NULL REFERENCES public.perfiles_especiales(orden) ON DELETE CASCADE,
+                    observacion TEXT NOT NULL,
+                    fecha_creacion TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+                    id_usuario INTEGER NOT NULL REFERENCES sistema.usuarios(id),
+                    atendido BOOLEAN DEFAULT FALSE,
+                    resuelto BOOLEAN DEFAULT FALSE
+                );
+            """))
+            await conn.execute(text("ALTER TABLE public.perfiles_observaciones ADD COLUMN IF NOT EXISTS atendido BOOLEAN DEFAULT FALSE;"))
+            await conn.execute(text("ALTER TABLE public.perfiles_observaciones ADD COLUMN IF NOT EXISTS resuelto BOOLEAN DEFAULT FALSE;"))
+            print("Table 'public.perfiles_observaciones' created/updated (atendido, resuelto).")
+        except Exception as e:
+            print(f"Error creating/updating perfiles_observaciones table: {e}")
             
         print("Fixing 'orden' sequence in public.perfiles_especiales if missing...")
         try:
