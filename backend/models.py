@@ -4,7 +4,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Table, JSON, Float, Date, Time, LargeBinary
 from geoalchemy2 import Geometry
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, foreign
 from sqlalchemy.sql import func
 from datetime import datetime
 
@@ -777,19 +777,18 @@ class PerfilEspecial(Base):
     usuario_verif = relationship("Usuario", foreign_keys=[id_usuario_verif])
     usuario_aprob = relationship("Usuario", foreign_keys=[id_usuario_aprob])
     evidencia = relationship("EvidenciaImportacion", backref="perfiles_importados")
-    observaciones = relationship("PerfilObservacion", back_populates="perfil", lazy="noload")
+    observaciones = relationship("PerfilObservacion", primaryjoin="PerfilEspecial.orden == foreign(PerfilObservacion.orden)", lazy="noload")
 
 class PerfilObservacion(Base):
     __tablename__ = "perfiles_observaciones"
     __table_args__ = {"schema": "public"}
     
     id_observacion = Column(Integer, primary_key=True, autoincrement=True)
-    orden = Column(Integer, ForeignKey('public.perfiles_especiales.orden', ondelete='CASCADE'), nullable=False)
+    orden = Column(Integer, nullable=False, index=True)
     observacion = Column(Text, nullable=False)
     fecha_creacion = Column(DateTime, default=func.now(), nullable=False)
     id_usuario = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=False)
     atendido = Column(Boolean, default=False, nullable=False)
     resuelto = Column(Boolean, default=False, nullable=False)
     
-    perfil = relationship("PerfilEspecial", back_populates="observaciones")
     usuario = relationship("Usuario", foreign_keys=[id_usuario])

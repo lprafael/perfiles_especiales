@@ -47,13 +47,14 @@ async def migrate():
             await conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS public.perfiles_observaciones (
                     id_observacion SERIAL PRIMARY KEY,
-                    orden INTEGER NOT NULL REFERENCES public.perfiles_especiales(orden) ON DELETE CASCADE,
+                    orden INTEGER NOT NULL,
                     observacion TEXT NOT NULL,
                     fecha_creacion TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
                     id_usuario INTEGER NOT NULL REFERENCES sistema.usuarios(id),
                     atendido BOOLEAN DEFAULT FALSE,
                     resuelto BOOLEAN DEFAULT FALSE
                 );
+                CREATE INDEX IF NOT EXISTS idx_perfiles_obs_orden ON public.perfiles_observaciones(orden);
             """))
             await conn.execute(text("ALTER TABLE public.perfiles_observaciones ADD COLUMN IF NOT EXISTS atendido BOOLEAN DEFAULT FALSE;"))
             await conn.execute(text("ALTER TABLE public.perfiles_observaciones ADD COLUMN IF NOT EXISTS resuelto BOOLEAN DEFAULT FALSE;"))
