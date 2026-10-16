@@ -42,10 +42,11 @@ async def migrate():
         except Exception as e:
             print(f"Error adding new columns: {e}")
 
-        print("Creating table public.perfiles_observaciones if it doesn't exist...")
+        print("Creating table perfiles_especiales.perfiles_observaciones if it doesn't exist...")
         try:
+            await conn.execute(text("CREATE SCHEMA IF NOT EXISTS perfiles_especiales;"))
             await conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS public.perfiles_observaciones (
+                CREATE TABLE IF NOT EXISTS perfiles_especiales.perfiles_observaciones (
                     id_observacion SERIAL PRIMARY KEY,
                     orden INTEGER NOT NULL,
                     observacion TEXT NOT NULL,
@@ -53,12 +54,12 @@ async def migrate():
                     id_usuario INTEGER NOT NULL REFERENCES sistema.usuarios(id),
                     atendido BOOLEAN DEFAULT FALSE,
                     resuelto BOOLEAN DEFAULT FALSE
-                );
-                CREATE INDEX IF NOT EXISTS idx_perfiles_obs_orden ON public.perfiles_observaciones(orden);
+                )
             """))
-            await conn.execute(text("ALTER TABLE public.perfiles_observaciones ADD COLUMN IF NOT EXISTS atendido BOOLEAN DEFAULT FALSE;"))
-            await conn.execute(text("ALTER TABLE public.perfiles_observaciones ADD COLUMN IF NOT EXISTS resuelto BOOLEAN DEFAULT FALSE;"))
-            print("Table 'public.perfiles_observaciones' created/updated (atendido, resuelto).")
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_perfiles_obs_orden ON perfiles_especiales.perfiles_observaciones(orden);"))
+            await conn.execute(text("ALTER TABLE perfiles_especiales.perfiles_observaciones ADD COLUMN IF NOT EXISTS atendido BOOLEAN DEFAULT FALSE;"))
+            await conn.execute(text("ALTER TABLE perfiles_especiales.perfiles_observaciones ADD COLUMN IF NOT EXISTS resuelto BOOLEAN DEFAULT FALSE;"))
+            print("Table 'perfiles_especiales.perfiles_observaciones' created/updated (atendido, resuelto).")
         except Exception as e:
             print(f"Error creating/updating perfiles_observaciones table: {e}")
             

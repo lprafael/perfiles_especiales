@@ -988,8 +988,9 @@ async def create_observacion_perfil(
         # Si la tabla no existe en la base de datos, crearla automáticamente y reintentar
         if "perfiles_observaciones" in str(e).lower() or "undefinedtable" in str(e).lower() or "does not exist" in str(e).lower() or "invalidforeignkey" in str(e).lower():
             from sqlalchemy import text
+            await session.execute(text("CREATE SCHEMA IF NOT EXISTS perfiles_especiales;"))
             await session.execute(text("""
-                CREATE TABLE IF NOT EXISTS public.perfiles_observaciones (
+                CREATE TABLE IF NOT EXISTS perfiles_especiales.perfiles_observaciones (
                     id_observacion SERIAL PRIMARY KEY,
                     orden INTEGER NOT NULL,
                     observacion TEXT NOT NULL,
@@ -997,9 +998,9 @@ async def create_observacion_perfil(
                     id_usuario INTEGER NOT NULL REFERENCES sistema.usuarios(id),
                     atendido BOOLEAN DEFAULT FALSE,
                     resuelto BOOLEAN DEFAULT FALSE
-                );
-                CREATE INDEX IF NOT EXISTS idx_perfiles_obs_orden ON public.perfiles_observaciones(orden);
+                )
             """))
+            await session.execute(text("CREATE INDEX IF NOT EXISTS idx_perfiles_obs_orden ON perfiles_especiales.perfiles_observaciones(orden)"))
             await session.commit()
             session.add(nueva_obs)
             await session.commit()

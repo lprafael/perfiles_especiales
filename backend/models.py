@@ -781,7 +781,7 @@ class PerfilEspecial(Base):
 
 class PerfilObservacion(Base):
     __tablename__ = "perfiles_observaciones"
-    __table_args__ = {"schema": "public"}
+    __table_args__ = {"schema": "perfiles_especiales"}
     
     id_observacion = Column(Integer, primary_key=True, autoincrement=True)
     orden = Column(Integer, nullable=False, index=True)
