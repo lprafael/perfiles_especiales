@@ -1,24 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE } from '../config';
+import PerfilesTableSection from './PerfilesTableSection';
+import './ValidacionPerfiles.css';
 
 const ValidacionPerfiles = () => {
+  // Datos y Estados para Sección 1: Validación
   const [unverified, setUnverified] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+
+  // Datos y Estados para Sección 2: Aprobación
+  const [pendingApproval, setPendingApproval] = useState([]);
+  const [selectedApprovalIds, setSelectedApprovalIds] = useState([]);
+
+  // Datos y Estados para Sección 3: Pendientes de Emisión
+  const [pendingEmission, setPendingEmission] = useState([]);
+  const [selectedEmissionIds, setSelectedEmissionIds] = useState([]);
+  const [selectFirstX, setSelectFirstX] = useState(150);
+
+  // Estados Generales
+  const [loading, setLoading] = useState(false);
+  const [activeStageTab, setActiveStageTab] = useState('all'); // 'all' | 'validacion' | 'aprobacion' | 'emision'
+
+  // Estados para Formulario de Envío a EPS
+  const [epsDestino, setEpsDestino] = useState('TDP');
   const [emails, setEmails] = useState('');
   const [subject, setSubject] = useState('Listado de Perfiles Validados');
   const [body, setBody] = useState('Adjunto encontrará el listado de perfiles validados.');
   const [batchSize, setBatchSize] = useState(1500);
   const [sending, setSending] = useState(false);
 
-  const [pendingApproval, setPendingApproval] = useState([]);
-  const [selectedApprovalIds, setSelectedApprovalIds] = useState([]);
-
-  const [pendingEmission, setPendingEmission] = useState([]);
-  const [selectedEmissionIds, setSelectedEmissionIds] = useState([]);
-  const [selectFirstX, setSelectFirstX] = useState(150);
-  const [epsDestino, setEpsDestino] = useState('TDP');
-
+  // Carga de datos
   const fetchUnverified = async () => {
     setLoading(true);
     try {
@@ -85,62 +96,26 @@ const ValidacionPerfiles = () => {
     fetchPendingEmission();
   }, []);
 
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedIds(unverified.map(p => p.orden));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
-  const handleSelect = (id) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
-
-  const handleSelectAllApproval = (e) => {
-    if (e.target.checked) {
-      setSelectedApprovalIds(pendingApproval.map(p => p.orden));
-    } else {
-      setSelectedApprovalIds([]);
-    }
-  };
-
-  const handleSelectApproval = (id) => {
-    setSelectedApprovalIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
-
-  const handleSelectAllEmission = (e) => {
-    if (e.target.checked) {
-      setSelectedEmissionIds(pendingEmission.map(p => p.orden));
-    } else {
-      setSelectedEmissionIds([]);
-    }
-  };
-
-  const handleSelectEmission = (id) => {
-    setSelectedEmissionIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
-
+  // Acción: Seleccionar los primeros X de emisión
   const handleSelectFirstX = (e) => {
-    e.preventDefault();
-    if (selectFirstX > 0) {
+    if (e) e.preventDefault();
+    if (selectFirstX > 0 && pendingEmission.length > 0) {
       const ids = pendingEmission.slice(0, selectFirstX).map(p => p.orden);
       setSelectedEmissionIds(ids);
     }
   };
 
+  // Acción: Verificar
   const handleVerify = async () => {
     if (selectedIds.length === 0) {
       alert("Seleccione al menos un registro para verificar");
       return;
     }
-    
+
+    if (!window.confirm(`¿Está seguro de verificar ${selectedIds.length} perfil(es)?`)) {
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/perfiles/validate`, {
@@ -156,21 +131,26 @@ const ValidacionPerfiles = () => {
         fetchUnverified();
         fetchPendingApproval();
       } else {
-        alert("Error al verificar");
+        alert("Error al verificar los perfiles");
       }
     } catch (err) {
       console.error(err);
-      alert("Error de conexión");
+      alert("Error de conexión al verificar");
     }
     setLoading(false);
   };
 
+  // Acción: Aprobar
   const handleApprove = async () => {
     if (selectedApprovalIds.length === 0) {
       alert("Seleccione al menos un registro para aprobar");
       return;
     }
-    
+
+    if (!window.confirm(`¿Está seguro de aprobar ${selectedApprovalIds.length} perfil(es)?`)) {
+      return;
+    }
+
     setLoading(true);
     try {
       const device_id = localStorage.getItem('device_id') || 'unknown-device';
@@ -190,15 +170,16 @@ const ValidacionPerfiles = () => {
         fetchPendingApproval();
         fetchPendingEmission();
       } else {
-        alert("Error al aprobar");
+        alert("Error al aprobar los perfiles");
       }
     } catch (err) {
       console.error(err);
-      alert("Error de conexión");
+      alert("Error de conexión al aprobar");
     }
     setLoading(false);
   };
 
+  // Acción: Enviar Correos y Emitir
   const handleSendEmail = async (e) => {
     e.preventDefault();
     if (selectedEmissionIds.length === 0) {
@@ -209,8 +190,12 @@ const ValidacionPerfiles = () => {
       alert("Debe seleccionar una EPS destino.");
       return;
     }
-    if (!emails) {
+    if (!emails.trim()) {
       alert("Debe ingresar al menos un correo destino.");
+      return;
+    }
+
+    if (!window.confirm(`Se remitirán ${selectedEmissionIds.length} perfiles a la EPS ${epsDestino}. ¿Desea proceder?`)) {
       return;
     }
 
@@ -231,14 +216,14 @@ const ValidacionPerfiles = () => {
         },
         body: formData
       });
-      
+
       const data = await res.json();
       if (res.ok) {
         alert(data.message || "Correos encolados exitosamente");
         fetchPendingEmission();
         setSelectedEmissionIds([]);
       } else {
-        alert(`Error: ${data.detail}`);
+        alert(`Error: ${data.detail || 'Ocurrió un error al procesar el envío'}`);
       }
     } catch (err) {
       console.error(err);
@@ -247,275 +232,226 @@ const ValidacionPerfiles = () => {
     setSending(false);
   };
 
+  // Barra de selección rápida para la sección de Emisión
+  const quickEmissionBar = (
+    <div className="vp-emission-quickbar">
+      <div>
+        <span>Total disponibles para emisión: <strong>{pendingEmission.length}</strong></span>
+      </div>
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <input
+          type="number"
+          className="vp-number-input"
+          value={selectFirstX}
+          onChange={(e) => setSelectFirstX(Math.max(1, Number(e.target.value)))}
+          min="1"
+          max={pendingEmission.length || 1}
+        />
+        <button
+          type="button"
+          onClick={handleSelectFirstX}
+          disabled={pendingEmission.length === 0}
+          className="vp-btn-purple-subtle"
+        >
+          ⚡ Seleccionar los primeros {selectFirstX}
+        </button>
+      </div>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        <span>Seleccionados para emisión:</span>
+        <strong style={{ color: selectedEmissionIds.length > 0 ? '#7e22ce' : 'inherit', fontSize: '1.05rem' }}>
+          {selectedEmissionIds.length}
+        </strong>
+      </div>
+    </div>
+  );
+
   return (
-    <div>
-      <h2>Validación de Perfiles Especiales</h2>
-      <p>Listado de beneficiarios importados pendientes de validación.</p>
+    <div className="vp-container">
+      {/* Encabezado Principal y Pestañas de Etapas */}
+      <div className="vp-header">
+        <div className="vp-header-title">
+          <h2>🛡️ Gestión y Validación de Perfiles Especiales</h2>
+          <p>
+            Filtre por lote, tipo de perfil o texto. Agrupe beneficiarios por lotes para selección masiva o desglose en vista plana.
+          </p>
+        </div>
 
-      <div style={{ marginBottom: '1rem' }}>
-        <button 
-          onClick={handleVerify}
-          disabled={selectedIds.length === 0 || loading}
-          style={{ 
-            padding: '0.5rem 1rem', 
-            background: selectedIds.length === 0 ? '#bdc3c7' : '#3498db', 
-            color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' 
-          }}
-        >
-          Verificar Seleccionados ({selectedIds.length})
-        </button>
+        {/* Pestañas para enfocar una etapa o ver todas */}
+        <div className="vp-tabs">
+          <button
+            onClick={() => setActiveStageTab('all')}
+            className={`vp-tab-btn ${activeStageTab === 'all' ? 'active' : ''}`}
+          >
+            📑 Ver Todas las Etapas
+          </button>
+          <button
+            onClick={() => setActiveStageTab('validacion')}
+            className={`vp-tab-btn ${activeStageTab === 'validacion' ? 'active' : ''}`}
+          >
+            🔍 Validación
+            <span className="vp-tab-badge">{unverified.length}</span>
+          </button>
+          <button
+            onClick={() => setActiveStageTab('aprobacion')}
+            className={`vp-tab-btn ${activeStageTab === 'aprobacion' ? 'active' : ''}`}
+          >
+            📝 Aprobación
+            <span className="vp-tab-badge badge-warning">{pendingApproval.length}</span>
+          </button>
+          <button
+            onClick={() => setActiveStageTab('emision')}
+            className={`vp-tab-btn ${activeStageTab === 'emision' ? 'active' : ''}`}
+          >
+            ✉️ Emisión a EPS
+            <span className="vp-tab-badge badge-purple">{pendingEmission.length}</span>
+          </button>
+        </div>
       </div>
 
-      {loading ? <p>Cargando...</p> : (
-        <div style={{ overflowX: 'auto', maxHeight: '300px', marginBottom: '2rem' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={{ position: 'sticky', top: 0, background: '#f0f0f0' }}>
-              <tr>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
-                  <input 
-                    type="checkbox" 
-                    onChange={handleSelectAll}
-                    checked={selectedIds.length === unverified.length && unverified.length > 0}
-                  />
-                </th>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Documento</th>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Nombre y Apellido</th>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Lote</th>
-              </tr>
-            </thead>
-            <tbody>
-              {unverified.length > 0 ? unverified.map(p => (
-                <tr key={p.orden}>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc', textAlign: 'center' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={selectedIds.includes(p.orden)}
-                      onChange={() => handleSelect(p.orden)}
-                    />
-                  </td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.cedula_identidad}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.nombre_apellido}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.Lote || '-'}</td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan="4" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No hay registros pendientes de verificación.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* SECCIÓN 1: VALIDACIÓN (UNVERIFIED) */}
+      {(activeStageTab === 'all' || activeStageTab === 'validacion') && (
+        <PerfilesTableSection
+          title="1. Validación de Perfiles Especiales"
+          subtitle="Listado de beneficiarios importados pendientes de verificación inicial."
+          icon="🔍"
+          iconTheme="blue"
+          data={unverified}
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          mainActionText={selectedIds.length > 0 ? `Verificar Seleccionados (${selectedIds.length})` : "Verificar Seleccionados"}
+          onMainAction={handleVerify}
+          actionButtonColor="#3498db"
+          loading={loading}
+          initialViewMode="flat"
+        />
       )}
 
-      <hr style={{ margin: '2rem 0' }}/>
-      
-      <h2>Aprobación de Perfiles Especiales</h2>
-      <p>Listado de beneficiarios verificados pendientes de aprobación.</p>
-
-      <div style={{ marginBottom: '1rem' }}>
-        <button 
-          onClick={handleApprove}
-          disabled={selectedApprovalIds.length === 0 || loading}
-          style={{ 
-            padding: '0.5rem 1rem', 
-            background: selectedApprovalIds.length === 0 ? '#bdc3c7' : '#f39c12', 
-            color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' 
-          }}
-        >
-          Aprobar Seleccionados ({selectedApprovalIds.length})
-        </button>
-      </div>
-
-      {loading ? <p>Cargando...</p> : (
-        <div style={{ overflowX: 'auto', maxHeight: '300px', marginBottom: '2rem' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={{ position: 'sticky', top: 0, background: '#f0f0f0' }}>
-              <tr>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
-                  <input 
-                    type="checkbox" 
-                    onChange={handleSelectAllApproval}
-                    checked={selectedApprovalIds.length === pendingApproval.length && pendingApproval.length > 0}
-                  />
-                </th>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Documento</th>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Nombre y Apellido</th>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Lote</th>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Verificado por</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingApproval.length > 0 ? pendingApproval.map(p => (
-                <tr key={p.orden}>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc', textAlign: 'center' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={selectedApprovalIds.includes(p.orden)}
-                      onChange={() => handleSelectApproval(p.orden)}
-                    />
-                  </td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.cedula_identidad}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.nombre_apellido}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.Lote || '-'}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.usuario_verif?.nombre_completo || '-'}</td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan="5" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No hay registros pendientes de aprobación.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* SECCIÓN 2: APROBACIÓN (PENDING APPROVAL) */}
+      {(activeStageTab === 'all' || activeStageTab === 'aprobacion') && (
+        <PerfilesTableSection
+          title="2. Aprobación de Perfiles Especiales"
+          subtitle="Listado de beneficiarios verificados pendientes de aprobación definitiva."
+          icon="📝"
+          iconTheme="orange"
+          data={pendingApproval}
+          selectedIds={selectedApprovalIds}
+          onSelectionChange={setSelectedApprovalIds}
+          mainActionText={selectedApprovalIds.length > 0 ? `Aprobar Seleccionados (${selectedApprovalIds.length})` : "Aprobar Seleccionados"}
+          onMainAction={handleApprove}
+          actionButtonColor="#f39c12"
+          loading={loading}
+          extraColumnHeader="Verificado por"
+          renderExtraCell={(p) => (
+            <span className="vp-badge vp-badge-user">
+              {p.usuario_verif?.nombre_completo || '-'}
+            </span>
+          )}
+          initialViewMode="flat"
+        />
       )}
 
-      <hr style={{ margin: '2rem 0' }}/>
-      
-      <h2>Pendientes de Emisión</h2>
-      <p>Listado de beneficiarios aprobados que están listos para ser enviados por correo a una EPS.</p>
-
-      <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div>
-          Total disponibles: <strong>{pendingEmission.length}</strong>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <input 
-            type="number" 
-            value={selectFirstX}
-            onChange={(e) => setSelectFirstX(Number(e.target.value))}
-            min="1" max={pendingEmission.length || 1}
-            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', width: '80px' }}
+      {/* SECCIÓN 3: PENDIENTES DE EMISIÓN */}
+      {(activeStageTab === 'all' || activeStageTab === 'emision') && (
+        <>
+          <PerfilesTableSection
+            title="3. Pendientes de Emisión a EPS"
+            subtitle="Beneficiarios aprobados listos para ser remitidos y asignados a una EPS (TDP / EPAS)."
+            icon="✉️"
+            iconTheme="purple"
+            data={pendingEmission}
+            selectedIds={selectedEmissionIds}
+            onSelectionChange={setSelectedEmissionIds}
+            mainActionText={null} // La acción principal se realiza en el formulario inferior
+            loading={loading}
+            extraColumnHeader="Aprobado por"
+            renderExtraCell={(p) => (
+              <span className="vp-badge vp-badge-user">
+                {p.usuario_aprob?.nombre_completo || '-'}
+              </span>
+            )}
+            quickEmissionBar={quickEmissionBar}
+            initialViewMode="flat"
           />
-          <button 
-            onClick={handleSelectFirstX}
-            disabled={pendingEmission.length === 0}
-            style={{ 
-              padding: '0.5rem 1rem', 
-              background: pendingEmission.length === 0 ? '#bdc3c7' : '#9b59b6', 
-              color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' 
-            }}
-          >
-            Seleccionar los primeros {selectFirstX}
-          </button>
-        </div>
-        <div style={{ marginLeft: 'auto' }}>
-          Seleccionados: <strong>{selectedEmissionIds.length}</strong>
-        </div>
-      </div>
 
-      {loading ? <p>Cargando...</p> : (
-        <div style={{ overflowX: 'auto', maxHeight: '300px', marginBottom: '2rem' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={{ position: 'sticky', top: 0, background: '#f0f0f0' }}>
-              <tr>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
-                  <input 
-                    type="checkbox" 
-                    onChange={handleSelectAllEmission}
-                    checked={selectedEmissionIds.length === pendingEmission.length && pendingEmission.length > 0}
-                  />
-                </th>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Documento</th>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Nombre y Apellido</th>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Lote</th>
-                <th style={{ padding: '0.5rem', border: '1px solid #ccc' }}>Aprobado por</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingEmission.length > 0 ? pendingEmission.map(p => (
-                <tr key={p.orden}>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc', textAlign: 'center' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={selectedEmissionIds.includes(p.orden)}
-                      onChange={() => handleSelectEmission(p.orden)}
-                    />
-                  </td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.cedula_identidad}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.nombre_apellido}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.Lote || '-'}</td>
-                  <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.usuario_aprob?.nombre_completo || '-'}</td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan="5" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No hay registros pendientes de emisión.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+          {/* Formulario de Remisión por Correo a EPS */}
+          <div className="vp-email-card">
+            <h3>📬 Remitir Listado por Correo y Emitir</h3>
+            <p>
+              Envíe los perfiles seleccionados ({selectedEmissionIds.length}) a los correos especificados registrando su EPS correspondiente.
+            </p>
+
+            <form onSubmit={handleSendEmail}>
+              <div className="vp-form-group">
+                <label className="vp-form-label">EPS Destino:</label>
+                <select
+                  value={epsDestino}
+                  onChange={(e) => setEpsDestino(e.target.value)}
+                  className="vp-form-select"
+                >
+                  <option value="TDP">TDP</option>
+                  <option value="EPAS">EPAS</option>
+                </select>
+              </div>
+
+              <div className="vp-form-group">
+                <label className="vp-form-label">Correos Destino (separados por coma):</label>
+                <input
+                  type="text"
+                  value={emails}
+                  onChange={(e) => setEmails(e.target.value)}
+                  placeholder="correo1@ejemplo.com, correo2@ejemplo.com"
+                  className="vp-form-input"
+                  required
+                />
+              </div>
+
+              <div className="vp-form-group">
+                <label className="vp-form-label">Asunto del Correo:</label>
+                <input
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="vp-form-input"
+                  required
+                />
+              </div>
+
+              <div className="vp-form-group">
+                <label className="vp-form-label">Cuerpo del Mensaje:</label>
+                <textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  rows="3"
+                  className="vp-form-textarea"
+                  required
+                />
+              </div>
+
+              <div className="vp-form-group">
+                <label className="vp-form-label">Registros por correo (lotes de envío):</label>
+                <input
+                  type="number"
+                  value={batchSize}
+                  onChange={(e) => setBatchSize(Number(e.target.value))}
+                  min="100"
+                  max="10000"
+                  className="vp-form-input"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={sending || selectedEmissionIds.length === 0}
+                className="vp-btn-submit-email"
+              >
+                {sending
+                  ? "⏳ Iniciando envío..."
+                  : `📤 Enviar ${selectedEmissionIds.length} Perfiles Seleccionados a ${epsDestino}`}
+              </button>
+            </form>
+          </div>
+        </>
       )}
-
-      <hr style={{ margin: '2rem 0' }}/>
-
-      <div style={{ background: '#ecf0f1', padding: '1.5rem', borderRadius: '8px', maxWidth: '600px' }}>
-        <h3>Remitir Listado por Correo y Emitir</h3>
-        <p style={{ fontSize: '0.9rem', color: '#555' }}>Envíe los perfiles seleccionados a los correos especificados, registrando su EPS correspondiente.</p>
-        
-        <form onSubmit={handleSendEmail} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>EPS Destino:</label>
-            <select 
-              value={epsDestino}
-              onChange={(e) => setEpsDestino(e.target.value)}
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', background: 'white' }}
-            >
-              <option value="TDP">TDP</option>
-              <option value="EPAS">EPAS</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Correos Destino (separados por coma):</label>
-            <input 
-              type="text" 
-              value={emails}
-              onChange={(e) => setEmails(e.target.value)}
-              placeholder="correo1@ejemplo.com, correo2@ejemplo.com"
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Asunto:</label>
-            <input 
-              type="text" 
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Cuerpo del mensaje:</label>
-            <textarea 
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows="4"
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Registros por correo (lotes):</label>
-            <input 
-              type="number" 
-              value={batchSize}
-              onChange={(e) => setBatchSize(Number(e.target.value))}
-              min="100" max="10000"
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
-            />
-          </div>
-          <button 
-            type="submit" 
-            disabled={sending || selectedEmissionIds.length === 0}
-            style={{ 
-              padding: '0.75rem', 
-              background: (sending || selectedEmissionIds.length === 0) ? '#95a5a6' : '#8e44ad', 
-              color: 'white', border: 'none', borderRadius: '4px', cursor: (sending || selectedEmissionIds.length === 0) ? 'not-allowed' : 'pointer' 
-            }}
-          >
-            {sending ? "Iniciando envío..." : `Enviar ${selectedEmissionIds.length} Correos`}
-          </button>
-        </form>
-      </div>
-
     </div>
   );
 };
