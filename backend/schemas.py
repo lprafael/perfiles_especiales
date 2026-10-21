@@ -1149,6 +1149,10 @@ class UsuarioCargaInfo(BaseModel):
     class Config:
         from_attributes = True
 
+class EstadoUpdate(BaseModel):
+    id_estado: int
+    motivo: Optional[str] = None
+
 class SerialUpdate(BaseModel):
     serial_mdp: str
 
@@ -1178,6 +1182,8 @@ class PerfilEspecialResponse(PerfilEspecialBase):
     estado_solicitud: Optional[EstadoSolicitudResponse] = None
     usuario_carga: Optional[UsuarioCargaInfo] = None
     usuario_verif: Optional[UsuarioCargaInfo] = None
+    usuario_aprob: Optional[UsuarioCargaInfo] = None
     observaciones: List[PerfilObservacionResponse] = []
     class Config:
         from_attributes = True
+

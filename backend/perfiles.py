@@ -9,7 +9,7 @@ import math
 from datetime import datetime
 
 from models import PerfilEspecial, TipoPerfilEspecial, Usuario, EstadoSolicitudPerfil, EvidenciaImportacion, PerfilObservacion
-from schemas import PerfilEspecialResponse, SerialUpdate, PerfilObservacionCreate, PerfilObservacionResponse, PerfilObservacionUpdate
+from schemas import PerfilEspecialResponse, SerialUpdate, PerfilObservacionCreate, PerfilObservacionResponse, PerfilObservacionUpdate, EstadoSolicitudResponse, EstadoUpdate
 from security import get_current_user, check_permission
 from database import get_session
 from audit_utils import log_activity
@@ -917,11 +917,249 @@ async def update_serial_mdp(
     
     res_usu_verif = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_verif))
     perfil.usuario_verif = res_usu_verif.scalar_one_or_none()
+
+    res_usu_aprob = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_aprob))
+    perfil.usuario_aprob = res_usu_aprob.scalar_one_or_none()
     
     res_estado = await session.execute(select(EstadoSolicitudPerfil).where(EstadoSolicitudPerfil.id_estado == perfil.id_estado_solicitud))
     perfil.estado_solicitud = res_estado.scalar_one_or_none()
     
     return perfil
+
+@router.get("/estados", response_model=List[EstadoSolicitudResponse])
+async def get_estados_solicitud(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Listado de todos los estados de solicitud posibles para tarjetas."""
+    result = await session.execute(select(EstadoSolicitudPerfil).order_by(EstadoSolicitudPerfil.id_estado))
+    return result.scalars().all()
+
+@router.put("/{orden}/estado", response_model=PerfilEspecialResponse)
+async def update_estado_perfil(
+    orden: int,
+    payload: EstadoUpdate,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Modifica el estado de una tarjeta/perfil especial.
+    Solo para administradores y sysadmins.
+    Registra auditoría y opcionalmente añade una observación explicativa del motivo.
+    """
+    if current_user.get("role") not in ["admin", "sysadmin"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tiene permisos para modificar el estado.")
+        
+    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.orden == orden))
+    perfil = result.scalar_one_or_none()
+    
+    if not perfil:
+        raise HTTPException(status_code=404, detail="Tarjeta / Perfil no encontrado")
+        
+    estado_ant_id = perfil.id_estado_solicitud
+    nuevo_estado_id = payload.id_estado
+    
+    # Validar que exista el nuevo estado
+    res_est = await session.execute(select(EstadoSolicitudPerfil).where(EstadoSolicitudPerfil.id_estado == nuevo_estado_id))
+    nuevo_estado = res_est.scalar_one_or_none()
+    if not nuevo_estado:
+        raise HTTPException(status_code=400, detail="El estado especificado no existe.")
+        
+    # Obtener descripción estado anterior
+    res_est_ant = await session.execute(select(EstadoSolicitudPerfil).where(EstadoSolicitudPerfil.id_estado == estado_ant_id))
+    estado_ant = res_est_ant.scalar_one_or_none()
+    desc_ant = estado_ant.descripcion if estado_ant else str(estado_ant_id)
+    
+    # Actualizar estado y campos de trazabilidad correspondientes
+    perfil.id_estado_solicitud = nuevo_estado_id
+    ahora = datetime.now()
+    
+    if nuevo_estado_id == 2 and not perfil.fecha_verificacion:
+        perfil.fecha_verificacion = ahora
+        perfil.id_usuario_verif = current_user["user_id"]
+    elif nuevo_estado_id == 3 and not perfil.fecha_aprobacion:
+        perfil.fecha_aprobacion = ahora
+        perfil.id_usuario_aprob = current_user["user_id"]
+        perfil.ip_aprobo = request.client.host if request.client else None
+    elif nuevo_estado_id == 5 and not perfil.fecha_emision:
+        perfil.fecha_emision = ahora
+        
+    # Si se especificó un motivo, registrar observación
+    if payload.motivo and payload.motivo.strip():
+        obs_texto = f"[Cambio de estado: {desc_ant} ➔ {nuevo_estado.descripcion}]: {payload.motivo.strip()}"
+        nueva_obs = PerfilObservacion(
+            orden=perfil.orden,
+            observacion=obs_texto,
+            id_usuario=current_user["user_id"],
+            fecha_creacion=ahora,
+            atendido=True,
+            resuelto=True
+        )
+        session.add(nueva_obs)
+        
+    await session.commit()
+    await session.refresh(perfil)
+    
+    # Registrar log de auditoría
+    await log_activity(
+        session=session,
+        request=request,
+        current_user=current_user,
+        action="update_status",
+        table="perfiles_especiales",
+        record_id=perfil.orden,
+        previous_data={"id_estado_solicitud": estado_ant_id, "estado": desc_ant},
+        new_data={"id_estado_solicitud": nuevo_estado_id, "estado": nuevo_estado.descripcion},
+        details=f"Cambio manual de estado de {desc_ant} a {nuevo_estado.descripcion}. Motivo: {payload.motivo or 'Sin motivo'}"
+    )
+    
+    # Pre-cargar relaciones para la respuesta
+    res_tipo = await session.execute(select(TipoPerfilEspecial).where(TipoPerfilEspecial.id_tipo_especial == perfil.id_tipo_perfil))
+    perfil.tipo_perfil = res_tipo.scalar_one_or_none()
+    
+    res_usu_carga = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_carga))
+    perfil.usuario_carga = res_usu_carga.scalar_one_or_none()
+    
+    res_usu_verif = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_verif))
+    perfil.usuario_verif = res_usu_verif.scalar_one_or_none()
+    
+    res_usu_aprob = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_aprob))
+    perfil.usuario_aprob = res_usu_aprob.scalar_one_or_none()
+    
+    perfil.estado_solicitud = nuevo_estado
+    
+    # Cargar observaciones
+    res_obs = await session.execute(
+        select(PerfilObservacion)
+        .where(PerfilObservacion.orden == perfil.orden)
+        .order_by(PerfilObservacion.fecha_creacion.desc())
+    )
+    obs_list = res_obs.scalars().all()
+    if obs_list:
+        user_ids = list({o.id_usuario for o in obs_list})
+        res_usuarios = await session.execute(select(Usuario).where(Usuario.id.in_(user_ids)))
+        usr_dict = {u.id: u for u in res_usuarios.scalars().all()}
+        for o in obs_list:
+            o.usuario = usr_dict.get(o.id_usuario)
+    perfil.observaciones = obs_list
+    
+    return perfil
+
+@router.get("/{orden}/trazabilidad")
+async def get_trazabilidad_perfil(
+    orden: int,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Obtiene la trazabilidad completa del ciclo de vida de una tarjeta/perfil:
+    - Información del beneficiario y tarjeta
+    - Datos de carga/origen (archivo Excel de importación, usuario, fecha)
+    - Verificación (usuario, fecha)
+    - Aprobación (usuario, fecha, IP, Device ID)
+    - Emisión a EPS (fecha, EPS destino, Serial MDP)
+    - Historial de observaciones y notas
+    """
+    result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.orden == orden))
+    perfil = result.scalar_one_or_none()
+    
+    if not perfil:
+        raise HTTPException(status_code=404, detail="Perfil no encontrado")
+        
+    # Pre-cargar relaciones
+    res_tipo = await session.execute(select(TipoPerfilEspecial).where(TipoPerfilEspecial.id_tipo_especial == perfil.id_tipo_perfil))
+    tipo_perfil = res_tipo.scalar_one_or_none()
+    
+    res_estado = await session.execute(select(EstadoSolicitudPerfil).where(EstadoSolicitudPerfil.id_estado == perfil.id_estado_solicitud))
+    estado = res_estado.scalar_one_or_none()
+    
+    res_usu_carga = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_carga))
+    usu_carga = res_usu_carga.scalar_one_or_none()
+    
+    res_usu_verif = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_verif))
+    usu_verif = res_usu_verif.scalar_one_or_none()
+    
+    res_usu_aprob = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_aprob))
+    usu_aprob = res_usu_aprob.scalar_one_or_none()
+    
+    evidencia = None
+    if perfil.id_evidencia:
+        res_ev = await session.execute(select(EvidenciaImportacion).where(EvidenciaImportacion.id_evidencia == perfil.id_evidencia))
+        ev = res_ev.scalar_one_or_none()
+        if ev:
+            evidencia = {
+                "id_evidencia": ev.id_evidencia,
+                "nombre_archivo": ev.nombre_archivo,
+                "fecha_importacion": ev.fecha_importacion,
+                "ip_origen": ev.ip_origen
+            }
+            
+    # Observaciones
+    res_obs = await session.execute(
+        select(PerfilObservacion)
+        .where(PerfilObservacion.orden == perfil.orden)
+        .order_by(PerfilObservacion.fecha_creacion.desc())
+    )
+    obs_list = res_obs.scalars().all()
+    obs_response = []
+    if obs_list:
+        user_ids = list({o.id_usuario for o in obs_list})
+        res_usuarios = await session.execute(select(Usuario).where(Usuario.id.in_(user_ids)))
+        usr_dict = {u.id: u for u in res_usuarios.scalars().all()}
+        for o in obs_list:
+            u_info = usr_dict.get(o.id_usuario)
+            obs_response.append({
+                "id_observacion": o.id_observacion,
+                "observacion": o.observacion,
+                "fecha_creacion": o.fecha_creacion,
+                "atendido": o.atendido,
+                "resuelto": o.resuelto,
+                "usuario": {"id": u_info.id, "nombre_completo": u_info.nombre_completo} if u_info else None
+            })
+            
+    return {
+        "orden": perfil.orden,
+        "cedula_identidad": perfil.cedula_identidad,
+        "nombre_apellido": perfil.nombre_apellido,
+        "institucion": perfil.institucion,
+        "Lote": perfil.Lote,
+        "eps": perfil.eps,
+        "serial_mdp": perfil.serial_mdp,
+        "tipo_perfil": {
+            "id_tipo_especial": tipo_perfil.id_tipo_especial,
+            "tipo_especial": tipo_perfil.tipo_especial
+        } if tipo_perfil else None,
+        "estado_solicitud": {
+            "id_estado": estado.id_estado,
+            "descripcion": estado.descripcion
+        } if estado else {"id_estado": perfil.id_estado_solicitud, "descripcion": "Desconocido"},
+        "ciclo_vida": {
+            "solicitud": {
+                "fecha": perfil.fecha_solicitud,
+                "usuario": {"id": usu_carga.id, "nombre_completo": usu_carga.nombre_completo} if usu_carga else None,
+                "evidencia": evidencia,
+                "ip_origen": perfil.ip_origen,
+                "user_agent": perfil.user_agent
+            },
+            "verificacion": {
+                "fecha": perfil.fecha_verificacion,
+                "usuario": {"id": usu_verif.id, "nombre_completo": usu_verif.nombre_completo} if usu_verif else None
+            },
+            "aprobacion": {
+                "fecha": perfil.fecha_aprobacion,
+                "usuario": {"id": usu_aprob.id, "nombre_completo": usu_aprob.nombre_completo} if usu_aprob else None,
+                "ip_aprobo": perfil.ip_aprobo,
+                "device_id_aprobo": perfil.device_id_aprobo
+            },
+            "emision": {
+                "fecha": perfil.fecha_emision,
+                "eps": perfil.eps,
+                "serial_mdp": perfil.serial_mdp
+            }
+        },
+        "observaciones": obs_response
+    }
 
 @router.get("/{orden}/observaciones", response_model=List[PerfilObservacionResponse])
 async def get_observaciones_perfil(

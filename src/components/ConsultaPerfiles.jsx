@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { API_BASE } from '../config';
+import ModalTrazabilidadTarjeta from './ModalTrazabilidadTarjeta';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
@@ -8,12 +9,27 @@ const formatDate = (dateStr) => {
 };
 
 const ConsultaPerfiles = ({ user }) => {
+  const isAdmin = Boolean(user && (user.rol === 'admin' || user.rol === 'sysadmin'));
   const [perfiles, setPerfiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
 
   const [editingSerial, setEditingSerial] = useState(null);
   const [serialValue, setSerialValue] = useState("");
+
+  // Estados para Modal de Trazabilidad y Cambio de Estado
+  const [selectedPerfilTrazabilidad, setSelectedPerfilTrazabilidad] = useState(null);
+  const [initialTrazabilidadTab, setInitialTrazabilidadTab] = useState('timeline');
+
+  const openModalTrazabilidad = (perfil, tab = 'timeline') => {
+    setSelectedPerfilTrazabilidad(perfil);
+    setInitialTrazabilidadTab(tab);
+  };
+
+  const handlePerfilUpdated = (updatedPerfil) => {
+    setPerfiles(prev => prev.map(p => p.orden === updatedPerfil.orden ? updatedPerfil : p));
+    setSelectedPerfilTrazabilidad(updatedPerfil);
+  };
 
   // Estados para Observaciones
   const [selectedPerfilObs, setSelectedPerfilObs] = useState(null); // Perfil cuyo modal de observaciones está abierto
@@ -326,6 +342,9 @@ const ConsultaPerfiles = ({ user }) => {
           <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem', minWidth: '1200px' }}>
             <thead>
               <tr style={{ background: '#f0f0f0' }}>
+                <th style={{ padding: '0.5rem', border: '1px solid #ccc', verticalAlign: 'top', textAlign: 'center', width: '90px' }}>
+                  Trazabilidad
+                </th>
                 <th style={{ padding: '0.5rem', border: '1px solid #ccc', cursor: 'pointer', verticalAlign: 'top' }} onClick={() => requestSort('cedula_identidad')}>
                   Documento {sortConfig.key === 'cedula_identidad' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
                   <div style={{ marginTop: '5px' }}>
@@ -421,6 +440,27 @@ const ConsultaPerfiles = ({ user }) => {
 
                 return (
                   <tr key={p.orden}>
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc', textAlign: 'center' }}>
+                      <button 
+                        onClick={() => openModalTrazabilidad(p, 'timeline')}
+                        style={{
+                          padding: '3px 8px',
+                          cursor: 'pointer',
+                          backgroundColor: '#e0f2fe',
+                          border: '1px solid #7dd3fc',
+                          borderRadius: '4px',
+                          fontSize: '0.82rem',
+                          color: '#0369a1',
+                          fontWeight: 'bold',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                        title="Ver ficha de trazabilidad y ciclo de vida de la tarjeta"
+                      >
+                        🛡️ Ficha
+                      </button>
+                    </td>
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.cedula_identidad}</td>
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.nombre_apellido}</td>
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>{p.tipo_perfil ? p.tipo_perfil.tipo_especial : p.id_tipo_perfil}</td>
@@ -457,8 +497,35 @@ const ConsultaPerfiles = ({ user }) => {
                         p.serial_mdp || '-'
                       )}
                     </td>
-                    <td style={{ padding: '0.5rem', border: '1px solid #ccc', fontWeight: 'bold', color: estadoColor }}>
-                      {estadoTxt}
+                    <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.82rem',
+                          fontWeight: 'bold',
+                          backgroundColor: `${estadoColor}15`,
+                          color: estadoColor,
+                          border: `1px solid ${estadoColor}40`
+                        }}>
+                          {estadoTxt}
+                        </span>
+                        {isAdmin && (
+                          <button
+                            onClick={() => openModalTrazabilidad(p, 'estado')}
+                            style={{
+                              padding: '2px 4px',
+                              cursor: 'pointer',
+                              border: 'none',
+                              background: 'none',
+                              fontSize: '0.9rem'
+                            }}
+                            title="Modificar estado de esta tarjeta"
+                          >
+                            ✏️
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td style={{ padding: '0.5rem', border: '1px solid #ccc' }}>
                       {p.usuario_carga ? p.usuario_carga.nombre_completo : '-'}
@@ -504,7 +571,7 @@ const ConsultaPerfiles = ({ user }) => {
                 );
               }) : (
                 <tr>
-                  <td colSpan="12" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No se encontraron registros en esta vista.</td>
+                  <td colSpan="13" style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ccc' }}>No se encontraron registros en esta vista.</td>
                 </tr>
               )}
             </tbody>
@@ -727,6 +794,15 @@ const ConsultaPerfiles = ({ user }) => {
             </form>
           </div>
         </div>
+      {/* Modal de Trazabilidad y Cambio de Estado */}
+      {selectedPerfilTrazabilidad && (
+        <ModalTrazabilidadTarjeta
+          perfil={selectedPerfilTrazabilidad}
+          onClose={() => setSelectedPerfilTrazabilidad(null)}
+          onPerfilUpdated={handlePerfilUpdated}
+          isAdmin={isAdmin}
+          initialTab={initialTrazabilidadTab}
+        />
       )}
     </div>
   );
