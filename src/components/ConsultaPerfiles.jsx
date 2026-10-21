@@ -794,6 +794,8 @@ const ConsultaPerfiles = ({ user }) => {
             </form>
           </div>
         </div>
+      )}
+
       {/* Modal de Trazabilidad y Cambio de Estado */}
       {selectedPerfilTrazabilidad && (
         <ModalTrazabilidadTarjeta
