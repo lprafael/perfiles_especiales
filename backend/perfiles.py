@@ -106,6 +106,7 @@ async def get_perfiles(
         p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
         p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
         p.usuario_verif = usuarios_dict.get(p.id_usuario_verif)
+        p.usuario_aprob = usuarios_dict.get(p.id_usuario_aprob)
         p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
         p.observaciones = obs_map.get(p.orden, [])
         
@@ -568,7 +569,9 @@ async def get_unverified(
         p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
         p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
         p.usuario_verif = usuarios_dict.get(p.id_usuario_verif)
+        p.usuario_aprob = usuarios_dict.get(p.id_usuario_aprob)
         p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
+        p.observaciones = []
         
     return perfiles
 
@@ -631,7 +634,9 @@ async def get_pending_approval(
         p.tipo_perfil = tipos_dict.get(p.id_tipo_perfil)
         p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
         p.usuario_verif = usuarios_dict.get(p.id_usuario_verif)
+        p.usuario_aprob = usuarios_dict.get(p.id_usuario_aprob)
         p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
+        p.observaciones = []
         
     return perfiles
 

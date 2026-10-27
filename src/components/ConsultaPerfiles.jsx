@@ -187,7 +187,8 @@ const ConsultaPerfiles = ({ user }) => {
         const data = await res.json();
         setPerfiles(data);
       } else {
-        alert('Error al consultar perfiles');
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.detail || 'Error al consultar perfiles');
       }
     } catch (err) {
       console.error(err);

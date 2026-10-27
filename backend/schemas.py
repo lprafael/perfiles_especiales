@@ -1105,7 +1105,7 @@ class TipoPerfilEspecialResponse(TipoPerfilEspecialBase):
 
 class EstadoSolicitudResponse(BaseModel):
     id_estado: int
-    descripcion: str
+    descripcion: Optional[str] = None
     class Config:
         from_attributes = True
 
@@ -1118,7 +1118,7 @@ class PerfilEspecialBase(BaseModel):
     eps: Optional[str] = None
     serial_mdp: Optional[str] = None
     id_tipo_perfil: Optional[int] = None
-    id_estado_solicitud: int = 1
+    id_estado_solicitud: Optional[int] = 1
     fecha_solicitud: Optional[datetime] = None
     fecha_verificacion: Optional[datetime] = None
     fecha_aprobacion: Optional[datetime] = None
@@ -1145,7 +1145,7 @@ class PerfilEspecialUpdate(BaseModel):
 
 class UsuarioCargaInfo(BaseModel):
     id: Optional[int] = None
-    nombre_completo: str
+    nombre_completo: Optional[str] = None
     class Config:
         from_attributes = True
 

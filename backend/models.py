@@ -721,7 +721,7 @@ class TipoPerfilEspecial(Base):
     tipo_especial = Column(Text, nullable=True) # Ej: Perfil 3, Perfil 4, etc.
     id_organismo = Column(Integer, ForeignKey('sistema.organismos.id'), nullable=True)
     
-    organismo = relationship("Organismo")
+    organismo = relationship("Organismo", lazy="noload")
 
 class EstadoSolicitudPerfil(Base):
     __tablename__ = "estados_solicitud_perfiles"
@@ -741,7 +741,7 @@ class EvidenciaImportacion(Base):
     id_usuario = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=False)
     ip_origen = Column(String(45), nullable=True)
     
-    usuario = relationship("Usuario", foreign_keys=[id_usuario])
+    usuario = relationship("Usuario", foreign_keys=[id_usuario], lazy="noload")
 
 class PerfilEspecial(Base):
     __tablename__ = "perfiles_especiales"
@@ -771,12 +771,12 @@ class PerfilEspecial(Base):
     device_id_aprobo = Column(String(255), nullable=True)
     id_evidencia = Column(Integer, ForeignKey('public.evidencia_importacion.id_evidencia'), nullable=True)
     
-    tipo_perfil = relationship("TipoPerfilEspecial")
-    estado_solicitud = relationship("EstadoSolicitudPerfil")
-    usuario_carga = relationship("Usuario", foreign_keys=[id_usuario_carga])
-    usuario_verif = relationship("Usuario", foreign_keys=[id_usuario_verif])
-    usuario_aprob = relationship("Usuario", foreign_keys=[id_usuario_aprob])
-    evidencia = relationship("EvidenciaImportacion", backref="perfiles_importados")
+    tipo_perfil = relationship("TipoPerfilEspecial", lazy="noload")
+    estado_solicitud = relationship("EstadoSolicitudPerfil", lazy="noload")
+    usuario_carga = relationship("Usuario", foreign_keys=[id_usuario_carga], lazy="noload")
+    usuario_verif = relationship("Usuario", foreign_keys=[id_usuario_verif], lazy="noload")
+    usuario_aprob = relationship("Usuario", foreign_keys=[id_usuario_aprob], lazy="noload")
+    evidencia = relationship("EvidenciaImportacion", backref="perfiles_importados", lazy="noload")
     observaciones = relationship("PerfilObservacion", primaryjoin="PerfilEspecial.orden == foreign(PerfilObservacion.orden)", lazy="noload")
 
 class PerfilObservacion(Base):
@@ -791,4 +791,4 @@ class PerfilObservacion(Base):
     atendido = Column(Boolean, default=False, nullable=False)
     resuelto = Column(Boolean, default=False, nullable=False)
     
-    usuario = relationship("Usuario", foreign_keys=[id_usuario])
+    usuario = relationship("Usuario", foreign_keys=[id_usuario], lazy="noload")
