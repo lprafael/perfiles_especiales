@@ -3,6 +3,7 @@ import ConsultaPerfiles from './ConsultaPerfiles';
 import ImportacionPerfiles from './ImportacionPerfiles';
 import ValidacionPerfiles from './ValidacionPerfiles';
 import HistorialImportaciones from './HistorialImportaciones';
+import DashboardLotes from './DashboardLotes';
 
 const MainScreen = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('consulta');
@@ -20,6 +21,17 @@ const MainScreen = ({ user, onLogout }) => {
         </div>
 
         <nav style={{ flex: 1, padding: '1rem 0' }}>
+          <button
+            onClick={() => setActiveTab('dashboard_lotes')}
+            style={{
+              width: '100%', padding: '1rem', textAlign: 'left', border: 'none',
+              background: activeTab === 'dashboard_lotes' ? '#34495e' : 'transparent',
+              color: 'white', cursor: 'pointer', fontSize: '1rem'
+            }}
+          >
+            📊 Control de Lotes y EPS
+          </button>
+
           <button
             onClick={() => setActiveTab('consulta')}
             style={{
@@ -84,7 +96,8 @@ const MainScreen = ({ user, onLogout }) => {
       {/* Main Content Area */}
       <div style={{ flex: 1, padding: '2rem', background: '#f8f9fa', display: 'flex', flexDirection: 'column' }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid #dee2e6', paddingBottom: '1rem' }}>
-          <h1 style={{ margin: 0, color: '#ffffffff' }}>
+          <h1 style={{ margin: 0, color: '#2c3e50' }}>
+            {activeTab === 'dashboard_lotes' && 'Control de Lotes y Remisión a EPS'}
             {activeTab === 'consulta' && 'Consulta de Beneficiarios'}
             {activeTab === 'importacion' && 'Gestión de Importaciones'}
             {activeTab === 'validacion' && 'Validación Administrativa'}
@@ -96,6 +109,7 @@ const MainScreen = ({ user, onLogout }) => {
         </header>
 
         <main style={{ flex: 1, background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+          {activeTab === 'dashboard_lotes' && <DashboardLotes user={user} />}
           {activeTab === 'consulta' && <ConsultaPerfiles user={user} />}
           {activeTab === 'importacion' && (isUsuario || isAdmin) && <ImportacionPerfiles user={user} />}
           {activeTab === 'validacion' && isAdmin && <ValidacionPerfiles />}
@@ -104,7 +118,7 @@ const MainScreen = ({ user, onLogout }) => {
 
         <footer style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.9rem', color: '#7f8c8d', borderTop: '1px solid #dee2e6', paddingTop: '1rem' }}>
           <p style={{ margin: '0 0 0.5rem 0' }}>Desarrollado por la Coordinación de Innovación y Desarrollo - DMT - VMT - MOPC</p>
-          <p style={{ margin: 0 }}>Contacto: <a href="mailto:vmtcid@mopc.gov.py" style={{color: '#3498db', textDecoration: 'none', fontWeight: '500'}}>vmtcid@mopc.gov.py</a> o <a href="mailto:vicetransporte@mopc.gov.py" style={{color: '#3498db', textDecoration: 'none', fontWeight: '500'}}>vicetransporte@mopc.gov.py</a></p>
+          <p style={{ margin: 0 }}>Contacto: <a href="mailto:vmtcid@mopc.gov.py" style={{ color: '#3498db', textDecoration: 'none', fontWeight: '500' }}>vmtcid@mopc.gov.py</a> o <a href="mailto:vicetransporte@mopc.gov.py" style={{ color: '#3498db', textDecoration: 'none', fontWeight: '500' }}>vicetransporte@mopc.gov.py</a></p>
         </footer>
       </div>
     </div>

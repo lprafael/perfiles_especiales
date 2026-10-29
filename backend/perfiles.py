@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_, cast, String, nulls_last
+from sqlalchemy import or_, cast, String, nulls_last, func, case, distinct
 from typing import List, Optional
 import pandas as pd
 import io
 import math
 from datetime import datetime
 
-from models import PerfilEspecial, TipoPerfilEspecial, Usuario, EstadoSolicitudPerfil, EvidenciaImportacion, PerfilObservacion
+from models import PerfilEspecial, TipoPerfilEspecial, Usuario, EstadoSolicitudPerfil, EvidenciaImportacion, PerfilObservacion, Organismo
 from schemas import PerfilEspecialResponse, SerialUpdate, PerfilObservacionCreate, PerfilObservacionResponse, PerfilObservacionUpdate, EstadoSolicitudResponse, EstadoUpdate
 from security import get_current_user, check_permission
 from database import get_session
@@ -24,6 +24,7 @@ router = APIRouter(prefix="/perfiles", tags=["Perfiles Especiales"])
 async def get_perfiles(
     q: Optional[str] = None,
     documento: Optional[str] = None,
+    lote: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
@@ -54,12 +55,19 @@ async def get_perfiles(
                 return [] # No hay perfiles para su organización
             query = query.where(PerfilEspecial.id_tipo_perfil.in_(tipos_ids))
         
+    if lote:
+        if lote == 'Sin Lote Asignado':
+            query = query.where(or_(PerfilEspecial.Lote.is_(None), func.trim(PerfilEspecial.Lote) == ''))
+        else:
+            query = query.where(PerfilEspecial.Lote == lote)
+
     if q:
         search_term = f"%{q}%"
         query = query.where(
             or_(
                 cast(PerfilEspecial.cedula_identidad, String).ilike(search_term),
-                cast(PerfilEspecial.nombre_apellido, String).ilike(search_term)
+                cast(PerfilEspecial.nombre_apellido, String).ilike(search_term),
+                cast(PerfilEspecial.Lote, String).ilike(search_term)
             )
         )
     elif documento: # Por compatibilidad
@@ -97,6 +105,7 @@ async def get_perfiles(
                 obs.usuario = usuarios_dict.get(obs.id_usuario)
                 obs_map[obs.orden].append(obs)
         except Exception as e:
+            await session.rollback()
             # En caso de que la tabla aún no haya sido migrada en el servidor de producción
             print(f"Advertencia: no se pudieron cargar las observaciones: {e}")
             obs_map = {orden: [] for orden in perfiles_ordens}
@@ -111,6 +120,210 @@ async def get_perfiles(
         p.observaciones = obs_map.get(p.orden, [])
         
     return perfiles
+
+@router.get("/dashboard_lotes")
+async def get_dashboard_lotes(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Control de remisión a EPS por lote y resumen por tipo de perfil:
+    - Métricas globales (KPIs)
+    - Resumen por Tipo de Perfil (Lotes solicitados, perfiles totales, perfiles remitidos a EPS)
+    - Listado detallado de lotes con estado de remisión (REMITIDO, PENDIENTE, PARCIAL)
+    """
+    res_user = await session.execute(select(Usuario).where(Usuario.id == current_user["user_id"]))
+    user = res_user.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+    query = select(
+        func.coalesce(func.nullif(func.trim(PerfilEspecial.Lote), ''), 'Sin Lote Asignado').label("lote"),
+        PerfilEspecial.id_tipo_perfil,
+        func.count().label("total_perfiles"),
+        func.sum(case((PerfilEspecial.id_estado_solicitud == 1, 1), else_=0)).label("solicitados"),
+        func.sum(case((PerfilEspecial.id_estado_solicitud == 2, 1), else_=0)).label("verificados"),
+        func.sum(case((PerfilEspecial.id_estado_solicitud == 3, 1), else_=0)).label("aprobados"),
+        func.sum(case((PerfilEspecial.id_estado_solicitud == 4, 1), else_=0)).label("rechazados"),
+        func.sum(case((PerfilEspecial.id_estado_solicitud == 5, 1), else_=0)).label("remitidos_eps"),
+        func.string_agg(distinct(PerfilEspecial.eps), ', ').label("eps_destinos"),
+        func.min(PerfilEspecial.fecha_solicitud).label("fecha_solicitud"),
+        func.max(PerfilEspecial.fecha_emision).label("fecha_ultima_emision")
+    )
+    
+    # Si el usuario no es admin, filtramos por su organismo
+    if user.id_organismo and current_user.get("role") not in ["admin", "sysadmin"]:
+        org_id = int(user.id_organismo)
+        if org_id == 2:
+            query = query.where(PerfilEspecial.id_tipo_perfil == 3)
+        elif org_id == 3:
+            query = query.where(PerfilEspecial.id_tipo_perfil.in_([4, 5]))
+        else:
+            res_tipos_org = await session.execute(
+                select(TipoPerfilEspecial.id_tipo_especial).where(TipoPerfilEspecial.id_organismo == org_id)
+            )
+            tipos_ids = [t for t in res_tipos_org.scalars().all()]
+            if not tipos_ids:
+                return {
+                    "kpis": {
+                        "total_lotes": 0, "lotes_remitidos": 0, "lotes_parciales": 0, "lotes_pendientes": 0,
+                        "total_perfiles": 0, "remitidos_eps": 0, "pendientes_remision": 0, "rechazados": 0,
+                        "porcentaje_remitido": 0
+                    },
+                    "resumen_tipos": [],
+                    "lotes": []
+                }
+            query = query.where(PerfilEspecial.id_tipo_perfil.in_(tipos_ids))
+            
+    query = query.group_by(
+        func.coalesce(func.nullif(func.trim(PerfilEspecial.Lote), ''), 'Sin Lote Asignado'),
+        PerfilEspecial.id_tipo_perfil
+    ).order_by(
+        func.coalesce(func.nullif(func.trim(PerfilEspecial.Lote), ''), 'Sin Lote Asignado')
+    )
+    
+    result = await session.execute(query)
+    rows = result.all()
+    
+    # Pre-cargar tipos de perfiles y organismos en memoria
+    res_tipos = await session.execute(select(TipoPerfilEspecial))
+    tipos_dict = {t.id_tipo_especial: t for t in res_tipos.scalars().all()}
+    
+    res_orgs = await session.execute(select(Organismo))
+    orgs_dict = {o.id: o for o in res_orgs.scalars().all()}
+    
+    lotes_list = []
+    
+    for r in rows:
+        lote_nombre = r.lote
+        id_tp = r.id_tipo_perfil
+        t_obj = tipos_dict.get(id_tp)
+        tp_nombre = t_obj.tipo_especial if (t_obj and t_obj.tipo_especial) else (f"Tipo {id_tp}" if id_tp else "Sin Tipo Asignado")
+        
+        org_obj = orgs_dict.get(t_obj.id_organismo) if (t_obj and t_obj.id_organismo) else None
+        org_sigla = org_obj.sigla if org_obj else ""
+        org_nombre = org_obj.nombre_completo if org_obj else ""
+        
+        total_p = int(r.total_perfiles or 0)
+        solic = int(r.solicitados or 0)
+        verif = int(r.verificados or 0)
+        aprob = int(r.aprobados or 0)
+        rech = int(r.rechazados or 0)
+        remit = int(r.remitidos_eps or 0)
+        
+        pend = solic + verif + aprob
+        
+        # Determinar estado de remisión del lote
+        if total_p > 0 and pend == 0 and remit > 0:
+            estado_remision = "REMITIDO"
+        elif remit > 0 and pend > 0:
+            estado_remision = "PARCIAL"
+        else:
+            estado_remision = "PENDIENTE"
+            
+        valido = total_p - rech
+        porcentaje = round((remit / valido * 100), 1) if valido > 0 else (100.0 if remit > 0 else 0.0)
+        
+        lotes_list.append({
+            "lote": lote_nombre,
+            "id_tipo_perfil": id_tp,
+            "tipo_perfil": tp_nombre,
+            "organismo_sigla": org_sigla,
+            "organismo_nombre": org_nombre,
+            "total_perfiles": total_p,
+            "solicitados": solic,
+            "verificados": verif,
+            "aprobados": aprob,
+            "rechazados": rech,
+            "remitidos_eps": remit,
+            "pendientes": pend,
+            "eps_destinos": r.eps_destinos or "Sin Asignar",
+            "fecha_solicitud": r.fecha_solicitud.isoformat() if r.fecha_solicitud else None,
+            "fecha_ultima_emision": r.fecha_ultima_emision.isoformat() if r.fecha_ultima_emision else None,
+            "estado_remision": estado_remision,
+            "porcentaje_remitido": porcentaje
+        })
+        
+    resumen_tipos_map = {}
+    
+    for l in lotes_list:
+        key = l["id_tipo_perfil"]
+        if key not in resumen_tipos_map:
+            resumen_tipos_map[key] = {
+                "id_tipo_perfil": key,
+                "tipo_perfil": l["tipo_perfil"],
+                "organismo_sigla": l["organismo_sigla"],
+                "organismo_nombre": l["organismo_nombre"],
+                "total_lotes": 0,
+                "lotes_remitidos": 0,
+                "lotes_parciales": 0,
+                "lotes_pendientes": 0,
+                "total_perfiles": 0,
+                "solicitados": 0,
+                "verificados": 0,
+                "aprobados": 0,
+                "rechazados": 0,
+                "remitidos_eps": 0,
+                "pendientes_remision": 0,
+            }
+        
+        rt = resumen_tipos_map[key]
+        rt["total_lotes"] += 1
+        if l["estado_remision"] == "REMITIDO":
+            rt["lotes_remitidos"] += 1
+        elif l["estado_remision"] == "PARCIAL":
+            rt["lotes_parciales"] += 1
+        else:
+            rt["lotes_pendientes"] += 1
+            
+        rt["total_perfiles"] += l["total_perfiles"]
+        rt["solicitados"] += l["solicitados"]
+        rt["verificados"] += l["verificados"]
+        rt["aprobados"] += l["aprobados"]
+        rt["rechazados"] += l["rechazados"]
+        rt["remitidos_eps"] += l["remitidos_eps"]
+        rt["pendientes_remision"] += l["pendientes"]
+        
+    resumen_tipos = []
+    for rt in resumen_tipos_map.values():
+        valido = rt["total_perfiles"] - rt["rechazados"]
+        pct = round((rt["remitidos_eps"] / valido * 100), 1) if valido > 0 else (100.0 if rt["remitidos_eps"] > 0 else 0.0)
+        rt["porcentaje_remitido"] = pct
+        resumen_tipos.append(rt)
+        
+    resumen_tipos.sort(key=lambda x: x["tipo_perfil"] or "")
+    
+    total_lotes = len(lotes_list)
+    lotes_remitidos = sum(1 for l in lotes_list if l["estado_remision"] == "REMITIDO")
+    lotes_parciales = sum(1 for l in lotes_list if l["estado_remision"] == "PARCIAL")
+    lotes_pendientes = sum(1 for l in lotes_list if l["estado_remision"] == "PENDIENTE")
+    
+    total_perfiles = sum(l["total_perfiles"] for l in lotes_list)
+    total_remitidos = sum(l["remitidos_eps"] for l in lotes_list)
+    total_pendientes = sum(l["pendientes"] for l in lotes_list)
+    total_rechazados = sum(l["rechazados"] for l in lotes_list)
+    
+    valido_global = total_perfiles - total_rechazados
+    pct_global = round((total_remitidos / valido_global * 100), 1) if valido_global > 0 else (100.0 if total_remitidos > 0 else 0.0)
+    
+    kpis = {
+        "total_lotes": total_lotes,
+        "lotes_remitidos": lotes_remitidos,
+        "lotes_parciales": lotes_parciales,
+        "lotes_pendientes": lotes_pendientes,
+        "total_perfiles": total_perfiles,
+        "remitidos_eps": total_remitidos,
+        "pendientes_remision": total_pendientes,
+        "rechazados": total_rechazados,
+        "porcentaje_remitido": pct_global
+    }
+    
+    return {
+        "kpis": kpis,
+        "resumen_tipos": resumen_tipos,
+        "lotes": lotes_list
+    }
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)

@@ -1,0 +1,631 @@
+/* DashboardLotes.css */
+/* Estilos modernos y profesionales para el Dashboard de Control de Lotes y EPS */
+
+:root {
+  --db-primary: #1e40af;
+  --db-primary-light: #eff6ff;
+  --db-success: #15803d;
+  --db-success-light: #f0fdf4;
+  --db-warning: #b45309;
+  --db-warning-light: #fffbeb;
+  --db-purple: #7e22ce;
+  --db-purple-light: #faf5ff;
+  --db-danger: #b91c1c;
+  --db-danger-light: #fef2f2;
+  --db-gray-50: #f8fafc;
+  --db-gray-100: #f1f5f9;
+  --db-gray-200: #e2e8f0;
+  --db-gray-300: #cbd5e1;
+  --db-gray-600: #475569;
+  --db-gray-700: #334155;
+  --db-gray-800: #1e293b;
+  --db-shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+  --db-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --db-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08);
+}
+
+.db-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  color: var(--db-gray-800);
+  font-family: inherit;
+}
+
+/* Header */
+.db-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 2px solid var(--db-gray-200);
+}
+
+.db-header-left h2 {
+  margin: 0;
+  font-size: 1.65rem;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+}
+
+.db-header-left p {
+  margin: 0.4rem 0 0 0;
+  color: var(--db-gray-600);
+  font-size: 0.95rem;
+}
+
+.db-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.db-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.db-btn-refresh {
+  background: white;
+  border-color: var(--db-gray-300);
+  color: var(--db-gray-700);
+}
+
+.db-btn-refresh:hover:not(:disabled) {
+  background: var(--db-gray-100);
+  border-color: var(--db-gray-400);
+}
+
+.db-btn-excel {
+  background: #107c41;
+  color: white;
+}
+
+.db-btn-excel:hover:not(:disabled) {
+  background: #0b5c30;
+}
+
+.db-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* KPIs Grid */
+.db-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1.2rem;
+}
+
+.db-kpi-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid var(--db-gray-200);
+  box-shadow: var(--db-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.db-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--db-shadow-md);
+}
+
+.db-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 5px;
+}
+
+.db-kpi-card.blue::before { background: #3b82f6; }
+.db-kpi-card.green::before { background: #16a34a; }
+.db-kpi-card.purple::before { background: #9333ea; }
+.db-kpi-card.amber::before { background: #f59e0b; }
+.db-kpi-card.red::before { background: #ef4444; }
+
+.db-kpi-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.db-kpi-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--db-gray-600);
+}
+
+.db-kpi-icon {
+  font-size: 1.4rem;
+}
+
+.db-kpi-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
+}
+
+.db-kpi-subtext {
+  font-size: 0.82rem;
+  color: var(--db-gray-600);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Sección Resumen por Tipo de Perfil */
+.db-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid var(--db-gray-200);
+  box-shadow: var(--db-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.db-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.db-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.db-section-title h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.db-section-title span.badge-count {
+  background: var(--db-primary-light);
+  color: var(--db-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+}
+
+.db-section-subtitle {
+  margin: 0.2rem 0 0 0;
+  color: var(--db-gray-600);
+  font-size: 0.88rem;
+}
+
+/* Grid de Cards por Tipo de Perfil */
+.db-tipos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.db-tipo-card {
+  background: var(--db-gray-50);
+  border: 1px solid var(--db-gray-200);
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.db-tipo-card:hover {
+  border-color: #93c5fd;
+  background: #f8fafc;
+  box-shadow: var(--db-shadow-sm);
+}
+
+.db-tipo-card.active-filter {
+  border-color: var(--db-primary);
+  background: #f0f7ff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.db-tipo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.db-tipo-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.db-tipo-org {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+  background: #e2e8f0;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  margin-top: 0.2rem;
+}
+
+.db-tipo-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.db-stat-item {
+  background: white;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid var(--db-gray-200);
+}
+
+.db-stat-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--db-gray-600);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.db-stat-num {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.db-stat-num.green { color: var(--db-success); }
+.db-stat-num.purple { color: var(--db-purple); }
+.db-stat-num.amber { color: var(--db-warning); }
+
+/* Barra de progreso */
+.db-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.db-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--db-gray-700);
+}
+
+.db-progress-bar-bg {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.db-progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease-in-out;
+}
+
+.db-progress-bar-fill.purple { background: linear-gradient(90deg, #9333ea, #7e22ce); }
+.db-progress-bar-fill.green { background: linear-gradient(90deg, #22c55e, #16a34a); }
+.db-progress-bar-fill.blue { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+
+/* Filtros y Controles de Lotes */
+.db-filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--db-gray-50);
+  padding: 0.9rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid var(--db-gray-200);
+}
+
+.db-pills-group {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.db-pill {
+  border: none;
+  background: white;
+  border: 1px solid var(--db-gray-300);
+  color: var(--db-gray-700);
+  padding: 0.45rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.db-pill:hover {
+  background: var(--db-gray-100);
+}
+
+.db-pill.active {
+  background: #1e293b;
+  color: white;
+  border-color: #1e293b;
+}
+
+.db-pill.active.pill-green { background: var(--db-success); border-color: var(--db-success); }
+.db-pill.active.pill-amber { background: var(--db-warning); border-color: var(--db-warning); }
+.db-pill.active.pill-blue { background: var(--db-primary); border-color: var(--db-primary); }
+
+.db-pill-count {
+  background: rgba(0,0,0,0.08);
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+}
+
+.db-pill.active .db-pill-count {
+  background: rgba(255,255,255,0.25);
+  color: white;
+}
+
+.db-inputs-group {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.db-select {
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--db-gray-300);
+  background: white;
+  color: var(--db-gray-800);
+  font-size: 0.88rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+}
+
+.db-select:focus {
+  border-color: var(--db-primary);
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+
+.db-search {
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--db-gray-300);
+  background: white;
+  color: var(--db-gray-800);
+  font-size: 0.88rem;
+  outline: none;
+  min-width: 220px;
+}
+
+.db-search:focus {
+  border-color: var(--db-primary);
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+
+/* Tabla de Lotes */
+.db-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--db-gray-200);
+  border-radius: 8px;
+}
+
+.db-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.db-table thead th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  padding: 0.85rem 1rem;
+  border-bottom: 2px solid var(--db-gray-200);
+  white-space: nowrap;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.db-table tbody td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--db-gray-200);
+  vertical-align: middle;
+}
+
+.db-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.db-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Badges */
+.db-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.db-badge.remitido {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.db-badge.pendiente {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.db-badge.parcial {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.db-badge-lote {
+  background: #ede9fe;
+  color: #6d28d9;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.db-badge-eps {
+  background: #f3e8ff;
+  color: #7e22ce;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.82rem;
+}
+
+/* Modal Detalle de Lote */
+.db-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 1.5rem;
+}
+
+.db-modal-content {
+  background: white;
+  width: 100%;
+  max-width: 900px;
+  max-height: 85vh;
+  border-radius: 14px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.db-modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--db-gray-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+}
+
+.db-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.db-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  color: var(--db-gray-600);
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+}
+
+.db-modal-close:hover {
+  color: #0f172a;
+  background: var(--db-gray-200);
+}
+
+.db-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.db-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--db-gray-200);
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Empty State */
+.db-empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--db-gray-600);
+}
+
+.db-empty-state h4 {
+  margin: 0.5rem 0 0.25rem 0;
+  color: #334155;
+  font-size: 1.1rem;
+}
+
