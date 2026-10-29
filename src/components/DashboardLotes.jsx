@@ -34,6 +34,92 @@ const DashboardLotes = ({ user }) => {
   const [loadingModal, setLoadingModal] = useState(false);
   const [modalSearch, setModalSearch] = useState('');
 
+  const isAdmin = user?.rol === 'admin' || user?.rol === 'sysadmin';
+
+  // Estados para Modal de Reenvío de Solicitud a EPS
+  const [modalReenvioLote, setModalReenvioLote] = useState(null);
+  const [reenvioAlcance, setReenvioAlcance] = useState('todos'); // 'todos' | 'pendientes_impresion'
+  const [reenvioEps, setReenvioEps] = useState('TDP');
+  const [reenvioEmails, setReenvioEmails] = useState('');
+  const [reenvioAsunto, setReenvioAsunto] = useState('');
+  const [reenvioCuerpo, setReenvioCuerpo] = useState('');
+  const [reenvioMotivo, setReenvioMotivo] = useState('');
+  const [reenviando, setReenviando] = useState(false);
+
+  const handleOpenReenvio = (loteItem) => {
+    setModalReenvioLote(loteItem);
+    setReenvioAlcance(loteItem.en_impresion_eps > 0 ? 'pendientes_impresion' : 'todos');
+    const defaultEps = (loteItem.eps_destinos && loteItem.eps_destinos !== 'Sin Asignar' && loteItem.eps_destinos.includes('EPAS')) ? 'EPAS' : 'TDP';
+    setReenvioEps(defaultEps);
+    setReenvioEmails(sessionStorage.getItem('last_eps_email') || '');
+    setReenvioAsunto(`[REITERACIÓN] Solicitud de Impresión de Tarjetas - Lote ${loteItem.lote}`);
+    setReenvioCuerpo(`Adjunto encontrará la nómina de beneficiarios del Lote ${loteItem.lote} para reiteración de troquelado e impresión de tarjetas.`);
+    setReenvioMotivo('');
+  };
+
+  const handleCloseReenvio = () => {
+    setModalReenvioLote(null);
+    setReenvioMotivo('');
+    setReenviando(false);
+  };
+
+  const handleConfirmarReenvio = async (e) => {
+    e.preventDefault();
+    if (!reenvioMotivo.trim()) {
+      alert("Debe ingresar el motivo de la reiteración/reenvío. Este comentario se registrará automáticamente en el historial de observaciones de cada perfil.");
+      return;
+    }
+    if (!reenvioEmails.trim()) {
+      alert("Debe ingresar al menos un correo de destino.");
+      return;
+    }
+
+    const cantidadMsg = reenvioAlcance === 'pendientes_impresion' 
+      ? `${modalReenvioLote.en_impresion_eps} perfiles aún no impresos` 
+      : `${modalReenvioLote.total_perfiles} perfiles en total`;
+
+    if (!window.confirm(`Se reenviará la solicitud a la EPS ${reenvioEps} para ${cantidadMsg} del Lote ${modalReenvioLote.lote}.\n¿Desea continuar?`)) {
+      return;
+    }
+
+    setReenviando(true);
+    const formData = new FormData();
+    formData.append('lote', modalReenvioLote.lote);
+    formData.append('eps', reenvioEps);
+    formData.append('correos', reenvioEmails.trim());
+    formData.append('asunto', reenvioAsunto.trim());
+    formData.append('cuerpo', reenvioCuerpo.trim());
+    formData.append('motivo', reenvioMotivo.trim());
+    formData.append('solo_pendientes_impresion', String(reenvioAlcance === 'pendientes_impresion'));
+
+    try {
+      const res = await fetch(`${API_BASE}/perfiles/resend_email`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || "Reenvío encolado exitosamente con registro de comentarios");
+        sessionStorage.setItem('last_eps_email', reenvioEmails.trim());
+        setModalReenvioLote(null);
+        fetchDashboardData();
+        if (modalLote && modalLote.lote === modalReenvioLote.lote) {
+          handleOpenModal(modalLote);
+        }
+      } else {
+        alert(`Error: ${data.detail || 'Ocurrió un error al procesar el reenvío'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error de conexión al procesar el reenvío");
+    } finally {
+      setReenviando(false);
+    }
+  };
+
   const fetchDashboardData = async () => {
     setLoading(true);
     setError(null);
@@ -634,25 +720,48 @@ const DashboardLotes = ({ user }) => {
                         )}
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <button
-                          onClick={() => handleOpenModal(lote)}
-                          style={{
-                            background: '#eff6ff',
-                            border: '1px solid #bfdbfe',
-                            color: '#1d4ed8',
-                            padding: '0.35rem 0.75rem',
-                            borderRadius: '6px',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.3rem'
-                          }}
-                          title="Inspeccionar beneficiarios de este lote"
-                        >
-                          👁️ Ver Perfiles
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                          <button
+                            onClick={() => handleOpenModal(lote)}
+                            style={{
+                              background: '#eff6ff',
+                              border: '1px solid #bfdbfe',
+                              color: '#1d4ed8',
+                              padding: '0.35rem 0.65rem',
+                              borderRadius: '6px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem'
+                            }}
+                            title="Inspeccionar beneficiarios de este lote"
+                          >
+                            👁️ Ver Perfiles
+                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleOpenReenvio(lote)}
+                              style={{
+                                background: '#f0fdf4',
+                                border: '1px solid #bbf7d0',
+                                color: '#15803d',
+                                padding: '0.35rem 0.65rem',
+                                borderRadius: '6px',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem'
+                              }}
+                              title="Reenviar solicitud a la EPS agregando comentario automático a cada perfil"
+                            >
+                              🔁 Reenviar Solicitud
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -689,14 +798,37 @@ const DashboardLotes = ({ user }) => {
                   className="db-search"
                   style={{ minWidth: '260px' }}
                 />
-                <button
-                  onClick={handleExportModalBeneficiarios}
-                  disabled={!modalBeneficiarios.length}
-                  className="db-btn db-btn-excel"
-                  style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem' }}
-                >
-                  📥 Exportar Beneficiarios
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleOpenReenvio(modalLote)}
+                      style={{
+                        background: '#15803d',
+                        color: 'white',
+                        border: 'none',
+                        padding: '0.45rem 0.9rem',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem'
+                      }}
+                      title="Reenviar este lote a la EPS registrando motivo en el historial"
+                    >
+                      🔁 Reenviar Solicitud a EPS
+                    </button>
+                  )}
+                  <button
+                    onClick={handleExportModalBeneficiarios}
+                    disabled={!modalBeneficiarios.length}
+                    className="db-btn db-btn-excel"
+                    style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem' }}
+                  >
+                    📥 Exportar Beneficiarios
+                  </button>
+                </div>
               </div>
 
               {loadingModal ? (
@@ -793,6 +925,173 @@ const DashboardLotes = ({ user }) => {
                 Cerrar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Reenvío de Solicitud a EPS */}
+      {modalReenvioLote && (
+        <div className="db-modal-overlay" onClick={handleCloseReenvio}>
+          <div className="db-modal-content" style={{ maxWidth: '650px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="db-modal-header" style={{ borderBottom: '2px solid #bbf7d0', background: '#f0fdf4' }}>
+              <div>
+                <h3 style={{ color: '#166534', margin: 0 }}>🔁 Reenviar Solicitud de Impresión a EPS</h3>
+                <small style={{ color: '#15803d', fontWeight: 600 }}>
+                  Lote: {modalReenvioLote.lote} • {modalReenvioLote.tipo_perfil}
+                </small>
+              </div>
+              <button onClick={handleCloseReenvio} className="db-modal-close" title="Cerrar modal">
+                ✖
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmarReenvio}>
+              <div className="db-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ background: '#fefce8', border: '1px solid #fef08a', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '0.85rem', color: '#854d0e' }}>
+                  ℹ️ Esta acción volverá a remitir por correo electrónico la nómina del lote a la EPS indicada, actualizando la <strong>Fecha de Remisión a EPS</strong> y registrando el <strong>motivo como comentario</strong> en el historial de observaciones de cada beneficiario.
+                </div>
+
+                {/* Alcance del Reenvío */}
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem', marginBottom: '0.4rem', color: '#1e293b' }}>
+                    Beneficiarios a Reenviar:
+                  </label>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="reenvioAlcance"
+                        value="todos"
+                        checked={reenvioAlcance === 'todos'}
+                        onChange={() => setReenvioAlcance('todos')}
+                      />
+                      <span>Todos los del lote (<strong>{modalReenvioLote.total_perfiles}</strong> perfiles)</span>
+                    </label>
+                    {modalReenvioLote.en_impresion_eps > 0 && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', cursor: 'pointer' }}>
+                        <input
+                          type="radio"
+                          name="reenvioAlcance"
+                          value="pendientes_impresion"
+                          checked={reenvioAlcance === 'pendientes_impresion'}
+                          onChange={() => setReenvioAlcance('pendientes_impresion')}
+                        />
+                        <span>Solo los <strong>aún no impresos</strong> ({modalReenvioLote.en_impresion_eps} perfiles)</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* EPS Destino y Correos */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem', marginBottom: '0.3rem', color: '#1e293b' }}>
+                      EPS Destino:
+                    </label>
+                    <select
+                      value={reenvioEps}
+                      onChange={(e) => setReenvioEps(e.target.value)}
+                      className="db-select"
+                      style={{ width: '100%', padding: '0.5rem' }}
+                    >
+                      <option value="TDP">TDP</option>
+                      <option value="EPAS">EPAS</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem', marginBottom: '0.3rem', color: '#1e293b' }}>
+                      Correos Destino:
+                    </label>
+                    <input
+                      type="text"
+                      value={reenvioEmails}
+                      onChange={(e) => setReenvioEmails(e.target.value)}
+                      placeholder="correo1@eps.com, correo2@eps.com"
+                      className="db-search"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Asunto */}
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem', marginBottom: '0.3rem', color: '#1e293b' }}>
+                    Asunto del Correo:
+                  </label>
+                  <input
+                    type="text"
+                    value={reenvioAsunto}
+                    onChange={(e) => setReenvioAsunto(e.target.value)}
+                    className="db-search"
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                    required
+                  />
+                </div>
+
+                {/* Motivo de Reenvío / Comentario para los perfiles */}
+                <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem', marginBottom: '0.3rem', color: '#0f172a' }}>
+                    💬 Motivo de la Reiteración / Comentario para los Perfiles: <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <textarea
+                    rows="3"
+                    value={reenvioMotivo}
+                    onChange={(e) => setReenvioMotivo(e.target.value)}
+                    placeholder="Ejemplo: Se vuelve a solicitar a la EPS debido a demora en fábrica; o EPS solicitó reenvío del archivo..."
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      borderRadius: '6px',
+                      border: '1px solid #94a3b8',
+                      fontSize: '0.88rem',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box'
+                    }}
+                    required
+                  />
+                  <small style={{ color: '#475569', display: 'block', marginTop: '0.25rem', fontSize: '0.78rem' }}>
+                    ✍️ Este texto se guardará automáticamente como observación individual en el historial de cada uno de los beneficiarios seleccionados.
+                  </small>
+                </div>
+              </div>
+
+              <div className="db-modal-footer">
+                <button
+                  type="button"
+                  onClick={handleCloseReenvio}
+                  style={{
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    color: '#475569',
+                    padding: '0.5rem 1.25rem',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={reenviando || !reenvioMotivo.trim()}
+                  style={{
+                    background: reenviando || !reenvioMotivo.trim() ? '#94a3b8' : '#15803d',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.55rem 1.5rem',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    cursor: reenviando || !reenvioMotivo.trim() ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem'
+                  }}
+                >
+                  {reenviando ? '⏳ Reenviando a EPS...' : `🚀 Confirmar y Reenviar a ${reenvioEps}`}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

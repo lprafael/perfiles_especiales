@@ -991,12 +991,14 @@ async def approve_perfiles(
 @router.post("/send_email")
 async def send_perfiles_email(
     background_tasks: BackgroundTasks,
+    request: Request,
     correos: str = Form(...), # Correos separados por coma
     cantidad_por_correo: int = Form(1500),
     asunto: str = Form(None),
     cuerpo: str = Form(None),
     eps: str = Form(...),
     ids: str = Form(...),
+    comentario: Optional[str] = Form(None),
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
@@ -1019,11 +1021,23 @@ async def send_perfiles_email(
     if not perfiles:
         raise HTTPException(status_code=400, detail="No se encontraron los perfiles especificados.")
         
+    ahora = datetime.now()
     data = []
     for p in perfiles:
         p.id_estado_solicitud = 6 # Remitido a EPS (en espera de impresión física de tarjeta)
-        p.fecha_remision_eps = datetime.now()
+        p.fecha_remision_eps = ahora
         p.eps = eps
+        
+        if comentario and comentario.strip():
+            nueva_obs = PerfilObservacion(
+                orden=p.orden,
+                observacion=f"[Remisión a EPS {eps}]: {comentario.strip()}",
+                id_usuario=current_user["user_id"],
+                fecha_creacion=ahora,
+                atendido=True,
+                resuelto=True
+            )
+            session.add(nueva_obs)
         
         data.append({
             "Nombre y Apellido": p.nombre_apellido,
@@ -1035,6 +1049,15 @@ async def send_perfiles_email(
         })
         
     await session.commit()
+
+    await log_activity(
+        session=session,
+        request=request,
+        current_user=current_user,
+        action="send_email",
+        table="perfiles_especiales",
+        details=f"Remisión a EPS {eps} de {len(perfiles)} perfiles."
+    )
         
     df = pd.DataFrame(data)
     total = len(df)
@@ -1071,6 +1094,140 @@ async def send_perfiles_email(
             
     background_tasks.add_task(process_and_send)
     return {"message": "El envío de correos se ha iniciado en segundo plano."}
+
+@router.post("/resend_email")
+async def resend_perfiles_email(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    correos: str = Form(...), # Correos separados por coma
+    cantidad_por_correo: int = Form(1500),
+    asunto: str = Form(None),
+    cuerpo: str = Form(None),
+    eps: str = Form(...),
+    ids: Optional[str] = Form(None), # IDs separados por coma
+    lote: Optional[str] = Form(None), # Nombre del lote
+    solo_pendientes_impresion: bool = Form(False), # Si true, solo los que aún no tienen tarjeta/serial
+    motivo: str = Form(...), # Motivo obligatorio del reenvío
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Reenviar solicitud a la EPS para perfiles específicos o todo un lote:
+    - Actualiza fecha_remision_eps = datetime.now()
+    - Actualiza eps = eps
+    - Si el perfil no tiene tarjeta emitida/entregada, asegura estado 6 (Remitido a EPS)
+    - Registra automáticamente una observación en 'perfiles_observaciones':
+      '[Reenvío de solicitud a EPS {eps}]: {motivo}'
+    - Genera el Excel de reenvío y envía los correos en segundo plano a la EPS
+    - Registra log de auditoría
+    """
+    if current_user.get("role") not in ["admin", "sysadmin"]:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    motivo_clean = motivo.strip() if motivo else ""
+    if not motivo_clean:
+        raise HTTPException(status_code=400, detail="Debe especificar el motivo o comentario del reenvío.")
+
+    correos_list = [c.strip() for c in correos.split(",") if c.strip()]
+    if not correos_list:
+        raise HTTPException(status_code=400, detail="Debe proveer al menos un correo válido.")
+
+    # Obtener perfiles según ids o lote
+    if ids and ids.strip():
+        id_list = [int(i.strip()) for i in ids.split(",") if i.strip()]
+        result = await session.execute(select(PerfilEspecial).where(PerfilEspecial.orden.in_(id_list)))
+        perfiles = result.scalars().all()
+    elif lote and lote.strip():
+        lote_clean = lote.strip()
+        q = select(PerfilEspecial).where(func.trim(PerfilEspecial.Lote) == lote_clean)
+        if solo_pendientes_impresion:
+            q = q.where(or_(PerfilEspecial.serial_mdp.is_(None), func.trim(PerfilEspecial.serial_mdp) == ''))
+        result = await session.execute(q)
+        perfiles = result.scalars().all()
+    else:
+        raise HTTPException(status_code=400, detail="Debe indicar 'ids' o 'lote' para el reenvío.")
+
+    if not perfiles:
+        raise HTTPException(status_code=404, detail="No se encontraron perfiles que coincidan con los criterios para reenviar.")
+
+    ahora = datetime.now()
+    data = []
+    obs_texto = f"[Reenvío de solicitud a EPS {eps}]: {motivo_clean}"
+
+    for p in perfiles:
+        if p.id_estado_solicitud not in [5, 7]:
+            p.id_estado_solicitud = 6 # Remitido a EPS
+        p.fecha_remision_eps = ahora
+        p.eps = eps
+
+        # Registrar automáticamente el comentario en el perfil
+        nueva_obs = PerfilObservacion(
+            orden=p.orden,
+            observacion=obs_texto,
+            id_usuario=current_user["user_id"],
+            fecha_creacion=ahora,
+            atendido=True,
+            resuelto=True
+        )
+        session.add(nueva_obs)
+
+        data.append({
+            "Nombre y Apellido": p.nombre_apellido,
+            "Documento": p.cedula_identidad,
+            "Lote": p.Lote,
+            "TipoPerfil ID": p.id_tipo_perfil,
+            "Estado ID": p.id_estado_solicitud,
+            "EPS": p.eps,
+            "Fecha Reenvío": ahora.strftime("%d/%m/%Y %H:%M")
+        })
+
+    await session.commit()
+
+    # Log de auditoría
+    await log_activity(
+        session=session,
+        request=request,
+        current_user=current_user,
+        action="resend_email",
+        table="perfiles_especiales",
+        details=f"Reenvío de solicitud a EPS {eps} para {len(perfiles)} perfiles. Motivo: {motivo_clean}"
+    )
+
+    df = pd.DataFrame(data)
+    total = len(df)
+
+    def process_and_send():
+        chunks = math.ceil(total / cantidad_por_correo)
+        for i in range(chunks):
+            start = i * cantidad_por_correo
+            end = start + cantidad_por_correo
+            chunk_df = df.iloc[start:end]
+
+            stream = io.BytesIO()
+            with pd.ExcelWriter(stream, engine='openpyxl') as writer:
+                chunk_df.to_excel(writer, index=False)
+            content = stream.getvalue()
+
+            correo_destino = correos_list[i % len(correos_list)]
+
+            attachments = [{
+                'filename': f'reiteracion_solicitud_eps_{i+1}.xlsx',
+                'content': content,
+                'content_type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            }]
+
+            final_subject = asunto if asunto else f"[Reiteración] Solicitud de Impresión a EPS {eps} - Parte {i+1}"
+            final_body = cuerpo if cuerpo else f"Adjunto encontrará la reiteración/reenvío de solicitud para impresión de {len(chunk_df)} perfiles.\n\nMotivo del Reenvío: {motivo_clean}"
+
+            email_service.send_email(
+                to_email=correo_destino,
+                subject=final_subject,
+                body=final_body,
+                attachments=attachments
+            )
+
+    background_tasks.add_task(process_and_send)
+    return {"message": f"Se ha encolado exitosamente el reenvío de solicitud a la EPS {eps} para {len(perfiles)} perfiles."}
 
 @router.get("/evidencias")
 async def get_evidencias(

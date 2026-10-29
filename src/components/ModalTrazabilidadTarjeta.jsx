@@ -37,6 +37,80 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
   const [newObsText, setNewObsText] = useState('');
   const [submittingObs, setSubmittingObs] = useState(false);
 
+  // Estados para Reenvío de Solicitud Individual a EPS
+  const [showReenvioForm, setShowReenvioForm] = useState(false);
+  const [reenvioEps, setReenvioEps] = useState(perfil.eps || 'TDP');
+  const [reenvioEmails, setReenvioEmails] = useState(sessionStorage.getItem('last_eps_email') || '');
+  const [reenvioMotivo, setReenvioMotivo] = useState('');
+  const [reenviando, setReenviando] = useState(false);
+
+  const handleReenviarIndividual = async (e) => {
+    e.preventDefault();
+    if (!reenvioMotivo.trim()) {
+      alert("Ingrese el motivo o justificación de la reiteración a la EPS.");
+      return;
+    }
+    if (!reenvioEmails.trim()) {
+      alert("Ingrese al menos un correo de destino.");
+      return;
+    }
+
+    if (!window.confirm(`¿Está seguro de reenviar la solicitud de impresión a la EPS ${reenvioEps}?`)) {
+      return;
+    }
+
+    setReenviando(true);
+    const formData = new FormData();
+    formData.append('ids', String(currentPerfil.orden));
+    formData.append('eps', reenvioEps);
+    formData.append('correos', reenvioEmails.trim());
+    formData.append('asunto', `[REITERACIÓN] Solicitud de Impresión - C.I. ${currentPerfil.cedula_identidad || currentPerfil.orden}`);
+    formData.append('cuerpo', `Adjunto encontrará la reiteración de solicitud de impresión para el beneficiario ${currentPerfil.nombre_apellido} (C.I. ${currentPerfil.cedula_identidad}).`);
+    formData.append('motivo', reenvioMotivo.trim());
+
+    try {
+      const res = await fetch(`${API_BASE}/perfiles/resend_email`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || "Reenvío iniciado exitosamente");
+        sessionStorage.setItem('last_eps_email', reenvioEmails.trim());
+        setShowReenvioForm(false);
+        setReenvioMotivo('');
+        
+        // Recargar datos actualizados del perfil y observaciones
+        const resP = await fetch(`${API_BASE}/perfiles/${currentPerfil.orden}/trazabilidad`, {
+          headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
+        if (resP.ok) {
+          const updatedP = await resP.json();
+          setCurrentPerfil(updatedP);
+          if (onPerfilUpdated) onPerfilUpdated(updatedP);
+        }
+        
+        const resObs = await fetch(`${API_BASE}/perfiles/${currentPerfil.orden}/observaciones`, {
+          headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
+        if (resObs.ok) {
+          const dataObs = await resObs.json();
+          setObservacionesList(dataObs);
+        }
+      } else {
+        alert(`Error: ${data.detail || 'Ocurrió un error al procesar el reenvío'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error de conexión al procesar el reenvío");
+    } finally {
+      setReenviando(false);
+    }
+  };
+
   // Cargar observaciones actualizadas al abrir
   useEffect(() => {
     const fetchObservaciones = async () => {
@@ -663,6 +737,102 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                       {savingSerial ? 'Guardando...' : '💾 Actualizar Serial'}
                     </button>
                   </form>
+                </div>
+              )}
+
+              {/* Reenviar Solicitud a EPS para este perfil */}
+              {isAdmin && (
+                <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <strong style={{ color: '#166534', fontSize: '0.92rem' }}>🔁 Reenviar Solicitud a EPS</strong>
+                      <span style={{ display: 'block', fontSize: '0.78rem', color: '#15803d' }}>
+                        Reitera el pedido de impresión de este perfil ante la EPS y guarda automáticamente el motivo como comentario.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowReenvioForm(!showReenvioForm)}
+                      style={{
+                        padding: '0.4rem 0.85rem',
+                        background: showReenvioForm ? '#e2e8f0' : '#15803d',
+                        color: showReenvioForm ? '#334155' : 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.82rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      {showReenvioForm ? 'Ocultar' : '🔁 Reenviar a EPS'}
+                    </button>
+                  </div>
+
+                  {showReenvioForm && (
+                    <form onSubmit={handleReenviarIndividual} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.25rem' }}>
+                            EPS:
+                          </label>
+                          <select
+                            value={reenvioEps}
+                            onChange={(e) => setReenvioEps(e.target.value)}
+                            style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                          >
+                            <option value="TDP">TDP</option>
+                            <option value="EPAS">EPAS</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.25rem' }}>
+                            Correo Destino:
+                          </label>
+                          <input
+                            type="text"
+                            value={reenvioEmails}
+                            onChange={(e) => setReenvioEmails(e.target.value)}
+                            placeholder="correo@eps.com"
+                            style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.25rem' }}>
+                          Motivo del Reenvío (se guardará como observación): <span style={{ color: '#dc2626' }}>*</span>
+                        </label>
+                        <textarea
+                          rows="2"
+                          value={reenvioMotivo}
+                          onChange={(e) => setReenvioMotivo(e.target.value)}
+                          placeholder="Ej: Se vuelve a solicitar a la EPS por retraso en fábrica / extravío de plástico..."
+                          style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid #94a3b8', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                          required
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                        <button
+                          type="submit"
+                          disabled={reenviando || !reenvioMotivo.trim()}
+                          style={{
+                            padding: '0.45rem 1rem',
+                            background: reenviando || !reenvioMotivo.trim() ? '#94a3b8' : '#15803d',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: reenviando || !reenvioMotivo.trim() ? 'not-allowed' : 'pointer',
+                            fontWeight: 600,
+                            fontSize: '0.82rem'
+                          }}
+                        >
+                          {reenviando ? '⏳ Reenviando...' : `🚀 Confirmar Reenvío a ${reenvioEps}`}
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               )}
             </div>

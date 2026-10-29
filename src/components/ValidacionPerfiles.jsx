@@ -27,6 +27,7 @@ const ValidacionPerfiles = () => {
   const [subject, setSubject] = useState('Listado de Perfiles Validados');
   const [body, setBody] = useState('Adjunto encontrará el listado de perfiles validados.');
   const [batchSize, setBatchSize] = useState(1500);
+  const [comentarioEnvio, setComentarioEnvio] = useState('');
   const [sending, setSending] = useState(false);
 
   // Carga de datos
@@ -207,6 +208,9 @@ const ValidacionPerfiles = () => {
     formData.append('cuerpo', body);
     formData.append('eps', epsDestino);
     formData.append('ids', selectedEmissionIds.join(','));
+    if (comentarioEnvio.trim()) {
+      formData.append('comentario', comentarioEnvio.trim());
+    }
 
     try {
       const res = await fetch(`${API_BASE}/perfiles/send_email`, {
@@ -222,6 +226,7 @@ const ValidacionPerfiles = () => {
         alert(data.message || "Correos encolados exitosamente");
         fetchPendingEmission();
         setSelectedEmissionIds([]);
+        setComentarioEnvio('');
       } else {
         alert(`Error: ${data.detail || 'Ocurrió un error al procesar el envío'}`);
       }
@@ -437,6 +442,20 @@ const ValidacionPerfiles = () => {
                   max="10000"
                   className="vp-form-input"
                 />
+              </div>
+
+              <div className="vp-form-group">
+                <label className="vp-form-label">Comentario u Observación para los perfiles (Opcional):</label>
+                <input
+                  type="text"
+                  value={comentarioEnvio}
+                  onChange={(e) => setComentarioEnvio(e.target.value)}
+                  placeholder="Ej: Remisión de lote a EPS para impresión..."
+                  className="vp-form-input"
+                />
+                <small style={{ color: '#64748b', fontSize: '0.78rem', marginTop: '0.2rem', display: 'block' }}>
+                  Si ingresa un comentario, se guardará automáticamente en el historial de observaciones de cada beneficiario remitido.
+                </small>
               </div>
 
               <button
