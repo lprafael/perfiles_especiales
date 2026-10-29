@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_, cast, String, nulls_last, func, case, distinct
+from sqlalchemy import or_, and_, cast, String, nulls_last, func, case, distinct
 from typing import List, Optional
 import pandas as pd
 import io
@@ -144,7 +144,9 @@ async def get_dashboard_lotes(
         PerfilEspecial.id_tipo_perfil,
         PerfilEspecial.id_estado_solicitud,
         PerfilEspecial.eps,
+        PerfilEspecial.serial_mdp,
         PerfilEspecial.fecha_solicitud,
+        PerfilEspecial.fecha_remision_eps,
         PerfilEspecial.fecha_emision
     )
     
@@ -182,9 +184,34 @@ async def get_dashboard_lotes(
         func.sum(case((subq.c.id_estado_solicitud == 2, 1), else_=0)).label("verificados"),
         func.sum(case((subq.c.id_estado_solicitud == 3, 1), else_=0)).label("aprobados"),
         func.sum(case((subq.c.id_estado_solicitud == 4, 1), else_=0)).label("rechazados"),
-        func.sum(case((subq.c.id_estado_solicitud == 5, 1), else_=0)).label("remitidos_eps"),
+        func.sum(
+            case(
+                (
+                    or_(
+                        subq.c.id_estado_solicitud.in_([5, 6]),
+                        subq.c.fecha_remision_eps.isnot(None)
+                    ),
+                    1
+                ),
+                else_=0
+            )
+        ).label("remitidos_eps"),
+        func.sum(
+            case(
+                (
+                    and_(
+                        subq.c.id_estado_solicitud == 5,
+                        subq.c.serial_mdp.isnot(None),
+                        func.trim(subq.c.serial_mdp) != ''
+                    ),
+                    1
+                ),
+                else_=0
+            )
+        ).label("emitidos_tarjeta"),
         func.string_agg(distinct(subq.c.eps), ', ').label("eps_destinos"),
         func.min(subq.c.fecha_solicitud).label("fecha_solicitud"),
+        func.max(subq.c.fecha_remision_eps).label("fecha_ultima_remision"),
         func.max(subq.c.fecha_emision).label("fecha_ultima_emision")
     ).group_by(
         subq.c.lote_clean,
@@ -221,6 +248,8 @@ async def get_dashboard_lotes(
         aprob = int(r.aprobados or 0)
         rech = int(r.rechazados or 0)
         remit = int(r.remitidos_eps or 0)
+        emitidos = int(r.emitidos_tarjeta or 0)
+        en_impresion = max(0, remit - emitidos)
         
         pend = solic + verif + aprob
         
@@ -247,9 +276,12 @@ async def get_dashboard_lotes(
             "aprobados": aprob,
             "rechazados": rech,
             "remitidos_eps": remit,
+            "en_impresion_eps": en_impresion,
+            "emitidos_tarjeta": emitidos,
             "pendientes": pend,
             "eps_destinos": r.eps_destinos or "Sin Asignar",
             "fecha_solicitud": r.fecha_solicitud.isoformat() if r.fecha_solicitud else None,
+            "fecha_ultima_remision": r.fecha_ultima_remision.isoformat() if r.fecha_ultima_remision else None,
             "fecha_ultima_emision": r.fecha_ultima_emision.isoformat() if r.fecha_ultima_emision else None,
             "estado_remision": estado_remision,
             "porcentaje_remitido": porcentaje
@@ -293,6 +325,8 @@ async def get_dashboard_lotes(
         rt["aprobados"] += l["aprobados"]
         rt["rechazados"] += l["rechazados"]
         rt["remitidos_eps"] += l["remitidos_eps"]
+        rt["en_impresion_eps"] = rt.get("en_impresion_eps", 0) + l.get("en_impresion_eps", 0)
+        rt["emitidos_tarjeta"] = rt.get("emitidos_tarjeta", 0) + l.get("emitidos_tarjeta", 0)
         rt["pendientes_remision"] += l["pendientes"]
         
     resumen_tipos = []
@@ -311,11 +345,14 @@ async def get_dashboard_lotes(
     
     total_perfiles = sum(l["total_perfiles"] for l in lotes_list)
     total_remitidos = sum(l["remitidos_eps"] for l in lotes_list)
+    total_en_impresion = sum(l["en_impresion_eps"] for l in lotes_list)
+    total_emitidos = sum(l["emitidos_tarjeta"] for l in lotes_list)
     total_pendientes = sum(l["pendientes"] for l in lotes_list)
     total_rechazados = sum(l["rechazados"] for l in lotes_list)
     
     valido_global = total_perfiles - total_rechazados
     pct_global = round((total_remitidos / valido_global * 100), 1) if valido_global > 0 else (100.0 if total_remitidos > 0 else 0.0)
+    pct_impreso = round((total_emitidos / total_remitidos * 100), 1) if total_remitidos > 0 else 0.0
     
     kpis = {
         "total_lotes": total_lotes,
@@ -324,9 +361,12 @@ async def get_dashboard_lotes(
         "lotes_pendientes": lotes_pendientes,
         "total_perfiles": total_perfiles,
         "remitidos_eps": total_remitidos,
+        "en_impresion_eps": total_en_impresion,
+        "emitidos_tarjeta": total_emitidos,
         "pendientes_remision": total_pendientes,
         "rechazados": total_rechazados,
-        "porcentaje_remitido": pct_global
+        "porcentaje_remitido": pct_global,
+        "porcentaje_impreso": pct_impreso
     }
     
     return {
@@ -970,8 +1010,8 @@ async def send_perfiles_email(
         
     data = []
     for p in perfiles:
-        p.id_estado_solicitud = 5 # Emitido
-        p.fecha_emision = datetime.now()
+        p.id_estado_solicitud = 6 # Remitido a EPS (en espera de impresión física de tarjeta)
+        p.fecha_remision_eps = datetime.now()
         p.eps = eps
         
         data.append({
@@ -1380,9 +1420,12 @@ async def get_trazabilidad_perfil(
                 "ip_aprobo": perfil.ip_aprobo,
                 "device_id_aprobo": perfil.device_id_aprobo
             },
+            "remision_eps": {
+                "fecha": perfil.fecha_remision_eps,
+                "eps": perfil.eps
+            },
             "emision": {
                 "fecha": perfil.fecha_emision,
-                "eps": perfil.eps,
                 "serial_mdp": perfil.serial_mdp
             }
         },

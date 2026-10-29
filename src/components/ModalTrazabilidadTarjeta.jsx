@@ -11,8 +11,9 @@ const ESTADOS_DISPONIBLES = [
   { id_estado: 1, descripcion: 'Solicitado', color: '#f39c12', icon: '📥', desc: 'Registro importado pendiente de verificación' },
   { id_estado: 2, descripcion: 'Verificado', color: '#3498db', icon: '🔍', desc: 'Verificado técnicamente, pendiente de aprobación' },
   { id_estado: 3, descripcion: 'Aprobado', color: '#27ae60', icon: '✅', desc: 'Aprobado formalmente, listo para remitir a EPS' },
+  { id_estado: 6, descripcion: 'Remitido a EPS', color: '#0284c7', icon: '📨', desc: 'Listado remitido por correo a la EPS para impresión' },
+  { id_estado: 5, descripcion: 'Emitido', color: '#8e44ad', icon: '💳', desc: 'Tarjeta emitida con Serial MDP asignado' },
   { id_estado: 4, descripcion: 'Rechazado', color: '#e74c3c', icon: '❌', desc: 'Tarjeta o perfil rechazado/anulado' },
-  { id_estado: 5, descripcion: 'Emitido', color: '#8e44ad', icon: '💳', desc: 'Tarjeta emitida / remitida por correo a la EPS' },
 ];
 
 const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = false, initialTab = 'timeline' }) => {
@@ -508,7 +509,7 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                     </div>
                   </div>
 
-                  {/* 4. Emisión */}
+                  {/* 4. Remisión a EPS */}
                   <div style={{ position: 'relative' }}>
                     <div style={{
                       position: 'absolute',
@@ -517,32 +518,70 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                       width: '18px',
                       height: '18px',
                       borderRadius: '50%',
-                      background: currentPerfil.fecha_emision ? '#8b5cf6' : '#cbd5e1',
+                      background: currentPerfil.fecha_remision_eps ? '#0284c7' : '#cbd5e1',
                       border: '3px solid white',
-                      boxShadow: `0 0 0 2px ${currentPerfil.fecha_emision ? '#8b5cf6' : '#cbd5e1'}`
+                      boxShadow: `0 0 0 2px ${currentPerfil.fecha_remision_eps ? '#0284c7' : '#cbd5e1'}`
                     }} />
                     <div style={{
-                      background: currentPerfil.fecha_emision ? '#faf5ff' : '#f8fafc',
+                      background: currentPerfil.fecha_remision_eps ? '#f0f9ff' : '#f8fafc',
                       padding: '0.85rem 1rem',
                       borderRadius: '8px',
-                      border: `1px solid ${currentPerfil.fecha_emision ? '#e9d5ff' : '#e2e8f0'}`
+                      border: `1px solid ${currentPerfil.fecha_remision_eps ? '#bae6fd' : '#e2e8f0'}`
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <strong style={{ color: currentPerfil.fecha_emision ? '#6b21a8' : '#64748b', fontSize: '0.95rem' }}>
-                          💳 4. Emisión y Remisión a EPS
+                        <strong style={{ color: currentPerfil.fecha_remision_eps ? '#0369a1' : '#64748b', fontSize: '0.95rem' }}>
+                          📨 4. Remisión a EPS (Solicitud de Impresión)
                         </strong>
                         <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                          {currentPerfil.fecha_emision ? formatDate(currentPerfil.fecha_emision) : 'Pendiente'}
+                          {currentPerfil.fecha_remision_eps ? formatDate(currentPerfil.fecha_remision_eps) : 'Pendiente'}
                         </span>
                       </div>
                       <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', color: '#475569' }}>
-                        {currentPerfil.fecha_emision ? (
+                        {currentPerfil.fecha_remision_eps ? (
                           <>
-                            Remitido a: <strong>{currentPerfil.eps || 'EPS'}</strong>
-                            {currentPerfil.serial_mdp && <span> • Serial MDP: <strong>{currentPerfil.serial_mdp}</strong></span>}
+                            Remitido por correo a: <strong>{currentPerfil.eps || 'EPS'}</strong>
                           </>
                         ) : (
-                          <span style={{ color: '#94a3b8' }}>No ha sido emitido ni remitido a una EPS aún.</span>
+                          <span style={{ color: '#94a3b8' }}>Pendiente de remisión a la EPS.</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 5. Emisión de Tarjeta (Serial MDP) */}
+                  <div style={{ position: 'relative' }}>
+                    <div style={{
+                      position: 'absolute',
+                      left: '-1.5rem',
+                      top: '0',
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      background: (currentPerfil.fecha_emision || currentPerfil.serial_mdp) ? '#8b5cf6' : '#cbd5e1',
+                      border: '3px solid white',
+                      boxShadow: `0 0 0 2px ${(currentPerfil.fecha_emision || currentPerfil.serial_mdp) ? '#8b5cf6' : '#cbd5e1'}`
+                    }} />
+                    <div style={{
+                      background: (currentPerfil.fecha_emision || currentPerfil.serial_mdp) ? '#faf5ff' : '#f8fafc',
+                      padding: '0.85rem 1rem',
+                      borderRadius: '8px',
+                      border: `1px solid ${(currentPerfil.fecha_emision || currentPerfil.serial_mdp) ? '#e9d5ff' : '#e2e8f0'}`
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong style={{ color: (currentPerfil.fecha_emision || currentPerfil.serial_mdp) ? '#6b21a8' : '#64748b', fontSize: '0.95rem' }}>
+                          💳 5. Emisión de Tarjeta (Serial MDP)
+                        </strong>
+                        <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                          {currentPerfil.fecha_emision ? formatDate(currentPerfil.fecha_emision) : (currentPerfil.serial_mdp ? 'Emitido' : 'Pendiente')}
+                        </span>
+                      </div>
+                      <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', color: '#475569' }}>
+                        {currentPerfil.serial_mdp ? (
+                          <>
+                            Tarjeta física emitida con Serial MDP: <strong style={{ color: '#15803d' }}>{currentPerfil.serial_mdp}</strong>
+                          </>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>Pendiente de troquelado / ingreso de Serial MDP para pasar a Emitido.</span>
                         )}
                       </p>
                     </div>

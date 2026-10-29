@@ -760,6 +760,7 @@ class PerfilEspecial(Base):
     fecha_solicitud = Column(DateTime, default=func.now(), nullable=True)
     fecha_verificacion = Column(DateTime, nullable=True)
     fecha_aprobacion = Column(DateTime, nullable=True)
+    fecha_remision_eps = Column(DateTime, nullable=True)
     fecha_emision = Column(DateTime, nullable=True)
     id_usuario_carga = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=False, default=1)
     id_usuario_verif = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=True)

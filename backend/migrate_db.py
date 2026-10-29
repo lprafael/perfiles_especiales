@@ -96,15 +96,28 @@ async def migrate():
             """))
             await conn.execute(text("""
                 INSERT INTO public.estados_solicitud_perfiles (id_estado, descripcion)
-                VALUES (1, 'Solicitado'), (2, 'Verificado'), (3, 'Aprobado'), (4, 'Rechazado'), (5, 'Emitido')
-                ON CONFLICT (id_estado) DO NOTHING;
+                VALUES (1, 'Solicitado'), (2, 'Verificado'), (3, 'Aprobado'), (4, 'Rechazado'), (5, 'Emitido'), (6, 'Remitido a EPS')
+                ON CONFLICT (id_estado) DO UPDATE SET descripcion = EXCLUDED.descripcion;
             """))
             
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS id_estado_solicitud INTEGER REFERENCES public.estados_solicitud_perfiles(id_estado);"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS fecha_solicitud TIMESTAMP;"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS fecha_verificacion TIMESTAMP;"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS fecha_aprobacion TIMESTAMP;"))
+            await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS fecha_remision_eps TIMESTAMP;"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS fecha_emision TIMESTAMP;"))
+            
+            # Migración de datos históricos
+            await conn.execute(text("""
+                UPDATE public.perfiles_especiales
+                SET fecha_remision_eps = fecha_emision
+                WHERE fecha_remision_eps IS NULL AND fecha_emision IS NOT NULL;
+            """))
+            await conn.execute(text("""
+                UPDATE public.perfiles_especiales
+                SET id_estado_solicitud = 6, fecha_emision = NULL
+                WHERE id_estado_solicitud = 5 AND (serial_mdp IS NULL OR TRIM(serial_mdp) = '');
+            """))
             
             res = await conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='perfiles_especiales' AND column_name='verificado';"))
             if res.fetchone():

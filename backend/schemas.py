@@ -1122,6 +1122,7 @@ class PerfilEspecialBase(BaseModel):
     fecha_solicitud: Optional[datetime] = None
     fecha_verificacion: Optional[datetime] = None
     fecha_aprobacion: Optional[datetime] = None
+    fecha_remision_eps: Optional[datetime] = None
     fecha_emision: Optional[datetime] = None
     id_usuario_carga: Optional[int] = None
     id_usuario_verif: Optional[int] = None

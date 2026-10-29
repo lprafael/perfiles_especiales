@@ -65,8 +65,12 @@ const DashboardLotes = ({ user }) => {
   // Filtrado de Lotes en memoria
   const filteredLotes = useMemo(() => {
     return dashboardData.lotes.filter((l) => {
-      // Filtro por Estado de Remisión
-      if (filterRemision !== 'all' && l.estado_remision !== filterRemision) {
+      // Filtro por Estado de Remisión e Impresión
+      if (filterRemision === 'CON_PENDIENTES_IMPRESION') {
+        if (!l.en_impresion_eps || l.en_impresion_eps <= 0) return false;
+      } else if (filterRemision === 'EMITIDO_TOTAL') {
+        if (!l.remitidos_eps || l.remitidos_eps <= 0 || (l.en_impresion_eps && l.en_impresion_eps > 0)) return false;
+      } else if (filterRemision !== 'all' && l.estado_remision !== filterRemision) {
         return false;
       }
       // Filtro por Tipo de Perfil
@@ -170,13 +174,16 @@ const DashboardLotes = ({ user }) => {
       '% Remitido': `${l.porcentaje_remitido}%`,
       'Total Perfiles': l.total_perfiles,
       'Remitidos a EPS': l.remitidos_eps,
+      'Emitidos con Tarjeta (Serial)': l.emitidos_tarjeta || 0,
+      'En Impresión en EPS': l.en_impresion_eps || 0,
       'Aprobados (Listos EPS)': l.aprobados,
       'Verificados': l.verificados,
       'Solicitados (Nuevos)': l.solicitados,
       'Rechazados': l.rechazados,
       'EPS Asignada': l.eps_destinos,
-      'Fecha Primera Solicitud': l.fecha_solicitud ? new Date(l.fecha_solicitud).toLocaleDateString() : '',
-      'Fecha Última Emisión': l.fecha_ultima_emision ? new Date(l.fecha_ultima_emision).toLocaleDateString() : ''
+      'Fecha Solicitud Inicial': l.fecha_solicitud ? new Date(l.fecha_solicitud).toLocaleDateString() : '',
+      'Fecha Remisión a EPS': l.fecha_ultima_remision ? new Date(l.fecha_ultima_remision).toLocaleDateString() : '',
+      'Fecha Emisión Tarjeta': l.fecha_ultima_emision ? new Date(l.fecha_ultima_emision).toLocaleDateString() : ''
     }));
     const wsLotes = XLSX.utils.json_to_sheet(lotesRows);
     XLSX.utils.book_append_sheet(wb, wsLotes, 'Control_De_Lotes');
@@ -192,11 +199,12 @@ const DashboardLotes = ({ user }) => {
       'Cédula': p.cedula_identidad || '',
       'Nombre y Apellido': p.nombre_apellido || '',
       'Lote': p.Lote || '',
-      'Estado': p.estado_solicitud?.descripcion || `Estado ${p.id_estado_solicitud}`,
+      'Estado': p.estado_solicitud?.descripcion || (p.id_estado_solicitud === 6 ? 'Remitido a EPS' : (p.id_estado_solicitud === 5 ? 'Emitido' : `Estado ${p.id_estado_solicitud}`)),
       'EPS Destino': p.eps || 'Sin Asignar',
       'Serial MDP': p.serial_mdp || '',
       'Fecha Solicitud': p.fecha_solicitud ? new Date(p.fecha_solicitud).toLocaleDateString() : '',
-      'Fecha Emisión': p.fecha_emision ? new Date(p.fecha_emision).toLocaleDateString() : ''
+      'Fecha Remisión EPS': p.fecha_remision_eps ? new Date(p.fecha_remision_eps).toLocaleDateString() : '',
+      'Fecha Emisión Tarjeta': p.fecha_emision ? new Date(p.fecha_emision).toLocaleDateString() : ''
     }));
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -258,45 +266,58 @@ const DashboardLotes = ({ user }) => {
 
         <div className="db-kpi-card purple">
           <div className="db-kpi-top">
-            <span className="db-kpi-title">Total Perfiles Solicitados</span>
+            <span className="db-kpi-title">Total Solicitudes</span>
             <span className="db-kpi-icon">👥</span>
           </div>
           <div className="db-kpi-value">{kpis.total_perfiles.toLocaleString()}</div>
           <div className="db-kpi-subtext">
-            Registros importados en el sistema
+            Beneficiarios importados en el sistema
           </div>
         </div>
 
-        <div className="db-kpi-card green">
+        <div className="db-kpi-card blue">
           <div className="db-kpi-top">
-            <span className="db-kpi-title">Remitidos a EPS</span>
+            <span className="db-kpi-title">Solicitados a EPS</span>
             <span className="db-kpi-icon">📨</span>
           </div>
           <div className="db-kpi-value">{kpis.remitidos_eps.toLocaleString()}</div>
           <div className="db-kpi-subtext">
-            <strong>{kpis.porcentaje_remitido}%</strong> emitidos exitosamente
+            <strong>{kpis.porcentaje_remitido}%</strong> de beneficiarios válidos
           </div>
         </div>
 
-        <div className="db-kpi-card amber">
+        <div className="db-kpi-card amber" style={{ borderLeftColor: '#f59e0b', background: '#fffdfa' }}>
           <div className="db-kpi-top">
-            <span className="db-kpi-title">Pendientes de Remisión</span>
-            <span className="db-kpi-icon">⏳</span>
+            <span className="db-kpi-title" style={{ color: '#b45309' }}>Aún No Impresas en EPS</span>
+            <span className="db-kpi-icon">🖨️</span>
           </div>
-          <div className="db-kpi-value">{kpis.pendientes_remision.toLocaleString()}</div>
+          <div className="db-kpi-value" style={{ color: '#b45309' }}>{(kpis.en_impresion_eps || 0).toLocaleString()}</div>
           <div className="db-kpi-subtext">
-            Por validar, aprobar o remitir
+            Remitidos en espera de tarjeta y serial
+          </div>
+        </div>
+
+        <div className="db-kpi-card green" style={{ borderLeftColor: '#16a34a', background: '#f8fdf9' }}>
+          <div className="db-kpi-top">
+            <span className="db-kpi-title" style={{ color: '#15803d' }}>Tarjetas Impresas</span>
+            <span className="db-kpi-icon">💳</span>
+          </div>
+          <div className="db-kpi-value" style={{ color: '#15803d' }}>{(kpis.emitidos_tarjeta || 0).toLocaleString()}</div>
+          <div className="db-kpi-subtext">
+            <strong>{kpis.porcentaje_impreso || 0}%</strong> impresas con Serial MDP
           </div>
         </div>
 
         <div className="db-kpi-card red">
           <div className="db-kpi-top">
-            <span className="db-kpi-title">Rechazados / Anulados</span>
-            <span className="db-kpi-icon">❌</span>
+            <span className="db-kpi-title">Pend. Remisión / Rechazados</span>
+            <span className="db-kpi-icon">⏳</span>
           </div>
-          <div className="db-kpi-value">{kpis.rechazados.toLocaleString()}</div>
+          <div className="db-kpi-value" style={{ fontSize: '1.6rem' }}>
+            {kpis.pendientes_remision.toLocaleString()} <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>/ {kpis.rechazados} rech.</span>
+          </div>
           <div className="db-kpi-subtext">
-            Observaciones o no admitidos
+            En trámite interno antes de EPS
           </div>
         </div>
       </div>
@@ -351,7 +372,7 @@ const DashboardLotes = ({ user }) => {
                     <span className="db-stat-label">Lotes Solicitados</span>
                     <span className="db-stat-num">{tp.total_lotes}</span>
                     <small style={{ color: '#64748b', fontSize: '0.7rem' }}>
-                      ({tp.lotes_remitidos} emitidos / {tp.lotes_pendientes + tp.lotes_parciales} pend.)
+                      ({tp.lotes_remitidos} remit. / {tp.lotes_pendientes + tp.lotes_parciales} pend.)
                     </small>
                   </div>
                   <div className="db-stat-item">
@@ -360,11 +381,19 @@ const DashboardLotes = ({ user }) => {
                   </div>
                   <div className="db-stat-item">
                     <span className="db-stat-label">Remitidos a EPS</span>
-                    <span className="db-stat-num green">{tp.remitidos_eps.toLocaleString()}</span>
+                    <span className="db-stat-num blue">{tp.remitidos_eps.toLocaleString()}</span>
+                  </div>
+                  <div className="db-stat-item">
+                    <span className="db-stat-label">🖨️ Aún No Impresas</span>
+                    <span className="db-stat-num amber" style={{ color: '#b45309' }}>{(tp.en_impresion_eps || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="db-stat-item">
+                    <span className="db-stat-label">💳 Impresas con Serial</span>
+                    <span className="db-stat-num green">{(tp.emitidos_tarjeta || 0).toLocaleString()}</span>
                   </div>
                   <div className="db-stat-item">
                     <span className="db-stat-label">Pendientes Remisión</span>
-                    <span className="db-stat-num amber">{tp.pendientes_remision.toLocaleString()}</span>
+                    <span className="db-stat-num" style={{ color: '#64748b' }}>{tp.pendientes_remision.toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -430,6 +459,20 @@ const DashboardLotes = ({ user }) => {
             >
               🔄 Parciales
               <span className="db-pill-count">{kpis.lotes_parciales}</span>
+            </button>
+            <button
+              onClick={() => setFilterRemision('CON_PENDIENTES_IMPRESION')}
+              className={`db-pill ${filterRemision === 'CON_PENDIENTES_IMPRESION' ? 'active' : ''}`}
+              style={{
+                borderColor: filterRemision === 'CON_PENDIENTES_IMPRESION' ? '#d97706' : undefined,
+                background: filterRemision === 'CON_PENDIENTES_IMPRESION' ? '#fffbeb' : undefined,
+                color: filterRemision === 'CON_PENDIENTES_IMPRESION' ? '#b45309' : undefined
+              }}
+            >
+              🖨️ Pendientes de Impresión
+              <span className="db-pill-count" style={{ background: '#fef3c7', color: '#92400e' }}>
+                {dashboardData.lotes.filter(l => (l.en_impresion_eps || 0) > 0).length}
+              </span>
             </button>
           </div>
 
@@ -564,8 +607,8 @@ const DashboardLotes = ({ user }) => {
                         )}
                       </td>
                       <td style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                        {lote.fecha_ultima_emision ? (
-                          <span>{new Date(lote.fecha_ultima_emision).toLocaleDateString()}</span>
+                        {lote.fecha_ultima_remision ? (
+                          <span title="Fecha de remisión por correo a la EPS">📨 {new Date(lote.fecha_ultima_remision).toLocaleDateString()}</span>
                         ) : lote.fecha_solicitud ? (
                           <span title="Fecha de solicitud inicial">Sol: {new Date(lote.fecha_solicitud).toLocaleDateString()}</span>
                         ) : (
@@ -652,13 +695,14 @@ const DashboardLotes = ({ user }) => {
                         <th>Estado Solicitud</th>
                         <th>EPS Destino</th>
                         <th>Serial MDP</th>
-                        <th>Fecha Emisión</th>
+                        <th>Fecha Remisión EPS</th>
+                        <th>Fecha Emisión Tarjeta</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredModalBeneficiarios.length === 0 ? (
                         <tr>
-                          <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                          <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
                             No se encontraron registros de beneficiarios para este criterio.
                           </td>
                         </tr>
@@ -673,10 +717,10 @@ const DashboardLotes = ({ user }) => {
                                 borderRadius: '12px',
                                 fontSize: '0.75rem',
                                 fontWeight: 700,
-                                background: p.id_estado_solicitud === 5 ? '#dcfce7' : (p.id_estado_solicitud === 4 ? '#fee2e2' : '#fef3c7'),
-                                color: p.id_estado_solicitud === 5 ? '#15803d' : (p.id_estado_solicitud === 4 ? '#b91c1c' : '#b45309')
+                                background: p.id_estado_solicitud === 5 ? '#dcfce7' : (p.id_estado_solicitud === 6 ? '#e0f2fe' : (p.id_estado_solicitud === 4 ? '#fee2e2' : '#fef3c7')),
+                                color: p.id_estado_solicitud === 5 ? '#15803d' : (p.id_estado_solicitud === 6 ? '#0369a1' : (p.id_estado_solicitud === 4 ? '#b91c1c' : '#b45309'))
                               }}>
-                                {p.estado_solicitud?.descripcion || `Estado ${p.id_estado_solicitud}`}
+                                {p.estado_solicitud?.descripcion || (p.id_estado_solicitud === 6 ? 'Remitido a EPS' : (p.id_estado_solicitud === 5 ? 'Emitido' : `Estado ${p.id_estado_solicitud}`))}
                               </span>
                             </td>
                             <td>
@@ -688,6 +732,9 @@ const DashboardLotes = ({ user }) => {
                             </td>
                             <td style={{ fontFamily: 'monospace', color: p.serial_mdp ? '#1e293b' : '#94a3b8' }}>
                               {p.serial_mdp || '-'}
+                            </td>
+                            <td style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                              {p.fecha_remision_eps ? new Date(p.fecha_remision_eps).toLocaleDateString() : '-'}
                             </td>
                             <td style={{ fontSize: '0.82rem', color: '#64748b' }}>
                               {p.fecha_emision ? new Date(p.fecha_emision).toLocaleDateString() : '-'}
