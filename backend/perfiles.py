@@ -138,27 +138,23 @@ async def get_dashboard_lotes(
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
         
-    query = select(
-        func.coalesce(func.nullif(func.trim(PerfilEspecial.Lote), ''), 'Sin Lote Asignado').label("lote"),
+    # 1. Subquery base con lote normalizado y filtros de organismo
+    base_query = select(
+        func.coalesce(func.nullif(func.trim(PerfilEspecial.Lote), ''), 'Sin Lote Asignado').label("lote_clean"),
         PerfilEspecial.id_tipo_perfil,
-        func.count().label("total_perfiles"),
-        func.sum(case((PerfilEspecial.id_estado_solicitud == 1, 1), else_=0)).label("solicitados"),
-        func.sum(case((PerfilEspecial.id_estado_solicitud == 2, 1), else_=0)).label("verificados"),
-        func.sum(case((PerfilEspecial.id_estado_solicitud == 3, 1), else_=0)).label("aprobados"),
-        func.sum(case((PerfilEspecial.id_estado_solicitud == 4, 1), else_=0)).label("rechazados"),
-        func.sum(case((PerfilEspecial.id_estado_solicitud == 5, 1), else_=0)).label("remitidos_eps"),
-        func.string_agg(distinct(PerfilEspecial.eps), ', ').label("eps_destinos"),
-        func.min(PerfilEspecial.fecha_solicitud).label("fecha_solicitud"),
-        func.max(PerfilEspecial.fecha_emision).label("fecha_ultima_emision")
+        PerfilEspecial.id_estado_solicitud,
+        PerfilEspecial.eps,
+        PerfilEspecial.fecha_solicitud,
+        PerfilEspecial.fecha_emision
     )
     
     # Si el usuario no es admin, filtramos por su organismo
     if user.id_organismo and current_user.get("role") not in ["admin", "sysadmin"]:
         org_id = int(user.id_organismo)
         if org_id == 2:
-            query = query.where(PerfilEspecial.id_tipo_perfil == 3)
+            base_query = base_query.where(PerfilEspecial.id_tipo_perfil == 3)
         elif org_id == 3:
-            query = query.where(PerfilEspecial.id_tipo_perfil.in_([4, 5]))
+            base_query = base_query.where(PerfilEspecial.id_tipo_perfil.in_([4, 5]))
         else:
             res_tipos_org = await session.execute(
                 select(TipoPerfilEspecial.id_tipo_especial).where(TipoPerfilEspecial.id_organismo == org_id)
@@ -174,13 +170,27 @@ async def get_dashboard_lotes(
                     "resumen_tipos": [],
                     "lotes": []
                 }
-            query = query.where(PerfilEspecial.id_tipo_perfil.in_(tipos_ids))
+            base_query = base_query.where(PerfilEspecial.id_tipo_perfil.in_(tipos_ids))
             
-    query = query.group_by(
-        func.coalesce(func.nullif(func.trim(PerfilEspecial.Lote), ''), 'Sin Lote Asignado'),
-        PerfilEspecial.id_tipo_perfil
+    subq = base_query.subquery("sub_perfiles")
+
+    query = select(
+        subq.c.lote_clean.label("lote"),
+        subq.c.id_tipo_perfil,
+        func.count().label("total_perfiles"),
+        func.sum(case((subq.c.id_estado_solicitud == 1, 1), else_=0)).label("solicitados"),
+        func.sum(case((subq.c.id_estado_solicitud == 2, 1), else_=0)).label("verificados"),
+        func.sum(case((subq.c.id_estado_solicitud == 3, 1), else_=0)).label("aprobados"),
+        func.sum(case((subq.c.id_estado_solicitud == 4, 1), else_=0)).label("rechazados"),
+        func.sum(case((subq.c.id_estado_solicitud == 5, 1), else_=0)).label("remitidos_eps"),
+        func.string_agg(distinct(subq.c.eps), ', ').label("eps_destinos"),
+        func.min(subq.c.fecha_solicitud).label("fecha_solicitud"),
+        func.max(subq.c.fecha_emision).label("fecha_ultima_emision")
+    ).group_by(
+        subq.c.lote_clean,
+        subq.c.id_tipo_perfil
     ).order_by(
-        func.coalesce(func.nullif(func.trim(PerfilEspecial.Lote), ''), 'Sin Lote Asignado')
+        subq.c.lote_clean
     )
     
     result = await session.execute(query)
