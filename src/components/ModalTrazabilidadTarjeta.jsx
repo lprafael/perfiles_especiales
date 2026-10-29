@@ -12,7 +12,8 @@ const ESTADOS_DISPONIBLES = [
   { id_estado: 2, descripcion: 'Verificado', color: '#3498db', icon: '🔍', desc: 'Verificado técnicamente, pendiente de aprobación' },
   { id_estado: 3, descripcion: 'Aprobado', color: '#27ae60', icon: '✅', desc: 'Aprobado formalmente, listo para remitir a EPS' },
   { id_estado: 6, descripcion: 'Remitido a EPS', color: '#0284c7', icon: '📨', desc: 'Listado remitido por correo a la EPS para impresión' },
-  { id_estado: 5, descripcion: 'Emitido', color: '#8e44ad', icon: '💳', desc: 'Tarjeta emitida con Serial MDP asignado' },
+  { id_estado: 5, descripcion: 'Emitido', color: '#8e44ad', icon: '💳', desc: 'Tarjeta física con Serial MDP asignado' },
+  { id_estado: 7, descripcion: 'Entregado', color: '#059669', icon: '🎁', desc: 'Entregado al usuario titular o a la institución solicitante' },
   { id_estado: 4, descripcion: 'Rechazado', color: '#e74c3c', icon: '❌', desc: 'Tarjeta o perfil rechazado/anulado' },
 ];
 
@@ -23,6 +24,7 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
   // Estados para Cambio de Estado
   const [selectedNuevoEstado, setSelectedNuevoEstado] = useState(perfil.id_estado_solicitud || 1);
   const [motivoCambio, setMotivoCambio] = useState('');
+  const [entregadoAInput, setEntregadoAInput] = useState(perfil.entregado_a || '');
   const [savingEstado, setSavingEstado] = useState(false);
 
   // Estados para Serial MDP
@@ -78,7 +80,8 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
         },
         body: JSON.stringify({
           id_estado: Number(selectedNuevoEstado),
-          motivo: motivoCambio.trim() || undefined
+          motivo: motivoCambio.trim() || undefined,
+          entregado_a: Number(selectedNuevoEstado) === 7 ? (entregadoAInput.trim() || undefined) : undefined
         })
       });
 
@@ -586,6 +589,46 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                       </p>
                     </div>
                   </div>
+
+                  {/* 6. Entrega de Tarjeta */}
+                  <div style={{ position: 'relative' }}>
+                    <div style={{
+                      position: 'absolute',
+                      left: '-1.5rem',
+                      top: '0',
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      background: (currentPerfil.fecha_entrega || currentPerfil.id_estado_solicitud === 7) ? '#059669' : '#cbd5e1',
+                      border: '3px solid white',
+                      boxShadow: `0 0 0 2px ${(currentPerfil.fecha_entrega || currentPerfil.id_estado_solicitud === 7) ? '#059669' : '#cbd5e1'}`
+                    }} />
+                    <div style={{
+                      background: (currentPerfil.fecha_entrega || currentPerfil.id_estado_solicitud === 7) ? '#ecfdf5' : '#f8fafc',
+                      padding: '0.85rem 1rem',
+                      borderRadius: '8px',
+                      border: `1px solid ${(currentPerfil.fecha_entrega || currentPerfil.id_estado_solicitud === 7) ? '#a7f3d0' : '#e2e8f0'}`
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong style={{ color: (currentPerfil.fecha_entrega || currentPerfil.id_estado_solicitud === 7) ? '#047857' : '#64748b', fontSize: '0.95rem' }}>
+                          🎁 6. Entrega de Tarjeta (Usuario / Institución)
+                        </strong>
+                        <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                          {currentPerfil.fecha_entrega ? formatDate(currentPerfil.fecha_entrega) : (currentPerfil.id_estado_solicitud === 7 ? 'Entregado' : 'Pendiente')}
+                        </span>
+                      </div>
+                      <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', color: '#475569' }}>
+                        {(currentPerfil.fecha_entrega || currentPerfil.id_estado_solicitud === 7) ? (
+                          <>
+                            Entregado a: <strong>{currentPerfil.entregado_a || 'Usuario Titular / Institución Solicitante'}</strong>
+                            {currentPerfil.usuario_entrega && <span> • Registrado por: <strong>{currentPerfil.usuario_entrega.nombre_completo}</strong></span>}
+                          </>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>Pendiente de entrega de la tarjeta al beneficiario o institución.</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -679,6 +722,32 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                     })}
                   </div>
                 </div>
+
+                {Number(selectedNuevoEstado) === 7 && (
+                  <div style={{ background: '#ecfdf5', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                    <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.4rem', color: '#065f46' }}>
+                      🎁 Receptor / Entregado a (Usuario Titular, Institución o Encargado):
+                    </label>
+                    <input
+                      type="text"
+                      value={entregadoAInput}
+                      onChange={(e) => setEntregadoAInput(e.target.value)}
+                      placeholder="Ejemplo: Titular en ventanilla central; o Dirección de RRHH del MOPC; o Nota N° 123..."
+                      style={{
+                        width: '100%',
+                        padding: '0.65rem',
+                        borderRadius: '6px',
+                        border: '1px solid #6ee7b7',
+                        fontSize: '0.9rem',
+                        fontFamily: 'inherit',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <small style={{ color: '#047857', display: 'block', marginTop: '0.3rem', fontSize: '0.78rem' }}>
+                      Indique el nombre o dependencia que recepciona el plástico físico.
+                    </small>
+                  </div>
+                )}
 
                 <div>
                   <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.4rem', color: '#1e293b' }}>

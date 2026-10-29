@@ -96,7 +96,7 @@ async def migrate():
             """))
             await conn.execute(text("""
                 INSERT INTO public.estados_solicitud_perfiles (id_estado, descripcion)
-                VALUES (1, 'Solicitado'), (2, 'Verificado'), (3, 'Aprobado'), (4, 'Rechazado'), (5, 'Emitido'), (6, 'Remitido a EPS')
+                VALUES (1, 'Solicitado'), (2, 'Verificado'), (3, 'Aprobado'), (4, 'Rechazado'), (5, 'Emitido'), (6, 'Remitido a EPS'), (7, 'Entregado')
                 ON CONFLICT (id_estado) DO UPDATE SET descripcion = EXCLUDED.descripcion;
             """))
             
@@ -106,6 +106,9 @@ async def migrate():
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS fecha_aprobacion TIMESTAMP;"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS fecha_remision_eps TIMESTAMP;"))
             await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS fecha_emision TIMESTAMP;"))
+            await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS fecha_entrega TIMESTAMP;"))
+            await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS entregado_a VARCHAR(255);"))
+            await conn.execute(text("ALTER TABLE public.perfiles_especiales ADD COLUMN IF NOT EXISTS id_usuario_entrega INTEGER REFERENCES sistema.usuarios(id);"))
             
             # Migración de datos históricos
             await conn.execute(text("""

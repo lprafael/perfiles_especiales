@@ -116,6 +116,7 @@ async def get_perfiles(
         p.usuario_carga = usuarios_dict.get(p.id_usuario_carga)
         p.usuario_verif = usuarios_dict.get(p.id_usuario_verif)
         p.usuario_aprob = usuarios_dict.get(p.id_usuario_aprob)
+        p.usuario_entrega = usuarios_dict.get(p.id_usuario_entrega)
         p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
         p.observaciones = obs_map.get(p.orden, [])
         
@@ -147,7 +148,9 @@ async def get_dashboard_lotes(
         PerfilEspecial.serial_mdp,
         PerfilEspecial.fecha_solicitud,
         PerfilEspecial.fecha_remision_eps,
-        PerfilEspecial.fecha_emision
+        PerfilEspecial.fecha_emision,
+        PerfilEspecial.fecha_entrega,
+        PerfilEspecial.entregado_a
     )
     
     # Si el usuario no es admin, filtramos por su organismo
@@ -188,7 +191,7 @@ async def get_dashboard_lotes(
             case(
                 (
                     or_(
-                        subq.c.id_estado_solicitud.in_([5, 6]),
+                        subq.c.id_estado_solicitud.in_([5, 6, 7]),
                         subq.c.fecha_remision_eps.isnot(None)
                     ),
                     1
@@ -200,7 +203,7 @@ async def get_dashboard_lotes(
             case(
                 (
                     and_(
-                        subq.c.id_estado_solicitud == 5,
+                        subq.c.id_estado_solicitud.in_([5, 7]),
                         subq.c.serial_mdp.isnot(None),
                         func.trim(subq.c.serial_mdp) != ''
                     ),
@@ -209,10 +212,12 @@ async def get_dashboard_lotes(
                 else_=0
             )
         ).label("emitidos_tarjeta"),
+        func.sum(case((subq.c.id_estado_solicitud == 7, 1), else_=0)).label("entregados"),
         func.string_agg(distinct(subq.c.eps), ', ').label("eps_destinos"),
         func.min(subq.c.fecha_solicitud).label("fecha_solicitud"),
         func.max(subq.c.fecha_remision_eps).label("fecha_ultima_remision"),
-        func.max(subq.c.fecha_emision).label("fecha_ultima_emision")
+        func.max(subq.c.fecha_emision).label("fecha_ultima_emision"),
+        func.max(subq.c.fecha_entrega).label("fecha_ultima_entrega")
     ).group_by(
         subq.c.lote_clean,
         subq.c.id_tipo_perfil
@@ -249,6 +254,7 @@ async def get_dashboard_lotes(
         rech = int(r.rechazados or 0)
         remit = int(r.remitidos_eps or 0)
         emitidos = int(r.emitidos_tarjeta or 0)
+        entregados = int(r.entregados or 0)
         en_impresion = max(0, remit - emitidos)
         
         pend = solic + verif + aprob
@@ -278,11 +284,13 @@ async def get_dashboard_lotes(
             "remitidos_eps": remit,
             "en_impresion_eps": en_impresion,
             "emitidos_tarjeta": emitidos,
+            "entregados": entregados,
             "pendientes": pend,
             "eps_destinos": r.eps_destinos or "Sin Asignar",
             "fecha_solicitud": r.fecha_solicitud.isoformat() if r.fecha_solicitud else None,
             "fecha_ultima_remision": r.fecha_ultima_remision.isoformat() if r.fecha_ultima_remision else None,
             "fecha_ultima_emision": r.fecha_ultima_emision.isoformat() if r.fecha_ultima_emision else None,
+            "fecha_ultima_entrega": r.fecha_ultima_entrega.isoformat() if r.fecha_ultima_entrega else None,
             "estado_remision": estado_remision,
             "porcentaje_remitido": porcentaje
         })
@@ -327,6 +335,7 @@ async def get_dashboard_lotes(
         rt["remitidos_eps"] += l["remitidos_eps"]
         rt["en_impresion_eps"] = rt.get("en_impresion_eps", 0) + l.get("en_impresion_eps", 0)
         rt["emitidos_tarjeta"] = rt.get("emitidos_tarjeta", 0) + l.get("emitidos_tarjeta", 0)
+        rt["entregados"] = rt.get("entregados", 0) + l.get("entregados", 0)
         rt["pendientes_remision"] += l["pendientes"]
         
     resumen_tipos = []
@@ -347,6 +356,7 @@ async def get_dashboard_lotes(
     total_remitidos = sum(l["remitidos_eps"] for l in lotes_list)
     total_en_impresion = sum(l["en_impresion_eps"] for l in lotes_list)
     total_emitidos = sum(l["emitidos_tarjeta"] for l in lotes_list)
+    total_entregados = sum(l.get("entregados", 0) for l in lotes_list)
     total_pendientes = sum(l["pendientes"] for l in lotes_list)
     total_rechazados = sum(l["rechazados"] for l in lotes_list)
     
@@ -363,6 +373,7 @@ async def get_dashboard_lotes(
         "remitidos_eps": total_remitidos,
         "en_impresion_eps": total_en_impresion,
         "emitidos_tarjeta": total_emitidos,
+        "entregados": total_entregados,
         "pendientes_remision": total_pendientes,
         "rechazados": total_rechazados,
         "porcentaje_remitido": pct_global,
@@ -1170,8 +1181,10 @@ async def update_serial_mdp(
         raise HTTPException(status_code=404, detail="Perfil no encontrado")
         
     perfil.serial_mdp = payload.serial_mdp
-    perfil.id_estado_solicitud = 5 # Emitido
-    perfil.fecha_emision = datetime.now()
+    if perfil.id_estado_solicitud != 7:
+        perfil.id_estado_solicitud = 5 # Emitido
+    if not perfil.fecha_emision:
+        perfil.fecha_emision = datetime.now()
     
     await session.commit()
     await session.refresh(perfil)
@@ -1188,6 +1201,9 @@ async def update_serial_mdp(
 
     res_usu_aprob = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_aprob))
     perfil.usuario_aprob = res_usu_aprob.scalar_one_or_none()
+
+    res_usu_entrega = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_entrega))
+    perfil.usuario_entrega = res_usu_entrega.scalar_one_or_none()
     
     res_estado = await session.execute(select(EstadoSolicitudPerfil).where(EstadoSolicitudPerfil.id_estado == perfil.id_estado_solicitud))
     perfil.estado_solicitud = res_estado.scalar_one_or_none()
@@ -1250,8 +1266,16 @@ async def update_estado_perfil(
         perfil.fecha_aprobacion = ahora
         perfil.id_usuario_aprob = current_user["user_id"]
         perfil.ip_aprobo = request.client.host if request.client else None
+    elif nuevo_estado_id == 6 and not perfil.fecha_remision_eps:
+        perfil.fecha_remision_eps = ahora
     elif nuevo_estado_id == 5 and not perfil.fecha_emision:
         perfil.fecha_emision = ahora
+    elif nuevo_estado_id == 7:
+        if not perfil.fecha_entrega:
+            perfil.fecha_entrega = ahora
+        perfil.id_usuario_entrega = current_user["user_id"]
+        if payload.entregado_a:
+            perfil.entregado_a = payload.entregado_a.strip()
         
     # Si se especificó un motivo, registrar observación
     if payload.motivo and payload.motivo.strip():
@@ -1294,6 +1318,9 @@ async def update_estado_perfil(
     
     res_usu_aprob = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_aprob))
     perfil.usuario_aprob = res_usu_aprob.scalar_one_or_none()
+
+    res_usu_entrega = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_entrega))
+    perfil.usuario_entrega = res_usu_entrega.scalar_one_or_none()
     
     perfil.estado_solicitud = nuevo_estado
     
@@ -1350,6 +1377,9 @@ async def get_trazabilidad_perfil(
     
     res_usu_aprob = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_aprob))
     usu_aprob = res_usu_aprob.scalar_one_or_none()
+
+    res_usu_entrega = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_entrega))
+    usu_entrega = res_usu_entrega.scalar_one_or_none()
     
     evidencia = None
     if perfil.id_evidencia:
@@ -1427,8 +1457,16 @@ async def get_trazabilidad_perfil(
             "emision": {
                 "fecha": perfil.fecha_emision,
                 "serial_mdp": perfil.serial_mdp
+            },
+            "entrega": {
+                "fecha": perfil.fecha_entrega,
+                "entregado_a": perfil.entregado_a,
+                "usuario": {"id": usu_entrega.id, "nombre_completo": usu_entrega.nombre_completo} if usu_entrega else None
             }
         },
+        "fecha_entrega": perfil.fecha_entrega,
+        "entregado_a": perfil.entregado_a,
+        "usuario_entrega": {"id": usu_entrega.id, "nombre_completo": usu_entrega.nombre_completo} if usu_entrega else None,
         "observaciones": obs_response
     }
 

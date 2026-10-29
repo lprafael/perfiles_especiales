@@ -435,6 +435,7 @@ const ConsultaPerfiles = ({ user }) => {
                 if (p.id_estado_solicitud === 4) estadoColor = 'red';    // Rechazado
                 if (p.id_estado_solicitud === 5) estadoColor = 'purple'; // Emitido
                 if (p.id_estado_solicitud === 6) estadoColor = '#0284c7'; // Remitido a EPS
+                if (p.id_estado_solicitud === 7) estadoColor = '#059669'; // Entregado (Usuario o Institución)
 
                 const obsList = p.observaciones || [];
                 const obsCount = obsList.length;

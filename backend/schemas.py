@@ -1124,9 +1124,12 @@ class PerfilEspecialBase(BaseModel):
     fecha_aprobacion: Optional[datetime] = None
     fecha_remision_eps: Optional[datetime] = None
     fecha_emision: Optional[datetime] = None
+    fecha_entrega: Optional[datetime] = None
+    entregado_a: Optional[str] = None
     id_usuario_carga: Optional[int] = None
     id_usuario_verif: Optional[int] = None
     id_usuario_aprob: Optional[int] = None
+    id_usuario_entrega: Optional[int] = None
     ip_aprobo: Optional[str] = None
     device_id_aprobo: Optional[str] = None
 
@@ -1153,6 +1156,7 @@ class UsuarioCargaInfo(BaseModel):
 class EstadoUpdate(BaseModel):
     id_estado: int
     motivo: Optional[str] = None
+    entregado_a: Optional[str] = None
 
 class SerialUpdate(BaseModel):
     serial_mdp: str
@@ -1184,6 +1188,7 @@ class PerfilEspecialResponse(PerfilEspecialBase):
     usuario_carga: Optional[UsuarioCargaInfo] = None
     usuario_verif: Optional[UsuarioCargaInfo] = None
     usuario_aprob: Optional[UsuarioCargaInfo] = None
+    usuario_entrega: Optional[UsuarioCargaInfo] = None
     observaciones: List[PerfilObservacionResponse] = []
     class Config:
         from_attributes = True
