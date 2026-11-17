@@ -1126,6 +1126,9 @@ class PerfilEspecialBase(BaseModel):
     fecha_emision: Optional[datetime] = None
     fecha_entrega: Optional[datetime] = None
     entregado_a: Optional[str] = None
+    fecha_anulacion: Optional[datetime] = None
+    motivo_anulacion: Optional[str] = None
+    id_usuario_anulacion: Optional[int] = None
     id_usuario_carga: Optional[int] = None
     id_usuario_verif: Optional[int] = None
     id_usuario_aprob: Optional[int] = None
@@ -1189,6 +1192,7 @@ class PerfilEspecialResponse(PerfilEspecialBase):
     usuario_verif: Optional[UsuarioCargaInfo] = None
     usuario_aprob: Optional[UsuarioCargaInfo] = None
     usuario_entrega: Optional[UsuarioCargaInfo] = None
+    usuario_anulacion: Optional[UsuarioCargaInfo] = None
     observaciones: List[PerfilObservacionResponse] = []
     class Config:
         from_attributes = True

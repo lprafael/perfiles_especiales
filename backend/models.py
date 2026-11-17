@@ -764,6 +764,9 @@ class PerfilEspecial(Base):
     fecha_emision = Column(DateTime, nullable=True)
     fecha_entrega = Column(DateTime, nullable=True)
     entregado_a = Column(String(255), nullable=True)
+    fecha_anulacion = Column(DateTime, nullable=True)
+    motivo_anulacion = Column(Text, nullable=True)
+    id_usuario_anulacion = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=True)
     id_usuario_carga = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=False, default=1)
     id_usuario_verif = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=True)
     id_usuario_aprob = Column(Integer, ForeignKey('sistema.usuarios.id'), nullable=True)
@@ -781,6 +784,7 @@ class PerfilEspecial(Base):
     usuario_verif = relationship("Usuario", foreign_keys=[id_usuario_verif], lazy="noload")
     usuario_aprob = relationship("Usuario", foreign_keys=[id_usuario_aprob], lazy="noload")
     usuario_entrega = relationship("Usuario", foreign_keys=[id_usuario_entrega], lazy="noload")
+    usuario_anulacion = relationship("Usuario", foreign_keys=[id_usuario_anulacion], lazy="noload")
     evidencia = relationship("EvidenciaImportacion", backref="perfiles_importados", lazy="noload")
     observaciones = relationship("PerfilObservacion", primaryjoin="PerfilEspecial.orden == foreign(PerfilObservacion.orden)", lazy="noload")
 

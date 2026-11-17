@@ -14,7 +14,8 @@ const ESTADOS_DISPONIBLES = [
   { id_estado: 6, descripcion: 'Remitido a EPS', color: '#0284c7', icon: '📨', desc: 'Listado remitido por correo a la EPS para impresión' },
   { id_estado: 5, descripcion: 'Emitido', color: '#8e44ad', icon: '💳', desc: 'Tarjeta física con Serial MDP asignado' },
   { id_estado: 7, descripcion: 'Entregado', color: '#059669', icon: '🎁', desc: 'Entregado al usuario titular o a la institución solicitante' },
-  { id_estado: 4, descripcion: 'Rechazado', color: '#e74c3c', icon: '❌', desc: 'Tarjeta o perfil rechazado/anulado' },
+  { id_estado: 4, descripcion: 'Rechazado', color: '#e74c3c', icon: '❌', desc: 'Tarjeta o perfil rechazado por inconsistencias' },
+  { id_estado: 8, descripcion: 'Anulado', color: '#64748b', icon: '🚫', desc: 'Tarjeta o perfil dado de baja / anulado. Libera la cédula para solicitar otro perfil' },
 ];
 
 const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = false, initialTab = 'timeline' }) => {
@@ -135,13 +136,21 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
   // Manejar cambio de estado
   const handleGuardarCambioEstado = async (e) => {
     e.preventDefault();
-    if (selectedNuevoEstado === currentPerfil.id_estado_solicitud) {
+    if (Number(selectedNuevoEstado) === currentPerfil.id_estado_solicitud) {
       alert("Seleccione un estado diferente al actual.");
       return;
     }
 
+    if (Number(selectedNuevoEstado) === 8 && !motivoCambio.trim()) {
+      alert("Para anular un perfil o tarjeta, debe ingresar obligatoriamente el motivo de anulación para el historial.");
+      return;
+    }
+
     const estadoTarget = ESTADOS_DISPONIBLES.find(e => e.id_estado === Number(selectedNuevoEstado));
-    const confirmMsg = `¿Está seguro de cambiar el estado de la tarjeta a '${estadoTarget ? estadoTarget.descripcion : selectedNuevoEstado}'?`;
+    let confirmMsg = `¿Está seguro de cambiar el estado de la tarjeta a '${estadoTarget ? estadoTarget.descripcion : selectedNuevoEstado}'?`;
+    if (Number(selectedNuevoEstado) === 8) {
+      confirmMsg += "\n\n⚠️ Importante: Al anular este registro, la cédula quedará liberada para solicitar un nuevo perfil (ej. Discapacidad o Estudiante).";
+    }
     if (!window.confirm(confirmMsg)) return;
 
     setSavingEstado(true);
@@ -467,6 +476,52 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                 </div>
               </div>
 
+              {/* Alerta de Perfil Anulado */}
+              {(currentPerfil.id_estado_solicitud === 8 || currentPerfil.fecha_anulacion) && (
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderLeft: '5px solid #64748b',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.4rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '1.2rem' }}>🚫</span>
+                      <strong style={{ color: '#1e293b', fontSize: '0.98rem' }}>
+                        Registro Anulado / Dado de Baja
+                      </strong>
+                      <span style={{
+                        background: '#e2e8f0',
+                        color: '#334155',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '4px'
+                      }}>
+                        CÉDULA LIBERADA
+                      </span>
+                    </div>
+                    {currentPerfil.fecha_anulacion && (
+                      <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>
+                        {formatDate(currentPerfil.fecha_anulacion)}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.86rem', color: '#475569' }}>
+                    <strong>Motivo:</strong> {currentPerfil.motivo_anulacion || 'Sin motivo especificado'}
+                  </p>
+                  {currentPerfil.usuario_anulacion?.nombre_completo && (
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                      Anulado por: <strong>{currentPerfil.usuario_anulacion.nombre_completo}</strong>
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Timeline Visual de Etapas */}
               <div>
                 <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b', fontSize: '1rem' }}>
@@ -703,6 +758,41 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                       </p>
                     </div>
                   </div>
+
+                  {/* 7. Anulación (si aplica) */}
+                  {(currentPerfil.fecha_anulacion || currentPerfil.id_estado_solicitud === 8) && (
+                    <div style={{ position: 'relative' }}>
+                      <div style={{
+                        position: 'absolute',
+                        left: '-1.5rem',
+                        top: '0',
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        background: '#64748b',
+                        border: '3px solid white',
+                        boxShadow: '0 0 0 2px #64748b'
+                      }} />
+                      <div style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <strong style={{ color: '#334155', fontSize: '0.95rem' }}>🚫 7. Anulación de Tarjeta / Perfil</strong>
+                          <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                            {formatDate(currentPerfil.fecha_anulacion)}
+                          </span>
+                        </div>
+                        <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', color: '#475569' }}>
+                          {currentPerfil.motivo_anulacion ? (
+                            <span>Motivo: <strong>{currentPerfil.motivo_anulacion}</strong></span>
+                          ) : (
+                            <span>Tarjeta/perfil dado de baja.</span>
+                          )}
+                          {currentPerfil.usuario_anulacion?.nombre_completo && (
+                            <span> • Registrado por: <strong>{currentPerfil.usuario_anulacion.nombre_completo}</strong></span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -916,6 +1006,20 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                     <small style={{ color: '#047857', display: 'block', marginTop: '0.3rem', fontSize: '0.78rem' }}>
                       Indique el nombre o dependencia que recepciona el plástico físico.
                     </small>
+                  </div>
+                )}
+
+                {Number(selectedNuevoEstado) === 8 && (
+                  <div style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+                      <span style={{ fontSize: '1.2rem' }}>🚫</span>
+                      <strong style={{ color: '#334155', fontSize: '0.9rem' }}>
+                        Anulación de Perfil / Tarjeta (Liberación de Cédula)
+                      </strong>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', lineHeight: 1.4 }}>
+                      Al pasar a estado <strong>Anulado</strong>, la cédula quedará habilitada para que el ciudadano pueda postular a un nuevo perfil (por ejemplo, perfil de Discapacidad o Estudiante). El motivo ingresado abajo es obligatorio y quedará asentado en el historial de auditoría.
+                    </p>
                   </div>
                 )}
 

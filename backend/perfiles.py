@@ -117,6 +117,7 @@ async def get_perfiles(
         p.usuario_verif = usuarios_dict.get(p.id_usuario_verif)
         p.usuario_aprob = usuarios_dict.get(p.id_usuario_aprob)
         p.usuario_entrega = usuarios_dict.get(p.id_usuario_entrega)
+        p.usuario_anulacion = usuarios_dict.get(p.id_usuario_anulacion)
         p.estado_solicitud = estados_dict.get(p.id_estado_solicitud)
         p.observaciones = obs_map.get(p.orden, [])
         
@@ -187,6 +188,7 @@ async def get_dashboard_lotes(
         func.sum(case((subq.c.id_estado_solicitud == 2, 1), else_=0)).label("verificados"),
         func.sum(case((subq.c.id_estado_solicitud == 3, 1), else_=0)).label("aprobados"),
         func.sum(case((subq.c.id_estado_solicitud == 4, 1), else_=0)).label("rechazados"),
+        func.sum(case((subq.c.id_estado_solicitud == 8, 1), else_=0)).label("anulados"),
         func.sum(
             case(
                 (
@@ -252,6 +254,7 @@ async def get_dashboard_lotes(
         verif = int(r.verificados or 0)
         aprob = int(r.aprobados or 0)
         rech = int(r.rechazados or 0)
+        anul = int(r.anulados or 0)
         remit = int(r.remitidos_eps or 0)
         emitidos = int(r.emitidos_tarjeta or 0)
         entregados = int(r.entregados or 0)
@@ -267,7 +270,7 @@ async def get_dashboard_lotes(
         else:
             estado_remision = "PENDIENTE"
             
-        valido = total_p - rech
+        valido = total_p - rech - anul
         porcentaje = round((remit / valido * 100), 1) if valido > 0 else (100.0 if remit > 0 else 0.0)
         
         lotes_list.append({
@@ -281,6 +284,7 @@ async def get_dashboard_lotes(
             "verificados": verif,
             "aprobados": aprob,
             "rechazados": rech,
+            "anulados": anul,
             "remitidos_eps": remit,
             "en_impresion_eps": en_impresion,
             "emitidos_tarjeta": emitidos,
@@ -314,6 +318,7 @@ async def get_dashboard_lotes(
                 "verificados": 0,
                 "aprobados": 0,
                 "rechazados": 0,
+                "anulados": 0,
                 "remitidos_eps": 0,
                 "pendientes_remision": 0,
             }
@@ -332,6 +337,7 @@ async def get_dashboard_lotes(
         rt["verificados"] += l["verificados"]
         rt["aprobados"] += l["aprobados"]
         rt["rechazados"] += l["rechazados"]
+        rt["anulados"] += l.get("anulados", 0)
         rt["remitidos_eps"] += l["remitidos_eps"]
         rt["en_impresion_eps"] = rt.get("en_impresion_eps", 0) + l.get("en_impresion_eps", 0)
         rt["emitidos_tarjeta"] = rt.get("emitidos_tarjeta", 0) + l.get("emitidos_tarjeta", 0)
@@ -340,7 +346,7 @@ async def get_dashboard_lotes(
         
     resumen_tipos = []
     for rt in resumen_tipos_map.values():
-        valido = rt["total_perfiles"] - rt["rechazados"]
+        valido = rt["total_perfiles"] - rt["rechazados"] - rt["anulados"]
         pct = round((rt["remitidos_eps"] / valido * 100), 1) if valido > 0 else (100.0 if rt["remitidos_eps"] > 0 else 0.0)
         rt["porcentaje_remitido"] = pct
         resumen_tipos.append(rt)
@@ -359,8 +365,9 @@ async def get_dashboard_lotes(
     total_entregados = sum(l.get("entregados", 0) for l in lotes_list)
     total_pendientes = sum(l["pendientes"] for l in lotes_list)
     total_rechazados = sum(l["rechazados"] for l in lotes_list)
+    total_anulados = sum(l.get("anulados", 0) for l in lotes_list)
     
-    valido_global = total_perfiles - total_rechazados
+    valido_global = total_perfiles - total_rechazados - total_anulados
     pct_global = round((total_remitidos / valido_global * 100), 1) if valido_global > 0 else (100.0 if total_remitidos > 0 else 0.0)
     pct_impreso = round((total_emitidos / total_remitidos * 100), 1) if total_remitidos > 0 else 0.0
     
@@ -376,6 +383,7 @@ async def get_dashboard_lotes(
         "entregados": total_entregados,
         "pendientes_remision": total_pendientes,
         "rechazados": total_rechazados,
+        "anulados": total_anulados,
         "porcentaje_remitido": pct_global,
         "porcentaje_impreso": pct_impreso
     }
@@ -529,7 +537,10 @@ async def verify_perfiles(
                         PerfilEspecial.id_estado_solicitud,
                         PerfilEspecial.Lote
                     )
-                    .where(PerfilEspecial.cedula_identidad.in_(chunk))
+                    .where(
+                        PerfilEspecial.cedula_identidad.in_(chunk),
+                        PerfilEspecial.id_estado_solicitud.not_in([4, 8])
+                    )
                     .order_by(PerfilEspecial.fecha_solicitud.desc().nulls_last())
                 )
                 for c_doc, c_tipo, c_fecha, c_estado, c_lote in res_dup.all():
@@ -694,7 +705,10 @@ async def import_perfiles(
                         PerfilEspecial.id_estado_solicitud,
                         PerfilEspecial.Lote
                     )
-                    .where(PerfilEspecial.cedula_identidad.in_(chunk))
+                    .where(
+                        PerfilEspecial.cedula_identidad.in_(chunk),
+                        PerfilEspecial.id_estado_solicitud.not_in([4, 8])
+                    )
                     .order_by(PerfilEspecial.fecha_solicitud.desc().nulls_last())
                 )
                 for c_doc, c_tipo, c_fecha, c_estado, c_lote in res_dup.all():
@@ -1361,6 +1375,9 @@ async def update_serial_mdp(
 
     res_usu_entrega = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_entrega))
     perfil.usuario_entrega = res_usu_entrega.scalar_one_or_none()
+
+    res_usu_anulacion = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_anulacion))
+    perfil.usuario_anulacion = res_usu_anulacion.scalar_one_or_none()
     
     res_estado = await session.execute(select(EstadoSolicitudPerfil).where(EstadoSolicitudPerfil.id_estado == perfil.id_estado_solicitud))
     perfil.estado_solicitud = res_estado.scalar_one_or_none()
@@ -1433,6 +1450,16 @@ async def update_estado_perfil(
         perfil.id_usuario_entrega = current_user["user_id"]
         if payload.entregado_a:
             perfil.entregado_a = payload.entregado_a.strip()
+    elif nuevo_estado_id == 8:
+        perfil.fecha_anulacion = ahora
+        perfil.id_usuario_anulacion = current_user["user_id"]
+        if payload.motivo:
+            perfil.motivo_anulacion = payload.motivo.strip()
+    elif estado_ant_id == 8 and nuevo_estado_id != 8:
+        # Si se reactiva un perfil anulado
+        perfil.fecha_anulacion = None
+        perfil.id_usuario_anulacion = None
+        perfil.motivo_anulacion = None
         
     # Si se especificó un motivo, registrar observación
     if payload.motivo and payload.motivo.strip():
@@ -1478,6 +1505,9 @@ async def update_estado_perfil(
 
     res_usu_entrega = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_entrega))
     perfil.usuario_entrega = res_usu_entrega.scalar_one_or_none()
+
+    res_usu_anulacion = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_anulacion))
+    perfil.usuario_anulacion = res_usu_anulacion.scalar_one_or_none()
     
     perfil.estado_solicitud = nuevo_estado
     
@@ -1537,6 +1567,9 @@ async def get_trazabilidad_perfil(
 
     res_usu_entrega = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_entrega))
     usu_entrega = res_usu_entrega.scalar_one_or_none()
+    
+    res_usu_anulacion = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_anulacion))
+    usu_anulacion = res_usu_anulacion.scalar_one_or_none()
     
     evidencia = None
     if perfil.id_evidencia:
@@ -1619,11 +1652,19 @@ async def get_trazabilidad_perfil(
                 "fecha": perfil.fecha_entrega,
                 "entregado_a": perfil.entregado_a,
                 "usuario": {"id": usu_entrega.id, "nombre_completo": usu_entrega.nombre_completo} if usu_entrega else None
+            },
+            "anulacion": {
+                "fecha": perfil.fecha_anulacion,
+                "motivo": perfil.motivo_anulacion,
+                "usuario": {"id": usu_anulacion.id, "nombre_completo": usu_anulacion.nombre_completo} if usu_anulacion else None
             }
         },
         "fecha_entrega": perfil.fecha_entrega,
         "entregado_a": perfil.entregado_a,
         "usuario_entrega": {"id": usu_entrega.id, "nombre_completo": usu_entrega.nombre_completo} if usu_entrega else None,
+        "fecha_anulacion": perfil.fecha_anulacion,
+        "motivo_anulacion": perfil.motivo_anulacion,
+        "usuario_anulacion": {"id": usu_anulacion.id, "nombre_completo": usu_anulacion.nombre_completo} if usu_anulacion else None,
         "observaciones": obs_response
     }
 

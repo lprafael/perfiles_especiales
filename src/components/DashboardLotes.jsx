@@ -249,6 +249,7 @@ const DashboardLotes = ({ user }) => {
       'Entregados': rt.entregados || 0,
       'Pendientes de Remisión': rt.pendientes_remision,
       'Rechazados': rt.rechazados,
+      'Anulados': rt.anulados || 0,
       '% Remitido a EPS': `${rt.porcentaje_remitido}%`
     }));
     const wsResumen = XLSX.utils.json_to_sheet(resumenRows);
@@ -270,6 +271,7 @@ const DashboardLotes = ({ user }) => {
       'Verificados': l.verificados,
       'Solicitados (Nuevos)': l.solicitados,
       'Rechazados': l.rechazados,
+      'Anulados': l.anulados || 0,
       'EPS Asignada': l.eps_destinos,
       'Fecha Solicitud Inicial': l.fecha_solicitud ? new Date(l.fecha_solicitud).toLocaleDateString() : '',
       'Fecha Remisión a EPS': l.fecha_ultima_remision ? new Date(l.fecha_ultima_remision).toLocaleDateString() : '',
@@ -404,11 +406,11 @@ const DashboardLotes = ({ user }) => {
 
         <div className="db-kpi-card red">
           <div className="db-kpi-top">
-            <span className="db-kpi-title">Pend. Remisión / Rechazados</span>
+            <span className="db-kpi-title">Pend. Remisión / Bajas</span>
             <span className="db-kpi-icon">⏳</span>
           </div>
           <div className="db-kpi-value" style={{ fontSize: '1.6rem' }}>
-            {kpis.pendientes_remision.toLocaleString()} <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>/ {kpis.rechazados} rech.</span>
+            {kpis.pendientes_remision.toLocaleString()} <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>/ {kpis.rechazados} rech. {kpis.anulados > 0 && `• ${kpis.anulados} anul.`}</span>
           </div>
           <div className="db-kpi-subtext">
             En trámite interno antes de EPS
@@ -659,7 +661,7 @@ const DashboardLotes = ({ user }) => {
                       <td>
                         <div className="db-progress-wrap">
                           <span style={{ fontSize: '0.78rem', fontWeight: 700, color: lote.porcentaje_remitido === 100 ? '#15803d' : '#334155' }}>
-                            {lote.porcentaje_remitido}% ({lote.remitidos_eps}/{lote.total_perfiles - lote.rechazados})
+                            {lote.porcentaje_remitido}% ({lote.remitidos_eps}/{lote.total_perfiles - lote.rechazados - (lote.anulados || 0)})
                           </span>
                           <div className="db-progress-bar-bg" style={{ height: '6px' }}>
                             <div
@@ -697,6 +699,11 @@ const DashboardLotes = ({ user }) => {
                           {lote.rechazados > 0 && (
                             <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 600 }} title="Rechazados">
                               Rechazados: {lote.rechazados}
+                            </span>
+                          )}
+                          {lote.anulados > 0 && (
+                            <span style={{ background: '#f1f5f9', color: '#475569', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 600 }} title="Anulados">
+                              Anulados: {lote.anulados}
                             </span>
                           )}
                         </div>
