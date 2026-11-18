@@ -259,7 +259,7 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
         });
         if (resObs.ok) {
           const obsList = await resObs.json();
-          setObservaciones(obsList);
+          setObservacionesList(obsList);
         }
         alert(`✅ ¡Serial asignado con éxito desde Billetaje!\nSerial: ${data.serial_mdp}`);
       } else {
