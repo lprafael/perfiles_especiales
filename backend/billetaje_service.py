@@ -256,3 +256,235 @@ async def sincronizar_perfiles_con_modusuario(
         "mensaje": f"Se sincronizaron con éxito {total_sincronizados} de {len(perfiles)} perfiles evaluados desde c_modusuario.",
         "detalles": detalles_actualizados
     }
+
+def obtener_auditoria_uso_tarjeta(
+    serial_mdp: str,
+    cedula: Optional[str] = None,
+    fecha_desde: Optional[str] = None,
+    fecha_hasta: Optional[str] = None,
+    limite: int = 200
+) -> Dict[str, Any]:
+    """
+    Obtiene el control de uso detallado de una tarjeta desde c_transacciones (Opentransit):
+    - Métricas globales de validaciones
+    - Geoposicionamiento (coordenadas GPS de cada validación en colectivos)
+    - Puntos para mapa interactivo
+    - Detección de uso concurrente / alertas de picos diarios
+    - Otras tarjetas emitidas al mismo titular en c_modusuario
+    """
+    serial_clean = re.sub(r'\D', '', str(serial_mdp)).strip()
+    if not serial_clean:
+        return {
+            "error": "Número de serial inválido",
+            "totales": {"total_viajes": 0, "con_gps": 0}
+        }
+
+    conn = get_opentransit_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # Forzar índices sobre c_transacciones
+            cur.execute("SET enable_seqscan = off;")
+
+            # 1. Si hay cédula, consultar todas las tarjetas asociadas a esta persona en c_modusuario
+            otras_tarjetas = []
+            ci_clean = normalizar_cedula(cedula)
+            if ci_clean:
+                cur.execute("""
+                    SELECT 
+                        serialmediopago, 
+                        "códigoperfil" as codigoperfil, 
+                        fechaevento, 
+                        nombreusuario
+                    FROM c_modusuario
+                    WHERE NULLIF(regexp_replace(credencialusuario, '\\D', '', 'g'), '') = %s
+                    ORDER BY fechaevento DESC;
+                """, (ci_clean,))
+                seen_serials = set()
+                for r in cur.fetchall():
+                    s_str = str(r["serialmediopago"]).strip()
+                    if s_str not in seen_serials:
+                        seen_serials.add(s_str)
+                        cod = r["codigoperfil"]
+                        desc_p = "Perfil 4 (Visual)" if cod == 4 else ("Perfil 5 (General)" if cod == 5 else ("Perfil 3 (Estudiante)" if cod == 3 else f"Perfil {cod}"))
+                        otras_tarjetas.append({
+                            "serial": s_str,
+                            "codigo_perfil": cod,
+                            "tipo_perfil": desc_p,
+                            "fecha_evento": r["fechaevento"].strftime('%Y-%m-%d %H:%M:%S') if r["fechaevento"] else None,
+                            "es_actual": s_str == serial_clean
+                        })
+
+            # 2. Consultar métricas globales en c_transacciones
+            query_tot = """
+                SELECT 
+                    COUNT(*) as total_viajes,
+                    MIN(fechaevento) as primer_viaje,
+                    MAX(fechaevento) as ultimo_viaje,
+                    COUNT(CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL THEN 1 END) as con_gps
+                FROM c_transacciones
+                WHERE serialmediopago = %s
+                  AND tipoevento = 4
+            """
+            params_tot = [int(serial_clean)]
+            if fecha_desde:
+                query_tot += " AND fechaevento >= %s"
+                params_tot.append(fecha_desde)
+            if fecha_hasta:
+                query_tot += " AND fechaevento <= %s"
+                params_tot.append(fecha_hasta)
+
+            cur.execute(query_tot, tuple(params_tot))
+            tot_row = cur.fetchone()
+
+            total_viajes = tot_row["total_viajes"] if tot_row else 0
+            con_gps = tot_row["con_gps"] if tot_row else 0
+            primer_viaje = tot_row["primer_viaje"].strftime('%Y-%m-%d %H:%M:%S') if tot_row and tot_row["primer_viaje"] else None
+            ultimo_viaje = tot_row["ultimo_viaje"].strftime('%Y-%m-%d %H:%M:%S') if tot_row and tot_row["ultimo_viaje"] else None
+
+            # 3. Resumen agrupado por día
+            query_dias = """
+                SELECT 
+                    fechaevento::date as dia,
+                    COUNT(*) as viajes_dia,
+                    COUNT(DISTINCT iddispositivo) as coches_distintos
+                FROM c_transacciones
+                WHERE serialmediopago = %s
+                  AND tipoevento = 4
+            """
+            params_dias = [int(serial_clean)]
+            if fecha_desde:
+                query_dias += " AND fechaevento >= %s"
+                params_dias.append(fecha_desde)
+            if fecha_hasta:
+                query_dias += " AND fechaevento <= %s"
+                params_dias.append(fecha_hasta)
+
+            query_dias += " GROUP BY fechaevento::date ORDER BY dia DESC;"
+            cur.execute(query_dias, tuple(params_dias))
+            dias_rows = cur.fetchall()
+
+            total_dias = len(dias_rows)
+            max_dia = max((r["viajes_dia"] for r in dias_rows), default=0)
+            promedio_dia = round(total_viajes / total_dias, 1) if total_dias > 0 else 0
+            dias_pico = [
+                {
+                    "fecha": r["dia"].strftime('%Y-%m-%d'),
+                    "viajes": r["viajes_dia"],
+                    "coches": r["coches_distintos"]
+                }
+                for r in dias_rows if r["viajes_dia"] >= 8
+            ]
+
+            # 4. Transacciones recientes con GPS y detalles
+            query_tx = """
+                SELECT 
+                    id,
+                    fechaevento,
+                    fechahoraevento,
+                    latitude,
+                    longitude,
+                    iddispositivo,
+                    identidad,
+                    idrutaestacion,
+                    númeropassbacks,
+                    consecutivoevento
+                FROM c_transacciones
+                WHERE serialmediopago = %s
+                  AND tipoevento = 4
+            """
+            params_tx = [int(serial_clean)]
+            if fecha_desde:
+                query_tx += " AND fechaevento >= %s"
+                params_tx.append(fecha_desde)
+            if fecha_hasta:
+                query_tx += " AND fechaevento <= %s"
+                params_tx.append(fecha_hasta)
+
+            query_tx += " ORDER BY fechaevento DESC LIMIT %s;"
+            params_tx.append(min(limite, 500))
+
+            cur.execute(query_tx, tuple(params_tx))
+            tx_rows = cur.fetchall()
+
+            transacciones = []
+            puntos_gps = []
+            for t in tx_rows:
+                f_str = t["fechaevento"].strftime('%Y-%m-%d %H:%M:%S') if t["fechaevento"] else None
+                lat = float(t["latitude"]) if t["latitude"] is not None else None
+                lng = float(t["longitude"]) if t["longitude"] is not None else None
+
+                tx_item = {
+                    "id": str(t["id"]),
+                    "fecha": f_str,
+                    "coche": str(t["iddispositivo"]).strip() if t["iddispositivo"] else "S/D",
+                    "empresa_id": str(t["identidad"]).strip() if t["identidad"] else "S/D",
+                    "ruta_hex": str(t["idrutaestacion"]).strip() if t["idrutaestacion"] else None,
+                    "passback": t["númeropassbacks"] or 0,
+                    "consecutivo": t["consecutivoevento"],
+                    "lat": lat,
+                    "lng": lng,
+                    "tiene_gps": lat is not None and lng is not None
+                }
+                transacciones.append(tx_item)
+
+                if lat is not None and lng is not None:
+                    puntos_gps.append({
+                        "id": str(t["id"]),
+                        "lat": lat,
+                        "lng": lng,
+                        "fecha": f_str,
+                        "coche": tx_item["coche"],
+                        "empresa": tx_item["empresa_id"],
+                        "passback": tx_item["passback"]
+                    })
+
+            # Generar alertas de auditoría
+            alertas = []
+            if len(otras_tarjetas) > 1:
+                alertas.append({
+                    "nivel": "warning",
+                    "titulo": "Múltiples Tarjetas Registradas",
+                    "detalle": f"El titular posee {len(otras_tarjetas)} tarjetas registradas en c_modusuario."
+                })
+            if max_dia >= 15:
+                alertas.append({
+                    "nivel": "danger",
+                    "titulo": "Pico Crítico de Viajes en un Día",
+                    "detalle": f"Se registró un día con {max_dia} validaciones, lo que excede el patrón normal de uso personal."
+                })
+            elif max_dia >= 8:
+                alertas.append({
+                    "nivel": "info",
+                    "titulo": "Frecuencia Alta de Movilidad",
+                    "detalle": f"Máximo de {max_dia} validaciones en una sola jornada."
+                })
+
+            return {
+                "serial_consultado": serial_clean,
+                "cedula": ci_clean,
+                "otras_tarjetas": otras_tarjetas,
+                "totales": {
+                    "total_viajes": total_viajes,
+                    "dias_uso": total_dias,
+                    "promedio_diario": promedio_dia,
+                    "max_viajes_dia": max_dia,
+                    "primer_viaje": primer_viaje,
+                    "ultimo_viaje": ultimo_viaje,
+                    "con_gps": con_gps
+                },
+                "alertas": alertas,
+                "dias_pico": dias_pico[:15],
+                "historial_diario": [
+                    {
+                        "dia": r["dia"].strftime('%Y-%m-%d'),
+                        "viajes": r["viajes_dia"],
+                        "coches": r["coches_distintos"]
+                    }
+                    for r in dias_rows[:30]
+                ],
+                "puntos_gps": puntos_gps,
+                "transacciones": transacciones
+            }
+    finally:
+        conn.close()
+

@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { API_BASE } from '../config';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
@@ -32,6 +34,15 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
   const [serialMdpInput, setSerialMdpInput] = useState(perfil.serial_mdp || '');
   const [savingSerial, setSavingSerial] = useState(false);
   const [syncingBilletaje, setSyncingBilletaje] = useState(false);
+
+  // Estados para Monitoreo de Uso y GPS (Exclusivo Administrador)
+  const [usoData, setUsoData] = useState(null);
+  const [loadingUso, setLoadingUso] = useState(false);
+  const [errorUso, setErrorUso] = useState(null);
+  const [selectedSerialUso, setSelectedSerialUso] = useState(null);
+  const [searchTx, setSearchTx] = useState('');
+  const mapInstanceRef = useRef(null);
+  const markersRef = useRef({});
 
   // Estados para Observaciones
   const [observacionesList, setObservacionesList] = useState(perfil.observaciones || []);
@@ -262,6 +273,133 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
     }
   };
 
+  // Consultar auditoría de uso, viajes y geoposicionamiento (Solo Admin)
+  const fetchUsoBilletaje = async (serialParam = null) => {
+    setLoadingUso(true);
+    setErrorUso(null);
+    try {
+      let url = `${API_BASE}/perfiles/${currentPerfil.orden}/uso-billetaje?limite=300`;
+      if (serialParam) {
+        url += `&serial_mdp=${serialParam}`;
+      }
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsoData(data);
+        if (data.serial_consultado && data.serial_consultado !== selectedSerialUso) {
+          setSelectedSerialUso(data.serial_consultado);
+        }
+      } else {
+        const err = await res.json();
+        setErrorUso(err.detail || "Error al consultar transacciones en Billetaje");
+      }
+    } catch (e) {
+      console.error(e);
+      setErrorUso("Error de conexión con el servicio de Billetaje");
+    } finally {
+      setLoadingUso(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'uso' && isAdmin && currentPerfil) {
+      fetchUsoBilletaje(selectedSerialUso);
+    }
+  }, [activeTab, selectedSerialUso]);
+
+  // Inicializar y actualizar Leaflet Map en pestaña de Uso
+  useEffect(() => {
+    if (activeTab !== 'uso' || !usoData) return;
+
+    const timer = setTimeout(() => {
+      const container = document.getElementById('map-validaciones-gps');
+      if (!container) return;
+
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+      markersRef.current = {};
+
+      const points = usoData.puntos_gps || [];
+      const defaultCenter = points.length > 0 ? [points[0].lat, points[0].lng] : [-25.2865, -57.5670];
+      const defaultZoom = points.length > 0 ? 13 : 12;
+
+      const map = L.map(container).setView(defaultCenter, defaultZoom);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+
+      const busIcon = L.divIcon({
+        className: 'bus-pin-custom',
+        html: `<div style="background:#0284c7;color:#fff;border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 6px rgba(0,0,0,0.35);font-size:13px;cursor:pointer;">🚌</div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+        popupAnchor: [0, -14]
+      });
+
+      const latLngs = [];
+
+      points.forEach((pt, idx) => {
+        const marker = L.marker([pt.lat, pt.lng], { icon: busIcon }).addTo(map);
+        const popupHtml = `
+          <div style="font-family:inherit;font-size:12px;line-height:1.45;min-width:180px;">
+            <strong style="color:#0284c7;font-size:13px;">🚌 Validación #${idx + 1}</strong><br/>
+            📅 <strong>Fecha:</strong> ${pt.fecha || '-'}<br/>
+            🔢 <strong>Coche/Validador:</strong> ${pt.coche || '-'}<br/>
+            🏢 <strong>Empresa:</strong> ${pt.empresa || '-'}<br/>
+            🔄 <strong>Passback:</strong> ${pt.passback || 0}<br/>
+            📍 <strong>GPS:</strong> ${pt.lat.toFixed(6)}, ${pt.lng.toFixed(6)}
+          </div>
+        `;
+        marker.bindPopup(popupHtml);
+        markersRef.current[pt.id] = marker;
+        latLngs.push([pt.lat, pt.lng]);
+      });
+
+      if (latLngs.length > 1) {
+        L.polyline(latLngs, {
+          color: '#0284c7',
+          weight: 2.5,
+          opacity: 0.5,
+          dashArray: '5, 8'
+        }).addTo(map);
+        map.fitBounds(L.latLngBounds(latLngs), { padding: [30, 30] });
+      }
+
+      mapInstanceRef.current = map;
+
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 250);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [activeTab, usoData]);
+
+  const handleCentrarEnMapa = (tx) => {
+    if (!mapInstanceRef.current || !tx.lat || !tx.lng) return;
+    mapInstanceRef.current.setView([tx.lat, tx.lng], 16, { animate: true });
+    const marker = markersRef.current[tx.id];
+    if (marker) {
+      marker.openPopup();
+    }
+  };
+
   // Manejar nueva observación
   const handleAddObservacion = async (e) => {
     e.preventDefault();
@@ -349,7 +487,7 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
         background: 'white',
         borderRadius: '14px',
         width: '100%',
-        maxWidth: '820px',
+        maxWidth: '960px',
         maxHeight: '90vh',
         display: 'flex',
         flexDirection: 'column',
@@ -468,11 +606,34 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
               fontSize: '0.92rem',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.4rem',
+              whiteSpace: 'nowrap'
             }}
           >
             💬 Observaciones ({observacionesList.length})
           </button>
+
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('uso')}
+              style={{
+                padding: '0.85rem 1.25rem',
+                border: 'none',
+                background: 'transparent',
+                color: activeTab === 'uso' ? '#0f172a' : '#64748b',
+                fontWeight: activeTab === 'uso' ? 700 : 500,
+                borderBottom: activeTab === 'uso' ? '3px solid #059669' : '3px solid transparent',
+                cursor: 'pointer',
+                fontSize: '0.92rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              📍 Uso y Geolocalización (GPS)
+            </button>
+          )}
         </div>
 
         {/* Modal Body */}
@@ -1232,6 +1393,226 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: USO Y GEOPOSICIONAMIENTO GPS (EXCLUSIVO ADMINISTRADOR) */}
+          {activeTab === 'uso' && isAdmin && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Selector de Tarjetas Asociadas */}
+              {usoData?.otras_tarjetas?.length > 1 && (
+                <div style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.4rem' }}>
+                    💳 Tarjetas Asignadas a este Beneficiario en Billetaje (Seleccione para auditar):
+                  </span>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {usoData.otras_tarjetas.map((t) => (
+                      <button
+                        key={t.serial}
+                        type="button"
+                        onClick={() => setSelectedSerialUso(t.serial)}
+                        style={{
+                          padding: '0.35rem 0.75rem',
+                          borderRadius: '6px',
+                          border: t.serial === selectedSerialUso ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                          background: t.serial === selectedSerialUso ? '#e0f2fe' : '#ffffff',
+                          color: t.serial === selectedSerialUso ? '#0369a1' : '#334155',
+                          fontWeight: t.serial === selectedSerialUso ? 700 : 500,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        💳 {t.serial} <small>({t.tipo_perfil})</small>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {loadingUso ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '2.2rem', marginBottom: '0.5rem' }}>⏳</div>
+                  <strong style={{ fontSize: '0.95rem' }}>Consultando transacciones y GPS en tiempo real en Opentransit...</strong>
+                </div>
+              ) : errorUso ? (
+                <div style={{ background: '#fee2e2', border: '1px solid #f87171', color: '#991b1b', padding: '1rem', borderRadius: '8px' }}>
+                  ⚠️ <strong>Aviso:</strong> {errorUso}
+                </div>
+              ) : !usoData?.tiene_tarjeta ? (
+                <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>💳</div>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#334155' }}>Sin Tarjeta Asignada</h4>
+                  <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '420px', margin: '0 auto 1rem auto' }}>
+                    Este perfil no registra un número de tarjeta en el sistema. Puedes consultar en la tabla maestra de billetaje si ya fue emitida.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleSincronizarBilletaje}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: 'linear-gradient(135deg, #7e22ce, #9333ea)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    ⚡ Consultar c_modusuario
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Alertas de Auditoría */}
+                  {usoData.alertas?.map((al, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        background: al.nivel === 'danger' ? '#fef2f2' : (al.nivel === 'warning' ? '#fffbeb' : '#eff6ff'),
+                        border: `1px solid ${al.nivel === 'danger' ? '#f87171' : (al.nivel === 'warning' ? '#fcd34d' : '#93c5fd')}`,
+                        color: al.nivel === 'danger' ? '#991b1b' : (al.nivel === 'warning' ? '#92400e' : '#1e40af'),
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem'
+                      }}
+                    >
+                      <span style={{ fontSize: '1.2rem' }}>{al.nivel === 'danger' ? '🚨' : (al.nivel === 'warning' ? '⚠️' : 'ℹ️')}</span>
+                      <div>
+                        <strong>{al.titulo}:</strong> {al.detalle}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Resumen KPIs de la Tarjeta */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                    gap: '0.75rem'
+                  }}>
+                    <div style={{ background: '#f0fdf4', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                      <small style={{ color: '#166534', fontSize: '0.72rem', fontWeight: 700, display: 'block' }}>TOTAL VIAJES</small>
+                      <strong style={{ fontSize: '1.35rem', color: '#15803d' }}>{usoData.totales.total_viajes.toLocaleString()}</strong>
+                    </div>
+                    <div style={{ background: '#eff6ff', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                      <small style={{ color: '#1e40af', fontSize: '0.72rem', fontWeight: 700, display: 'block' }}>DÍAS CON USO</small>
+                      <strong style={{ fontSize: '1.35rem', color: '#1d4ed8' }}>{usoData.totales.dias_uso}</strong>
+                    </div>
+                    <div style={{ background: '#faf5ff', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #e9d5ff' }}>
+                      <small style={{ color: '#6b21a8', fontSize: '0.72rem', fontWeight: 700, display: 'block' }}>PROMEDIO / DÍA</small>
+                      <strong style={{ fontSize: '1.35rem', color: '#7e22ce' }}>{usoData.totales.promedio_diario}</strong>
+                    </div>
+                    <div style={{ background: '#fffbeb', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                      <small style={{ color: '#92400e', fontSize: '0.72rem', fontWeight: 700, display: 'block' }}>MÁX. EN 1 DÍA</small>
+                      <strong style={{ fontSize: '1.35rem', color: usoData.totales.max_viajes_dia >= 10 ? '#b91c1c' : '#b45309' }}>
+                        {usoData.totales.max_viajes_dia} {usoData.totales.max_viajes_dia >= 10 ? '🚨' : ''}
+                      </strong>
+                    </div>
+                    <div style={{ background: '#f0fdfa', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #99f6e4' }}>
+                      <small style={{ color: '#115e59', fontSize: '0.72rem', fontWeight: 700, display: 'block' }}>CON GPS VÁLIDO</small>
+                      <strong style={{ fontSize: '1.35rem', color: '#0d9488' }}>{usoData.totales.con_gps.toLocaleString()}</strong>
+                    </div>
+                  </div>
+
+                  {/* Mapa Leaflet de Geoposicionamiento */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        🗺️ Mapa de Geoposicionamiento de Validaciones en Colectivos
+                      </strong>
+                      <small style={{ color: '#64748b' }}>
+                        📍 Mostrando <strong>{usoData.puntos_gps?.length || 0}</strong> puntos geolocalizados
+                      </small>
+                    </div>
+                    <div
+                      id="map-validaciones-gps"
+                      style={{
+                        height: '340px',
+                        width: '100%',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
+                      }}
+                    />
+                  </div>
+
+                  {/* Tabla Detallada de Transacciones */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>
+                        📋 Detalle de Validaciones Recientes ({usoData.transacciones?.length || 0})
+                      </strong>
+                      <input
+                        type="text"
+                        placeholder="🔍 Filtrar por fecha, coche..."
+                        value={searchTx}
+                        onChange={(e) => setSearchTx(e.target.value)}
+                        style={{
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.82rem',
+                          width: '180px'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                        <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', zIndex: 1 }}>
+                          <tr>
+                            <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', color: '#475569' }}>Fecha y Hora</th>
+                            <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: '#475569' }}>Coche / Validador</th>
+                            <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: '#475569' }}>Empresa</th>
+                            <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: '#475569' }}>Passback</th>
+                            <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: '#475569' }}>Coordenadas GPS</th>
+                            <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: '#475569' }}>Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {usoData.transacciones
+                            ?.filter((t) => !searchTx || (t.fecha && t.fecha.includes(searchTx)) || (t.coche && t.coche.includes(searchTx)))
+                            .map((t, idx) => (
+                              <tr key={t.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600 }}>{t.fecha || '-'}</td>
+                                <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontFamily: 'monospace' }}>🚌 {t.coche}</td>
+                                <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }}>🏢 {t.empresa_id}</td>
+                                <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }}>{t.passback || 0}</td>
+                                <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: t.tiene_gps ? '#059669' : '#94a3b8', fontSize: '0.78rem' }}>
+                                  {t.tiene_gps ? `📍 ${t.lat.toFixed(5)}, ${t.lng.toFixed(5)}` : 'Sin GPS'}
+                                </td>
+                                <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }}>
+                                  {t.tiene_gps && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCentrarEnMapa(t)}
+                                      style={{
+                                        padding: '0.2rem 0.5rem',
+                                        background: '#eff6ff',
+                                        border: '1px solid #bfdbfe',
+                                        color: '#1d4ed8',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600
+                                      }}
+                                      title="Centrar y mostrar en el mapa"
+                                    >
+                                      📍 Ver en Mapa
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           )}

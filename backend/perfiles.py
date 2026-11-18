@@ -14,7 +14,12 @@ from schemas import (
     PerfilObservacionResponse, PerfilObservacionUpdate, EstadoSolicitudResponse, 
     EstadoUpdate, SincronizarBilletajeRequest, SincronizarBilletajeResponse
 )
-from billetaje_service import sincronizar_perfiles_con_modusuario, consultar_seriales_en_modusuario
+from billetaje_service import (
+    sincronizar_perfiles_con_modusuario, 
+    consultar_seriales_en_modusuario,
+    obtener_auditoria_uso_tarjeta,
+    normalizar_cedula
+)
 from security import get_current_user, check_permission
 from database import get_session
 from audit_utils import log_activity
@@ -1513,6 +1518,86 @@ async def sincronizar_perfil_individual_billetaje(
         raise HTTPException(
             status_code=500,
             detail=f"Error al sincronizar con c_modusuario: {str(e)}"
+        )
+
+@router.get("/{orden}/uso-billetaje")
+async def get_uso_billetaje_perfil(
+    orden: int,
+    serial_mdp: Optional[str] = None,
+    fecha_desde: Optional[str] = None,
+    fecha_hasta: Optional[str] = None,
+    limite: int = 250,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Control y auditoría del uso de la tarjeta en validadores de transporte público (Billetaje Electrónico):
+    - Cantidad total de validaciones y estadísticas de movilidad
+    - Coordenadas GPS de cada validación en colectivos para geoposicionamiento
+    - Resumen diario y picos de uso
+    - Otras tarjetas asociadas al mismo beneficiario
+    ACCESO RESTRINGIDO: Únicamente para usuarios con rol de Administrador ('admin', 'sysadmin').
+    """
+    if current_user.get("role") not in ["admin", "sysadmin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido. Solo los usuarios con rol de Administrador pueden consultar el uso y geoposicionamiento de las tarjetas."
+        )
+
+    res = await session.execute(select(PerfilEspecial).where(PerfilEspecial.orden == orden))
+    perfil = res.scalar_one_or_none()
+
+    if not perfil:
+        raise HTTPException(status_code=404, detail="Perfil no encontrado")
+
+    # Determinar el serial a consultar
+    serial_a_usar = serial_mdp or perfil.serial_mdp
+
+    # Si no tiene serial cargado en CID DB, intentar buscar en c_modusuario
+    if not serial_a_usar and perfil.cedula_identidad:
+        info_mod = consultar_seriales_en_modusuario([perfil.cedula_identidad], codigos_perfil=[4, 5])
+        doc_clean = normalizar_cedula(perfil.cedula_identidad)
+        if doc_clean and doc_clean in info_mod:
+            serial_a_usar = info_mod[doc_clean].get("serial")
+
+    if not serial_a_usar:
+        return {
+            "orden": orden,
+            "cedula": perfil.cedula_identidad,
+            "nombre": perfil.nombre_apellido,
+            "serial_consultado": None,
+            "tiene_tarjeta": False,
+            "mensaje": "Este beneficiario aún no cuenta con un número de serial de tarjeta asignado.",
+            "totales": {
+                "total_viajes": 0,
+                "dias_uso": 0,
+                "promedio_diario": 0,
+                "max_viajes_dia": 0,
+                "con_gps": 0
+            },
+            "alertas": [],
+            "otras_tarjetas": [],
+            "historial_diario": [],
+            "puntos_gps": [],
+            "transacciones": []
+        }
+
+    try:
+        resultado = obtener_auditoria_uso_tarjeta(
+            serial_mdp=str(serial_a_usar),
+            cedula=perfil.cedula_identidad,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            limite=limite
+        )
+        resultado["orden"] = orden
+        resultado["nombre"] = perfil.nombre_apellido
+        resultado["tiene_tarjeta"] = True
+        return resultado
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al consultar transacciones en la base de datos de Billetaje: {str(e)}"
         )
 
 
