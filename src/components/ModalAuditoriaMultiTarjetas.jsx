@@ -50,6 +50,18 @@ const ModalAuditoriaMultiTarjetas = ({ onClose, onAuditarTarjeta }) => {
     setExpandedDocs(prev => ({ ...prev, [doc]: !prev[doc] }));
   };
 
+  const handleExpandAll = () => {
+    const exp = {};
+    personasFiltradas.forEach(p => {
+      exp[p.doc] = true;
+    });
+    setExpandedDocs(exp);
+  };
+
+  const handleCollapseAll = () => {
+    setExpandedDocs({});
+  };
+
   const personasFiltradas = useMemo(() => {
     if (!data?.personas) return [];
     return data.personas.filter(p => {
@@ -147,10 +159,10 @@ const ModalAuditoriaMultiTarjetas = ({ onClose, onAuditarTarjeta }) => {
           alignItems: 'center'
         }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#ffffff' }}>
               <span>👥</span> Auditoría de Personas con Más de una Tarjeta
             </h3>
-            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
               Supervisión de beneficiarios con múltiples plásticos emitidos en Billetaje (Solapadas con uso simultáneo vs. Reposiciones Secuenciales).
             </p>
           </div>
@@ -309,8 +321,45 @@ const ModalAuditoriaMultiTarjetas = ({ onClose, onAuditarTarjeta }) => {
             </button>
           </div>
 
-          {/* Input de Búsqueda */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* Controles de Búsqueda y Expansión */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.35rem' }}>
+              <button
+                type="button"
+                onClick={handleExpandAll}
+                style={{
+                  background: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                title="Expandir todas las tarjetas visibles"
+              >
+                ➕ Expandir
+              </button>
+              <button
+                type="button"
+                onClick={handleCollapseAll}
+                style={{
+                  background: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                title="Colapsar todas las tarjetas"
+              >
+                ➖ Colapsar
+              </button>
+            </div>
+
             <input
               type="text"
               placeholder="🔍 Buscar por nombre o cédula..."
@@ -321,7 +370,7 @@ const ModalAuditoriaMultiTarjetas = ({ onClose, onAuditarTarjeta }) => {
                 borderRadius: '6px',
                 border: '1px solid #cbd5e1',
                 fontSize: '0.85rem',
-                width: '260px'
+                width: '240px'
               }}
             />
             <small style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
@@ -335,6 +384,7 @@ const ModalAuditoriaMultiTarjetas = ({ onClose, onAuditarTarjeta }) => {
           padding: '1.25rem 1.75rem',
           overflowY: 'auto',
           flex: 1,
+          minHeight: 0,
           background: '#f8fafc',
           display: 'flex',
           flexDirection: 'column',
@@ -369,6 +419,10 @@ const ModalAuditoriaMultiTarjetas = ({ onClose, onAuditarTarjeta }) => {
                     border: esConcurrente ? '2px solid #fecaca' : '1px solid #e2e8f0',
                     boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
                     overflow: 'hidden',
+                    flexShrink: 0,
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    minHeight: 'fit-content',
                     transition: 'all 0.2s ease'
                   }}
                 >
