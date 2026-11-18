@@ -31,6 +31,7 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
   // Estados para Serial MDP
   const [serialMdpInput, setSerialMdpInput] = useState(perfil.serial_mdp || '');
   const [savingSerial, setSavingSerial] = useState(false);
+  const [syncingBilletaje, setSyncingBilletaje] = useState(false);
 
   // Estados para Observaciones
   const [observacionesList, setObservacionesList] = useState(perfil.observaciones || []);
@@ -220,6 +221,45 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
       alert("Error de conexión al guardar el Serial.");
     }
     setSavingSerial(false);
+  };
+
+  // Sincronizar automáticamente serial desde la tabla maestra c_modusuario
+  const handleSincronizarBilletaje = async () => {
+    if (!window.confirm(`¿Consultar en c_modusuario (Billetaje) si la cédula ${currentPerfil.cedula_identidad} ya cuenta con tarjeta emitida?`)) {
+      return;
+    }
+    setSyncingBilletaje(true);
+    try {
+      const res = await fetch(`${API_BASE}/perfiles/${currentPerfil.orden}/sincronizar-billetaje`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCurrentPerfil(data);
+        setSerialMdpInput(data.serial_mdp || '');
+        if (onPerfilUpdated) onPerfilUpdated(data);
+
+        // Recargar observaciones actualizadas
+        const resObs = await fetch(`${API_BASE}/perfiles/${currentPerfil.orden}/observaciones`, {
+          headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
+        if (resObs.ok) {
+          const obsList = await resObs.json();
+          setObservaciones(obsList);
+        }
+        alert(`✅ ¡Serial asignado con éxito desde Billetaje!\nSerial: ${data.serial_mdp}`);
+      } else {
+        alert(`Aviso: ${data.detail || 'No se encontró tarjeta activa para este perfil en c_modusuario'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error de conexión al consultar c_modusuario en Billetaje");
+    } finally {
+      setSyncingBilletaje(false);
+    }
   };
 
   // Manejar nueva observación
@@ -824,7 +864,29 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                         fontSize: '0.85rem'
                       }}
                     >
-                      {savingSerial ? 'Guardando...' : '💾 Actualizar Serial'}
+                      {savingSerial ? 'Guardando...' : '💾 Guardar Manual'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSincronizarBilletaje}
+                      disabled={syncingBilletaje}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        background: 'linear-gradient(135deg, #7e22ce, #9333ea)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        boxShadow: '0 2px 4px rgba(126, 34, 206, 0.2)'
+                      }}
+                      title="Consultar la tabla maestra c_modusuario de Billetaje para traer automáticamente el serial y fecha de emisión"
+                    >
+                      {syncingBilletaje ? '⏳ Consultando...' : '⚡ Buscar en Billetaje'}
                     </button>
                   </form>
                 </div>

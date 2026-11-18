@@ -9,7 +9,12 @@ import math
 from datetime import datetime
 
 from models import PerfilEspecial, TipoPerfilEspecial, Usuario, EstadoSolicitudPerfil, EvidenciaImportacion, PerfilObservacion, Organismo
-from schemas import PerfilEspecialResponse, SerialUpdate, PerfilObservacionCreate, PerfilObservacionResponse, PerfilObservacionUpdate, EstadoSolicitudResponse, EstadoUpdate
+from schemas import (
+    PerfilEspecialResponse, SerialUpdate, PerfilObservacionCreate, 
+    PerfilObservacionResponse, PerfilObservacionUpdate, EstadoSolicitudResponse, 
+    EstadoUpdate, SincronizarBilletajeRequest, SincronizarBilletajeResponse
+)
+from billetaje_service import sincronizar_perfiles_con_modusuario, consultar_seriales_en_modusuario
 from security import get_current_user, check_permission
 from database import get_session
 from audit_utils import log_activity
@@ -1383,6 +1388,133 @@ async def update_serial_mdp(
     perfil.estado_solicitud = res_estado.scalar_one_or_none()
     
     return perfil
+
+@router.post("/sincronizar-billetaje", response_model=SincronizarBilletajeResponse)
+async def sincronizar_desde_billetaje(
+    payload: SincronizarBilletajeRequest,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Sincroniza los seriales de medios de pago consultando la tabla maestra c_modusuario
+    del Sistema de Billetaje Electrónico (Opentransit).
+    Puede sincronizar un Lote específico o todos los perfiles pendientes de forma global.
+    Solo para administradores y sysadmins.
+    """
+    if current_user.get("role") not in ["admin", "sysadmin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="No tiene permisos para sincronizar seriales con Billetaje."
+        )
+
+    user_id = current_user.get("user_id") or current_user.get("id") or 1
+
+    try:
+        resultado = await sincronizar_perfiles_con_modusuario(
+            session=session,
+            lote=payload.lote,
+            id_usuario=user_id,
+            marcar_entregado=payload.marcar_entregado,
+            entregado_a=payload.entregado_a,
+            forzar_reemplazo_serial=payload.forzar_reemplazo_serial
+        )
+
+        # Registrar log de auditoría
+        await log_activity(
+            session=session,
+            request=request,
+            current_user=current_user,
+            action="sincronizar_billetaje",
+            table="perfiles_especiales",
+            details=(
+                f"Sincronización c_modusuario: {resultado['total_sincronizados']} actualizados "
+                f"de {resultado['total_evaluados']} evaluados (Lote: {payload.lote or 'GLOBAL'})."
+            )
+        )
+
+        return resultado
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error durante la sincronización con la base de datos de Billetaje: {str(e)}"
+        )
+
+@router.post("/{orden}/sincronizar-billetaje", response_model=PerfilEspecialResponse)
+async def sincronizar_perfil_individual_billetaje(
+    orden: int,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Sincroniza el serial de un perfil individual consultando la tabla maestra c_modusuario.
+    """
+    user_id = current_user.get("user_id") or current_user.get("id") or 1
+
+    res = await session.execute(select(PerfilEspecial).where(PerfilEspecial.orden == orden))
+    perfil = res.scalar_one_or_none()
+
+    if not perfil:
+        raise HTTPException(status_code=404, detail="Perfil no encontrado")
+
+    try:
+        resultado = await sincronizar_perfiles_con_modusuario(
+            session=session,
+            orden=orden,
+            id_usuario=user_id,
+            forzar_reemplazo_serial=True
+        )
+
+        if resultado["total_sincronizados"] == 0:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No se encontró un registro con serial asignado para la cédula {perfil.cedula_identidad} en c_modusuario."
+            )
+
+        await session.refresh(perfil)
+
+        # Pre-cargar relaciones para la respuesta
+        res_tipo = await session.execute(select(TipoPerfilEspecial).where(TipoPerfilEspecial.id_tipo_especial == perfil.id_tipo_perfil))
+        perfil.tipo_perfil = res_tipo.scalar_one_or_none()
+        
+        res_usu_carga = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_carga))
+        perfil.usuario_carga = res_usu_carga.scalar_one_or_none()
+        
+        res_usu_verif = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_verif))
+        perfil.usuario_verif = res_usu_verif.scalar_one_or_none()
+
+        res_usu_aprob = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_aprob))
+        perfil.usuario_aprob = res_usu_aprob.scalar_one_or_none()
+
+        res_usu_entrega = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_entrega))
+        perfil.usuario_entrega = res_usu_entrega.scalar_one_or_none()
+
+        res_usu_anulacion = await session.execute(select(Usuario).where(Usuario.id == perfil.id_usuario_anulacion))
+        perfil.usuario_anulacion = res_usu_anulacion.scalar_one_or_none()
+        
+        res_estado = await session.execute(select(EstadoSolicitudPerfil).where(EstadoSolicitudPerfil.id_estado == perfil.id_estado_solicitud))
+        perfil.estado_solicitud = res_estado.scalar_one_or_none()
+
+        await log_activity(
+            session=session,
+            request=request,
+            current_user=current_user,
+            action="sincronizar_perfil_billetaje",
+            table="perfiles_especiales",
+            record_id=perfil.orden,
+            details=f"Serial {perfil.serial_mdp} sincronizado exitosamente desde c_modusuario para CI {perfil.cedula_identidad}."
+        )
+
+        return perfil
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al sincronizar con c_modusuario: {str(e)}"
+        )
+
 
 @router.get("/estados", response_model=List[EstadoSolicitudResponse])
 async def get_estados_solicitud(

@@ -1197,3 +1197,19 @@ class PerfilEspecialResponse(PerfilEspecialBase):
     class Config:
         from_attributes = True
 
+class SincronizarBilletajeRequest(BaseModel):
+    lote: Optional[str] = None
+    marcar_entregado: bool = False
+    entregado_a: Optional[str] = None
+    forzar_reemplazo_serial: bool = False
+
+class SincronizarBilletajeResponse(BaseModel):
+    success: bool
+    total_evaluados: int
+    total_sincronizados: int
+    total_pendientes: int
+    lote: Optional[str] = None
+    mensaje: str
+    detalles: List[Dict[str, Any]] = []
+
+

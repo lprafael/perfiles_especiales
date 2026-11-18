@@ -45,6 +45,47 @@ const DashboardLotes = ({ user }) => {
   const [reenvioCuerpo, setReenvioCuerpo] = useState('');
   const [reenvioMotivo, setReenvioMotivo] = useState('');
   const [reenviando, setReenviando] = useState(false);
+  const [sincronizandoBilletaje, setSincronizandoBilletaje] = useState(false);
+
+  // Sincronizar automáticamente seriales consultando la tabla maestra c_modusuario
+  const handleSincronizarBilletaje = async (loteParam = null) => {
+    const scopeText = loteParam ? `del Lote ${loteParam}` : 'de TODOS los perfiles pendientes sin serial';
+    if (!window.confirm(`¿Desea consultar la tabla maestra c_modusuario de Billetaje para asignar automáticamente los seriales ${scopeText}?`)) {
+      return;
+    }
+
+    setSincronizandoBilletaje(true);
+    try {
+      const res = await fetch(`${API_BASE}/perfiles/sincronizar-billetaje`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          lote: loteParam || null,
+          marcar_entregado: false,
+          forzar_reemplazo_serial: false
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(`✅ Sincronización con Billetaje completada:\n${data.mensaje}\n\n• Sincronizados: ${data.total_sincronizados}\n• Pendientes en EPS: ${data.total_pendientes}`);
+        fetchDashboardData();
+        if (modalLote) {
+          handleOpenModal(modalLote);
+        }
+      } else {
+        alert(`Error al sincronizar: ${data.detail || 'Ocurrió un error inesperado'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error de conexión al sincronizar con c_modusuario en Billetaje");
+    } finally {
+      setSincronizandoBilletaje(false);
+    }
+  };
 
   const handleOpenReenvio = (loteItem) => {
     setModalReenvioLote(loteItem);
@@ -337,6 +378,26 @@ const DashboardLotes = ({ user }) => {
           >
             📥 Exportar a Excel
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => handleSincronizarBilletaje(null)}
+              disabled={sincronizandoBilletaje || loading}
+              className="db-btn"
+              style={{
+                background: 'linear-gradient(135deg, #7e22ce, #9333ea)',
+                color: '#ffffff',
+                border: 'none',
+                boxShadow: '0 2px 4px rgba(126, 34, 206, 0.25)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontWeight: 600
+              }}
+              title="Consultar c_modusuario en Billetaje y asignar automáticamente seriales a todos los perfiles pendientes"
+            >
+              {sincronizandoBilletaje ? '⏳ Sincronizando Billetaje...' : '⚡ Sincronizar con Billetaje'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -766,6 +827,28 @@ const DashboardLotes = ({ user }) => {
                               title="Reenviar solicitud a la EPS agregando comentario automático a cada perfil"
                             >
                               🔁 Reenviar Solicitud
+                            </button>
+                          )}
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleSincronizarBilletaje(lote.lote)}
+                              disabled={sincronizandoBilletaje}
+                              style={{
+                                background: '#fdf4ff',
+                                border: '1px solid #f0abfc',
+                                color: '#a21caf',
+                                padding: '0.35rem 0.65rem',
+                                borderRadius: '6px',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem'
+                              }}
+                              title="Consultar c_modusuario y asignar automáticamente seriales a perfiles pendientes de este lote"
+                            >
+                              ⚡ Sincronizar Lote
                             </button>
                           )}
                         </div>
