@@ -1600,6 +1600,68 @@ async def get_uso_billetaje_perfil(
             detail=f"Error al consultar transacciones en la base de datos de Billetaje: {str(e)}"
         )
 
+@router.get("/auditoria/multiples-tarjetas")
+async def get_auditoria_multiples_tarjetas(
+    categoria: Optional[str] = None,
+    q: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Auditoría y control de beneficiarios con múltiples tarjetas asignadas en Billetaje Electrónico.
+    Detecta solapamientos / uso concurrente en la misma jornada y reposiciones secuenciales.
+    Restringido a usuarios con rol 'admin' o 'sysadmin'.
+    """
+    if current_user.get("role") not in ["admin", "sysadmin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido a administradores."
+        )
+
+    json_path = os.path.join(os.path.dirname(__file__), "data", "reporte_multiples_seriales.json")
+    if not os.path.exists(json_path):
+        return {
+            "resumen": {
+                "total_personas": 0,
+                "concurrentes": 0,
+                "secuenciales": 0,
+                "sin_uso": 0,
+                "total_dias_concurrencia": 0,
+                "total_viajes_acumulados": 0
+            },
+            "personas": []
+        }
+
+    try:
+        import json
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        personas = data.get("personas", [])
+        resumen = data.get("resumen", {})
+
+        # Filtrar por categoría
+        if categoria and categoria != "all":
+            personas = [p for p in personas if p.get("categoria") == categoria]
+
+        # Filtrar por búsqueda
+        if q:
+            q_clean = q.strip().lower()
+            personas = [
+                p for p in personas
+                if q_clean in p.get("doc", "").lower() or q_clean in p.get("nombre", "").lower()
+            ]
+
+        return {
+            "resumen": resumen,
+            "total_filtrados": len(personas),
+            "personas": personas
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al leer reporte de múltiples tarjetas: {str(e)}"
+        )
+
 
 @router.get("/estados", response_model=List[EstadoSolicitudResponse])
 async def get_estados_solicitud(

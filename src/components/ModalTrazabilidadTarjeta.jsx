@@ -344,13 +344,24 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
         popupAnchor: [0, -14]
       });
 
+      const devIcon = L.divIcon({
+        className: 'dev-pin-custom',
+        html: `<div style="background:#dc2626;color:#fff;border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 6px rgba(0,0,0,0.35);font-size:13px;cursor:pointer;">↩️</div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+        popupAnchor: [0, -14]
+      });
+
       const latLngs = [];
 
       points.forEach((pt, idx) => {
-        const marker = L.marker([pt.lat, pt.lng], { icon: busIcon }).addTo(map);
+        const isDevolucion = pt.tipo_evento === 8;
+        const marker = L.marker([pt.lat, pt.lng], { icon: isDevolucion ? devIcon : busIcon }).addTo(map);
         const popupHtml = `
           <div style="font-family:inherit;font-size:12px;line-height:1.45;min-width:180px;">
-            <strong style="color:#0284c7;font-size:13px;">🚌 Validación #${idx + 1}</strong><br/>
+            <strong style="color:${isDevolucion ? '#dc2626' : '#0284c7'};font-size:13px;">
+              ${isDevolucion ? '↩️ Devolución de Uso (Tipo 8)' : `🚌 Validación #${idx + 1} (Tipo 4)`}
+            </strong><br/>
             📅 <strong>Fecha:</strong> ${pt.fecha || '-'}<br/>
             🔢 <strong>Coche/Validador:</strong> ${pt.coche || '-'}<br/>
             🏢 <strong>Empresa:</strong> ${pt.empresa || '-'}<br/>
@@ -1516,6 +1527,12 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                       <small style={{ color: '#115e59', fontSize: '0.72rem', fontWeight: 700, display: 'block' }}>CON GPS VÁLIDO</small>
                       <strong style={{ fontSize: '1.35rem', color: '#0d9488' }}>{usoData.totales.con_gps.toLocaleString()}</strong>
                     </div>
+                    {usoData.totales.total_devoluciones > 0 && (
+                      <div style={{ background: '#fef2f2', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                        <small style={{ color: '#991b1b', fontSize: '0.72rem', fontWeight: 700, display: 'block' }}>DEVOLUCIONES (TIPO 8)</small>
+                        <strong style={{ fontSize: '1.35rem', color: '#dc2626' }}>{usoData.totales.total_devoluciones.toLocaleString()} ↩️</strong>
+                      </div>
+                    )}
                   </div>
 
                   {/* Mapa Leaflet de Geoposicionamiento */}
@@ -1566,6 +1583,7 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                         <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', zIndex: 1 }}>
                           <tr>
                             <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', color: '#475569' }}>Fecha y Hora</th>
+                            <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: '#475569' }}>Tipo Evento</th>
                             <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: '#475569' }}>Coche / Validador</th>
                             <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: '#475569' }}>Empresa</th>
                             <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: '#475569' }}>Passback</th>
@@ -1577,8 +1595,19 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
                           {usoData.transacciones
                             ?.filter((t) => !searchTx || (t.fecha && t.fecha.includes(searchTx)) || (t.coche && t.coche.includes(searchTx)))
                             .map((t, idx) => (
-                              <tr key={t.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <tr key={t.id || idx} style={{ borderBottom: '1px solid #f1f5f9', background: t.tipo_evento === 8 ? '#fff5f5' : 'transparent' }}>
                                 <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600 }}>{t.fecha || '-'}</td>
+                                <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }}>
+                                  {t.tipo_evento === 8 ? (
+                                    <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.2rem 0.45rem', borderRadius: '4px', fontWeight: 700, fontSize: '0.74rem' }}>
+                                      ↩️ Devolución (8)
+                                    </span>
+                                  ) : (
+                                    <span style={{ background: '#dcfce7', color: '#15803d', padding: '0.2rem 0.45rem', borderRadius: '4px', fontWeight: 600, fontSize: '0.74rem' }}>
+                                      🚌 Uso (4)
+                                    </span>
+                                  )}
+                                </td>
                                 <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontFamily: 'monospace' }}>🚌 {t.coche}</td>
                                 <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }}>🏢 {t.empresa_id}</td>
                                 <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }}>{t.passback || 0}</td>

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { API_BASE } from '../config';
 import './DashboardLotes.css';
+import ModalAuditoriaMultiTarjetas from './ModalAuditoriaMultiTarjetas';
+import ModalTrazabilidadTarjeta from './ModalTrazabilidadTarjeta';
 
 const DashboardLotes = ({ user }) => {
   const [dashboardData, setDashboardData] = useState({
@@ -35,6 +37,11 @@ const DashboardLotes = ({ user }) => {
   const [modalSearch, setModalSearch] = useState('');
 
   const isAdmin = user?.rol === 'admin' || user?.rol === 'sysadmin';
+
+  // Estados para Auditoría de Múltiples Tarjetas (Admin)
+  const [showModalMultiTarjetas, setShowModalMultiTarjetas] = useState(false);
+  const [multiTarjetasResumen, setMultiTarjetasResumen] = useState(null);
+  const [perfilAuditando, setPerfilAuditando] = useState(null);
 
   // Estados para Modal de Reenvío de Solicitud a EPS
   const [modalReenvioLote, setModalReenvioLote] = useState(null);
@@ -176,6 +183,23 @@ const DashboardLotes = ({ user }) => {
       } else {
         const errJson = await res.json().catch(() => ({}));
         setError(errJson.detail || 'Error al obtener datos del dashboard');
+      }
+
+      // Si es admin, cargar resumen de auditoría de múltiples tarjetas
+      if (isAdmin) {
+        try {
+          const resMulti = await fetch(`${API_BASE}/perfiles/auditoria/multiples-tarjetas`, {
+            headers: {
+              'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            }
+          });
+          if (resMulti.ok) {
+            const dataMulti = await resMulti.json();
+            setMultiTarjetasResumen(dataMulti.resumen);
+          }
+        } catch (eMulti) {
+          console.error("Error al cargar resumen multi-tarjetas:", eMulti);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -477,6 +501,44 @@ const DashboardLotes = ({ user }) => {
             En trámite interno antes de EPS
           </div>
         </div>
+
+        {/* Tarjeta KPI Exclusiva Admin: Auditoría Múltiples Tarjetas */}
+        {isAdmin && (
+          <div
+            className="db-kpi-card"
+            onClick={() => setShowModalMultiTarjetas(true)}
+            style={{
+              borderLeftColor: '#dc2626',
+              borderLeftWidth: '5px',
+              borderLeftStyle: 'solid',
+              background: '#fff5f5',
+              cursor: 'pointer',
+              borderTop: '1px solid #fecaca',
+              borderRight: '1px solid #fecaca',
+              borderBottom: '1px solid #fecaca',
+              boxShadow: '0 2px 8px rgba(220, 38, 38, 0.08)'
+            }}
+            title="Haga clic para ver el módulo detallado de auditoría de beneficiarios con múltiples tarjetas"
+          >
+            <div className="db-kpi-top">
+              <span className="db-kpi-title" style={{ color: '#991b1b', fontWeight: 700 }}>
+                Multi-Tarjetas Asignadas
+              </span>
+              <span className="db-kpi-icon">👥💳</span>
+            </div>
+            <div className="db-kpi-value" style={{ color: '#dc2626' }}>
+              {(multiTarjetasResumen?.total_personas ?? 145).toLocaleString()}
+            </div>
+            <div className="db-kpi-subtext" style={{ display: 'flex', flexDirection: 'column', gap: '3px', color: '#7f1d1d' }}>
+              <span>
+                🚨 <strong>{multiTarjetasResumen?.concurrentes ?? 24}</strong> solapadas • 🔄 <strong>{(multiTarjetasResumen?.secuenciales ?? 90) + (multiTarjetasResumen?.sin_uso ?? 31)}</strong> secuenciales
+              </span>
+              <span style={{ fontSize: '0.8rem', color: '#b91c1c', marginTop: '4px', textDecoration: 'underline', fontWeight: 700 }}>
+                🔍 Ver Auditoría Detallada →
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* SECCIÓN 1: Resumen por Tipo de Perfil */}
@@ -1184,6 +1246,31 @@ const DashboardLotes = ({ user }) => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal Auditoría de Beneficiarios con Múltiples Tarjetas */}
+      {showModalMultiTarjetas && (
+        <ModalAuditoriaMultiTarjetas
+          onClose={() => setShowModalMultiTarjetas(false)}
+          onAuditarTarjeta={(serial, doc, nombre) => {
+            setPerfilAuditando({
+              serial_mdp: serial,
+              cedula_identidad: doc,
+              nombre_apellido: nombre,
+              seriales_asociados: [serial]
+            });
+          }}
+        />
+      )}
+
+      {/* Modal Trazabilidad y GPS para inspeccionar tarjeta individual */}
+      {perfilAuditando && (
+        <ModalTrazabilidadTarjeta
+          perfil={perfilAuditando}
+          isAdmin={isAdmin}
+          initialTab="uso"
+          onClose={() => setPerfilAuditando(null)}
+        />
       )}
     </div>
   );

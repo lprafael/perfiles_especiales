@@ -314,16 +314,18 @@ def obtener_auditoria_uso_tarjeta(
                             "es_actual": s_str == serial_clean
                         })
 
-            # 2. Consultar métricas globales en c_transacciones
+            # 2. Consultar métricas globales en c_transacciones (Uso Producto = 4, Uso Devolución = 8)
             query_tot = """
                 SELECT 
-                    COUNT(*) as total_viajes,
+                    COUNT(*) as total_eventos,
+                    COUNT(CASE WHEN tipoevento = 4 THEN 1 END) as total_viajes,
+                    COUNT(CASE WHEN tipoevento = 8 THEN 1 END) as total_devoluciones,
                     MIN(fechaevento) as primer_viaje,
                     MAX(fechaevento) as ultimo_viaje,
                     COUNT(CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL THEN 1 END) as con_gps
                 FROM c_transacciones
                 WHERE serialmediopago = %s
-                  AND tipoevento = 4
+                  AND tipoevento IN (4, 8)
             """
             params_tot = [int(serial_clean)]
             if fecha_desde:
@@ -336,7 +338,9 @@ def obtener_auditoria_uso_tarjeta(
             cur.execute(query_tot, tuple(params_tot))
             tot_row = cur.fetchone()
 
+            total_eventos = tot_row["total_eventos"] if tot_row else 0
             total_viajes = tot_row["total_viajes"] if tot_row else 0
+            total_devoluciones = tot_row["total_devoluciones"] if tot_row else 0
             con_gps = tot_row["con_gps"] if tot_row else 0
             primer_viaje = tot_row["primer_viaje"].strftime('%Y-%m-%d %H:%M:%S') if tot_row and tot_row["primer_viaje"] else None
             ultimo_viaje = tot_row["ultimo_viaje"].strftime('%Y-%m-%d %H:%M:%S') if tot_row and tot_row["ultimo_viaje"] else None
@@ -345,11 +349,13 @@ def obtener_auditoria_uso_tarjeta(
             query_dias = """
                 SELECT 
                     fechaevento::date as dia,
-                    COUNT(*) as viajes_dia,
+                    COUNT(*) as eventos_dia,
+                    COUNT(CASE WHEN tipoevento = 4 THEN 1 END) as viajes_dia,
+                    COUNT(CASE WHEN tipoevento = 8 THEN 1 END) as devoluciones_dia,
                     COUNT(DISTINCT iddispositivo) as coches_distintos
                 FROM c_transacciones
                 WHERE serialmediopago = %s
-                  AND tipoevento = 4
+                  AND tipoevento IN (4, 8)
             """
             params_dias = [int(serial_clean)]
             if fecha_desde:
@@ -375,10 +381,11 @@ def obtener_auditoria_uso_tarjeta(
                 for r in dias_rows if r["viajes_dia"] >= 8
             ]
 
-            # 4. Transacciones recientes con GPS y detalles
+            # 4. Transacciones recientes con GPS y detalles (Tipos 4 y 8)
             query_tx = """
                 SELECT 
                     id,
+                    tipoevento,
                     fechaevento,
                     fechahoraevento,
                     latitude,
@@ -390,7 +397,7 @@ def obtener_auditoria_uso_tarjeta(
                     consecutivoevento
                 FROM c_transacciones
                 WHERE serialmediopago = %s
-                  AND tipoevento = 4
+                  AND tipoevento IN (4, 8)
             """
             params_tx = [int(serial_clean)]
             if fecha_desde:
@@ -413,8 +420,11 @@ def obtener_auditoria_uso_tarjeta(
                 lat = float(t["latitude"]) if t["latitude"] is not None else None
                 lng = float(t["longitude"]) if t["longitude"] is not None else None
 
+                tipo_ev = t.get("tipoevento", 4)
                 tx_item = {
                     "id": str(t["id"]),
+                    "tipo_evento": tipo_ev,
+                    "tipo_evento_desc": "Uso Devolución" if tipo_ev == 8 else "Uso Producto",
                     "fecha": f_str,
                     "coche": str(t["iddispositivo"]).strip() if t["iddispositivo"] else "S/D",
                     "empresa_id": str(t["identidad"]).strip() if t["identidad"] else "S/D",
@@ -430,6 +440,7 @@ def obtener_auditoria_uso_tarjeta(
                 if lat is not None and lng is not None:
                     puntos_gps.append({
                         "id": str(t["id"]),
+                        "tipo_evento": tipo_ev,
                         "lat": lat,
                         "lng": lng,
                         "fecha": f_str,
@@ -458,6 +469,12 @@ def obtener_auditoria_uso_tarjeta(
                     "titulo": "Frecuencia Alta de Movilidad",
                     "detalle": f"Máximo de {max_dia} validaciones en una sola jornada."
                 })
+            if total_devoluciones > 0:
+                alertas.append({
+                    "nivel": "info",
+                    "titulo": "Devoluciones de Uso (Tipo 8)",
+                    "detalle": f"Se registraron {total_devoluciones} devoluciones / cancelaciones de uso en colectivos."
+                })
 
             return {
                 "serial_consultado": serial_clean,
@@ -465,6 +482,8 @@ def obtener_auditoria_uso_tarjeta(
                 "otras_tarjetas": otras_tarjetas,
                 "totales": {
                     "total_viajes": total_viajes,
+                    "total_devoluciones": total_devoluciones,
+                    "total_eventos": total_eventos,
                     "dias_uso": total_dias,
                     "promedio_diario": promedio_dia,
                     "max_viajes_dia": max_dia,
