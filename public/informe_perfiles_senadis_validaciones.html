@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Informe Consolidado SENADIS: Tarjetas, Faltantes y Validaciones de Uso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --primary-light: #e0f2fe;
+      --success: #15803d;
+      --success-light: #dcfce7;
+      --warning: #b45309;
+      --warning-light: #fef3c7;
+      --danger: #b91c1c;
+      --danger-light: #fee2e2;
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #f8fafc;
+      color: var(--slate-800);
+      line-height: 1.5;
+      padding: 2rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+      display: flex;
+      justifyContent: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .header-title h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .header-title p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+
+    .header-badge {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.6rem 1.2rem;
+      border-radius: 12px;
+      text-align: right;
+    }
+
+    .header-badge span {
+      display: block;
+      font-size: 0.75rem;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .header-badge strong {
+      font-size: 1.05rem;
+      color: #38bdf8;
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .kpi-card {
+      background: white;
+      border-radius: 14px;
+      padding: 1.4rem;
+      border: 1px solid var(--slate-200);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justifyContent: space-between;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+
+    .kpi-card.blue::before { background: #0284c7; }
+    .kpi-card.green::before { background: #16a34a; }
+    .kpi-card.red::before { background: #dc2626; }
+    .kpi-card.purple::before { background: #9333ea; }
+    .kpi-card.amber::before { background: #d97706; }
+    .kpi-card.teal::before { background: #0d9488; }
+
+    .kpi-header {
+      display: flex;
+      justifyContent: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .kpi-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--slate-600);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .kpi-icon {
+      font-size: 1.4rem;
+    }
+
+    .kpi-value {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--slate-900);
+      line-height: 1.1;
+      margin-bottom: 0.4rem;
+    }
+
+    .kpi-subtext {
+      font-size: 0.8rem;
+      color: var(--slate-600);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    /* Section Cards */
+    .section-card {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid var(--slate-200);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .section-header {
+      display: flex;
+      justifyContent: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--slate-200);
+      padding-bottom: 0.85rem;
+    }
+
+    .section-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--slate-900);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .section-header p {
+      font-size: 0.85rem;
+      color: var(--slate-600);
+    }
+
+    /* Cohort Cards */
+    .cohort-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .cohort-card {
+      background: var(--slate-50);
+      border-radius: 10px;
+      padding: 1.25rem;
+      border: 1px solid var(--slate-200);
+      border-left: 5px solid var(--primary);
+    }
+
+    .cohort-card.green { border-left-color: var(--success); }
+    .cohort-card.amber { border-left-color: var(--warning); }
+    .cohort-card.blue { border-left-color: var(--primary); }
+
+    .cohort-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--slate-900);
+      margin-bottom: 0.5rem;
+      display: flex;
+      justifyContent: space-between;
+      align-items: center;
+    }
+
+    .cohort-stat {
+      display: flex;
+      justifyContent: space-between;
+      padding: 0.3rem 0;
+      font-size: 0.85rem;
+      border-bottom: 1px dashed var(--slate-200);
+    }
+
+    .cohort-stat:last-child {
+      border-bottom: none;
+    }
+
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--slate-200);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.86rem;
+    }
+
+    thead tr {
+      background-color: var(--slate-100);
+      color: var(--slate-700);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--slate-200);
+    }
+
+    tbody tr:hover {
+      background-color: #f8fafc;
+    }
+
+    tbody tr.highlight-green {
+      background-color: #f0fdf4;
+    }
+
+    tbody tr.highlight-amber {
+      background-color: #fffbeb;
+    }
+
+    tfoot tr {
+      background-color: #e2e8f0;
+      font-weight: 800;
+      color: var(--slate-900);
+      border-top: 2px solid var(--slate-600);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .badge-success { background: var(--success-light); color: var(--success); }
+    .badge-warning { background: var(--warning-light); color: var(--warning); }
+    .badge-danger { background: var(--danger-light); color: var(--danger); }
+    .badge-primary { background: var(--primary-light); color: var(--primary-dark); }
+    .badge-slate { background: var(--slate-200); color: var(--slate-700); }
+
+    /* Progress bar */
+    .prog-bg {
+      background: var(--slate-200);
+      border-radius: 9999px;
+      height: 8px;
+      overflow: hidden;
+      width: 100%;
+      max-width: 110px;
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 0.5rem;
+    }
+
+    .prog-fill {
+      height: 100%;
+      border-radius: 9999px;
+    }
+
+    .prog-fill.green { background: #16a34a; }
+    .prog-fill.blue { background: #0284c7; }
+    .prog-fill.amber { background: #d97706; }
+
+    /* Callout */
+    .callout {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-left: 5px solid #2563eb;
+      padding: 1.2rem;
+      border-radius: 10px;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+      color: #1e3a8a;
+    }
+
+    .callout strong {
+      color: #1d4ed8;
+    }
+
+    /* Action bar */
+    .action-bar {
+      display: flex;
+      justifyContent: flex-end;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s;
+    }
+
+    .btn-print {
+      background: white;
+      border: 1px solid var(--slate-200);
+      color: var(--slate-700);
+    }
+
+    .btn-print:hover {
+      background: var(--slate-100);
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        background: white;
+      }
+      .action-bar { display: none; }
+      .section-card {
+        box-shadow: none;
+        border: 1px solid #ccc;
+        page-break-inside: avoid;
+      }
+      .header {
+        background: #1e293b !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <button class="btn btn-print" onclick="window.print()">🖨️ Imprimir / Guardar en PDF</button>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-title">
+        <h1>♿ Control Integral: Perfiles SENADIS</h1>
+        <p>Centro de Información y Monitoreo (CID) • Billetaje Electrónico del Transporte Público Metropolitano • VMT / MOPC</p>
+      </div>
+      <div class="header-badge">
+        <span>Corte de Auditoría BBDD</span>
+        <strong>18 de Noviembre de 2026 (08:00 hs)</strong>
+      </div>
+    </header>
+
+    <!-- Top KPI Grid -->
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-header">
+          <span class="kpi-title">Total Solicitados (2026)</span>
+          <span class="kpi-icon">📋</span>
+        </div>
+        <div class="kpi-value">2,101</div>
+        <div class="kpi-subtext">
+          <span>Lotes 2 al 29 • SENADIS</span>
+        </div>
+      </div>
+
+      <div class="kpi-card green">
+        <div class="kpi-header">
+          <span class="kpi-title">Tarjetas Entregadas (Con Serial)</span>
+          <span class="kpi-icon">💳</span>
+        </div>
+        <div class="kpi-value" style="color: #15803d;">1,674</div>
+        <div class="kpi-subtext">
+          <strong>79.7%</strong> del total cargado
+        </div>
+      </div>
+
+      <div class="kpi-card red">
+        <div class="kpi-header">
+          <span class="kpi-title">Faltantes de Impresión</span>
+          <span class="kpi-icon">⏳</span>
+        </div>
+        <div class="kpi-value" style="color: #dc2626;">427</div>
+        <div class="kpi-subtext">
+          <span>343 de cohorte 2-17 + 84 de lotes 28-29</span>
+        </div>
+      </div>
+
+      <div class="kpi-card teal">
+        <div class="kpi-header">
+          <span class="kpi-title">Tarjetas Activas en Colectivos</span>
+          <span class="kpi-icon">🚌</span>
+        </div>
+        <div class="kpi-value" style="color: #0d9488;">1,669</div>
+        <div class="kpi-subtext">
+          <strong>99.7%</strong> de efectividad de uso
+        </div>
+      </div>
+
+      <div class="kpi-card purple">
+        <div class="kpi-header">
+          <span class="kpi-title">Viajes Validados (Usos)</span>
+          <span class="kpi-icon">🎫</span>
+        </div>
+        <div class="kpi-value" style="color: #9333ea;">55,573</div>
+        <div class="kpi-subtext">
+          <span>En validadores Jaha y Más</span>
+        </div>
+      </div>
+
+      <div class="kpi-card amber">
+        <div class="kpi-header">
+          <span class="kpi-title">Transacciones Totales</span>
+          <span class="kpi-icon">📊</span>
+        </div>
+        <div class="kpi-value" style="color: #d97706;">64,040</div>
+        <div class="kpi-subtext">
+          <span>En tabla c_transacciones</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Callout Informativo -->
+    <div class="callout">
+      <strong>📌 Actualización Relevante al 18/11/2026:</strong>
+      Se han incorporado con éxito los números de serial de los <strong>Lotes 18 al 27 (619 tarjetas)</strong> entregadas a la SENADIS el pasado <strong>05/11/2026 (16:51)</strong>, extraídos de la tabla de auditoría <code>c_modusuario</code> de la base de datos de billetaje. Con esta actualización, el porcentaje de tarjetas entregadas con serial subió del 50,2% al <strong>79,7%</strong>, y se constata que <strong>el 99,7% de los beneficiarios ya se encuentra utilizando activamente su beneficio de pasaje libre en el transporte público</strong>.
+    </div>
+
+    <!-- Sección 1: Análisis por Cohortes / Etapas -->
+    <div class="section-card">
+      <div class="section-header">
+        <div>
+          <h2>📦 Estado de Ejecución por Cohortes y Etapas</h2>
+          <p>Evolución cronológica desde el inicio del programa hasta los pedidos actuales</p>
+        </div>
+      </div>
+
+      <div class="cohort-grid">
+        <!-- Cohorte 1: 2020 -->
+        <div class="cohort-card blue">
+          <div class="cohort-title">
+            <span>Lote 1 (Año 2020)</span>
+            <span class="badge badge-slate">Histórico</span>
+          </div>
+          <div class="cohort-stat">
+            <span>Perfil:</span>
+            <strong>Solo Discapacidad Visual (4)</strong>
+          </div>
+          <div class="cohort-stat">
+            <span>Solicitados y Entregados:</span>
+            <strong>1.027 plásticos</strong>
+          </div>
+          <div class="cohort-stat">
+            <span>Estado BBDD CID:</span>
+            <span style="color: #b45309;">1.025 en '#N/D' / 2 numéricos</span>
+          </div>
+          <div class="cohort-stat">
+            <span>Validaciones registradas:</span>
+            <strong>9 viajes (de los 2 seriales cargados)</strong>
+          </div>
+        </div>
+
+        <!-- Cohorte 2: Lotes 2 al 17 -->
+        <div class="cohort-card amber">
+          <div class="cohort-title">
+            <span>Lotes 2 al 17 (1ª Cohorte 2026)</span>
+            <span class="badge badge-warning">Entrega Parcial (75.5%)</span>
+          </div>
+          <div class="cohort-stat">
+            <span>Solicitados por SENADIS:</span>
+            <strong>1,398 perfiles</strong>
+          </div>
+          <div class="cohort-stat">
+            <span>Tarjetas Entregadas con Serial:</span>
+            <strong style="color: #15803d;">1,055 tarjetas</strong>
+          </div>
+          <div class="cohort-stat">
+            <span>Faltantes por Imprimir/Entregar:</span>
+            <strong style="color: #dc2626;">343 tarjetas pendientes</strong>
+          </div>
+          <div class="cohort-stat">
+            <span>Viajes Validados (Usos):</span>
+            <strong>54.958 viajes</strong>
+          </div>
+        </div>
+
+        <!-- Cohorte 3: Lotes 18 al 27 -->
+        <div class="cohort-card green">
+          <div class="cohort-title">
+            <span>Lotes 18 al 27 (2ª Cohorte 2026)</span>
+            <span class="badge badge-success">Entregado 100%</span>
+          </div>
+          <div class="cohort-stat">
+            <span>Solicitados por SENADIS:</span>
+            <strong>619 perfiles</strong>
+          </div>
+          <div class="cohort-stat">
+            <span>Tarjetas Entregadas con Serial:</span>
+            <strong style="color: #15803d;">619 tarjetas (100%)</strong>
+          </div>
+          <div class="cohort-stat">
+            <span>Fecha de Entrega a SENADIS:</span>
+            <strong>05/11/2026 (16:51 hs)</strong>
+          </div>
+          <div class="cohort-stat">
+            <span>Viajes Validados (Usos):</span>
+            <strong>615 viajes (100% tarjetas activas)</strong>
+          </div>
+        </div>
+
+        <!-- Cohorte 4: Lotes 28 y 29 -->
+        <div class="cohort-card blue">
+          <div class="cohort-title">
+            <span>Lotes 28 y 29 (Nuevos Pedidos)</span>
+            <span class="badge badge-primary">En Gestión EPS</span>
+          </div>
+          <div class="cohort-stat">
+            <span>Lote 28 (Solicitado 04/11):</span>
+            <strong>41 perfiles (pend. impresión)</strong>
+          </div>
+          <div class="cohort-stat">
+            <span>Lote 29 (Solicitado 09/11):</span>
+            <strong>43 perfiles (pend. impresión)</strong>
+          </div>
+          <div class="cohort-stat">
+            <span>Total Pendientes de Fabricación:</span>
+            <strong style="color: #dc2626;">84 tarjetas</strong>
+          </div>
+          <div class="cohort-stat">
+            <span>Estado en Sistema:</span>
+            <strong>Remitido a EPS</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección 2: Discriminación por Tipo de Perfil -->
+    <div class="section-card">
+      <div class="section-header">
+        <div>
+          <h2>🏷️ Discriminación por Tipo de Discapacidad (Año 2026)</h2>
+          <p>Comparativa entre Discapacidad Visual (Perfil 4) y Discapacidad General (Perfil 5)</p>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Tipo de Perfil</th>
+              <th style="text-align: center;">Solicitados (2026)</th>
+              <th style="text-align: center;">Tarjetas con Serial</th>
+              <th style="text-align: center;">Faltantes</th>
+              <th style="text-align: center;">% Cobertura</th>
+              <th style="text-align: center;">Tarjetas Activas</th>
+              <th style="text-align: center;">Validaciones / Viajes (Uso)</th>
+              <th style="text-align: center;">Transacciones Totales</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Discapacidad Visual (Perfil 4)</strong></td>
+              <td style="text-align: center; font-weight: 700;">165</td>
+              <td style="text-align: center; color: #15803d; font-weight: 700;">131</td>
+              <td style="text-align: center; color: #dc2626; font-weight: 700;">34</td>
+              <td style="text-align: center;">
+                79.4%
+                <div class="prog-bg"><div class="prog-fill blue" style="width: 79%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 700;">130 (99.2%)</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">2,458</td>
+              <td style="text-align: center;">3,116</td>
+            </tr>
+            <tr>
+              <td><strong>Discapacidad General (Perfil 5)</strong></td>
+              <td style="text-align: center; font-weight: 700;">1,936</td>
+              <td style="text-align: center; color: #15803d; font-weight: 700;">1,542</td>
+              <td style="text-align: center; color: #dc2626; font-weight: 700;">394</td>
+              <td style="text-align: center;">
+                79.6%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 80%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 700;">1,539 (99.8%)</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">53,115</td>
+              <td style="text-align: center;">60,924</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>TOTAL CONSOLIDADO 2026</td>
+              <td style="text-align: center;">2,101</td>
+              <td style="text-align: center; color: #15803d;">1,674</td>
+              <td style="text-align: center; color: #dc2626;">427</td>
+              <td style="text-align: center;">79.7%</td>
+              <td style="text-align: center; color: #0d9488;">1,669 (99.7%)</td>
+              <td style="text-align: center; color: #7c3aed;">55,573</td>
+              <td style="text-align: center;">64,040</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sección 3: Tabla Detallada Lote por Lote -->
+    <div class="section-card">
+      <div class="section-header">
+        <div>
+          <h2>📑 Consolidado Detallado por Lote (Lotes 1 al 29)</h2>
+          <p>Mapeo exhaustivo de perfiles solicitados, entregados, faltantes y su uso en el transporte público</p>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Lote</th>
+              <th style="text-align: center;">Fecha Solicitud</th>
+              <th style="text-align: center;">Total Solicitados</th>
+              <th style="text-align: center;">Visuales (4)</th>
+              <th style="text-align: center;">Generales (5)</th>
+              <th style="text-align: center;">Con Serial (Entregados)</th>
+              <th style="text-align: center;">Faltantes</th>
+              <th style="text-align: center;">% Entrega</th>
+              <th style="text-align: center;">Tarjetas Activas</th>
+              <th style="text-align: center;">Validaciones / Viajes</th>
+              <th style="text-align: center;">Transacciones</th>
+              <th style="text-align: center;">Estado Sistema</th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <tr class="highlight-amber">
+              <td><strong>Lote 1</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">Año 2020</td>
+              <td style="text-align: center; font-weight: 700;">1,027</td>
+              <td style="text-align: center;">1027</td>
+              <td style="text-align: center;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">2</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">1,025</td>
+              <td style="text-align: center;">
+                0.2%
+                <div class="prog-bg"><div class="prog-fill amber" style="width: 0.2%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">2</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">9</td>
+              <td style="text-align: center; color: #64748b;">20</td>
+              <td style="text-align: center;"><span class="badge badge-warning">Parcial (2/1027)</span></td>
+            </tr>
+    
+            <tr class="highlight-amber">
+              <td><strong>2</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-07-21</td>
+              <td style="text-align: center; font-weight: 700;">290</td>
+              <td style="text-align: center;">24</td>
+              <td style="text-align: center;">266</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">212</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">78</td>
+              <td style="text-align: center;">
+                73.1%
+                <div class="prog-bg"><div class="prog-fill blue" style="width: 73.1%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">211</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">13,536</td>
+              <td style="text-align: center; color: #64748b;">14,635</td>
+              <td style="text-align: center;"><span class="badge badge-warning">Parcial (212/290)</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>3</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-07-21</td>
+              <td style="text-align: center; font-weight: 700;">143</td>
+              <td style="text-align: center;">11</td>
+              <td style="text-align: center;">132</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">143</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">143</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">8,025</td>
+              <td style="text-align: center; color: #64748b;">8,758</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="highlight-amber">
+              <td><strong>4</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-07-21</td>
+              <td style="text-align: center; font-weight: 700;">126</td>
+              <td style="text-align: center;">11</td>
+              <td style="text-align: center;">115</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">125</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">1</td>
+              <td style="text-align: center;">
+                99.2%
+                <div class="prog-bg"><div class="prog-fill blue" style="width: 99.2%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">122</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">10,274</td>
+              <td style="text-align: center; color: #64748b;">10,899</td>
+              <td style="text-align: center;"><span class="badge badge-warning">Parcial (125/126)</span></td>
+            </tr>
+    
+            <tr class="highlight-amber">
+              <td><strong>5</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-07-23</td>
+              <td style="text-align: center; font-weight: 700;">77</td>
+              <td style="text-align: center;">8</td>
+              <td style="text-align: center;">69</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">58</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">19</td>
+              <td style="text-align: center;">
+                75.3%
+                <div class="prog-bg"><div class="prog-fill blue" style="width: 75.3%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">58</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">4,397</td>
+              <td style="text-align: center; color: #64748b;">4,692</td>
+              <td style="text-align: center;"><span class="badge badge-warning">Parcial (58/77)</span></td>
+            </tr>
+    
+            <tr class="highlight-amber">
+              <td><strong>6</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-07-31</td>
+              <td style="text-align: center; font-weight: 700;">231</td>
+              <td style="text-align: center;">5</td>
+              <td style="text-align: center;">226</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">230</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">1</td>
+              <td style="text-align: center;">
+                99.6%
+                <div class="prog-bg"><div class="prog-fill blue" style="width: 99.6%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">230</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">10,481</td>
+              <td style="text-align: center; color: #64748b;">11,643</td>
+              <td style="text-align: center;"><span class="badge badge-warning">Parcial (230/231)</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>7</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-08-04</td>
+              <td style="text-align: center; font-weight: 700;">57</td>
+              <td style="text-align: center;">2</td>
+              <td style="text-align: center;">55</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">57</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">57</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">1,683</td>
+              <td style="text-align: center; color: #64748b;">1,974</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="highlight-amber">
+              <td><strong>8</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-08-07</td>
+              <td style="text-align: center; font-weight: 700;">55</td>
+              <td style="text-align: center;">7</td>
+              <td style="text-align: center;">48</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">54</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">1</td>
+              <td style="text-align: center;">
+                98.2%
+                <div class="prog-bg"><div class="prog-fill blue" style="width: 98.2%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">54</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">1,836</td>
+              <td style="text-align: center; color: #64748b;">2,108</td>
+              <td style="text-align: center;"><span class="badge badge-warning">Parcial (54/55)</span></td>
+            </tr>
+    
+            <tr class="highlight-amber">
+              <td><strong>9</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-08-11</td>
+              <td style="text-align: center; font-weight: 700;">34</td>
+              <td style="text-align: center;">4</td>
+              <td style="text-align: center;">30</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">30</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">4</td>
+              <td style="text-align: center;">
+                88.2%
+                <div class="prog-bg"><div class="prog-fill blue" style="width: 88.2%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">30</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">274</td>
+              <td style="text-align: center; color: #64748b;">429</td>
+              <td style="text-align: center;"><span class="badge badge-warning">Parcial (30/34)</span></td>
+            </tr>
+    
+            <tr class="highlight-amber">
+              <td><strong>10</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-08-12</td>
+              <td style="text-align: center; font-weight: 700;">39</td>
+              <td style="text-align: center;">3</td>
+              <td style="text-align: center;">36</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">35</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">4</td>
+              <td style="text-align: center;">
+                89.7%
+                <div class="prog-bg"><div class="prog-fill blue" style="width: 89.7%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">35</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">1,336</td>
+              <td style="text-align: center; color: #64748b;">1,512</td>
+              <td style="text-align: center;"><span class="badge badge-warning">Parcial (35/39)</span></td>
+            </tr>
+    
+            <tr class="highlight-amber">
+              <td><strong>11</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-08-17</td>
+              <td style="text-align: center; font-weight: 700;">55</td>
+              <td style="text-align: center;">4</td>
+              <td style="text-align: center;">51</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">51</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">4</td>
+              <td style="text-align: center;">
+                92.7%
+                <div class="prog-bg"><div class="prog-fill blue" style="width: 92.7%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">51</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">1,877</td>
+              <td style="text-align: center; color: #64748b;">2,141</td>
+              <td style="text-align: center;"><span class="badge badge-warning">Parcial (51/55)</span></td>
+            </tr>
+    
+            <tr class="highlight-amber">
+              <td><strong>12</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-08-19</td>
+              <td style="text-align: center; font-weight: 700;">61</td>
+              <td style="text-align: center;">4</td>
+              <td style="text-align: center;">57</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">59</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">2</td>
+              <td style="text-align: center;">
+                96.7%
+                <div class="prog-bg"><div class="prog-fill blue" style="width: 96.7%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">58</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">1,223</td>
+              <td style="text-align: center; color: #64748b;">1,515</td>
+              <td style="text-align: center;"><span class="badge badge-warning">Parcial (59/61)</span></td>
+            </tr>
+    
+            <tr class="highlight-amber">
+              <td><strong>13</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-08-24</td>
+              <td style="text-align: center; font-weight: 700;">65</td>
+              <td style="text-align: center;">6</td>
+              <td style="text-align: center;">59</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">1</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">64</td>
+              <td style="text-align: center;">
+                1.5%
+                <div class="prog-bg"><div class="prog-fill amber" style="width: 1.5%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">1</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">15</td>
+              <td style="text-align: center; color: #64748b;">20</td>
+              <td style="text-align: center;"><span class="badge badge-warning">Parcial (1/65)</span></td>
+            </tr>
+    
+            <tr class="">
+              <td><strong>14</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-08-26</td>
+              <td style="text-align: center; font-weight: 700;">52</td>
+              <td style="text-align: center;">1</td>
+              <td style="text-align: center;">51</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">52</td>
+              <td style="text-align: center;">
+                0.0%
+                <div class="prog-bg"><div class="prog-fill amber" style="width: 0.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">0</td>
+              <td style="text-align: center; color: #64748b;">0</td>
+              <td style="text-align: center;"><span class="badge badge-danger">Pendiente Impresión</span></td>
+            </tr>
+    
+            <tr class="">
+              <td><strong>15</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-08-27</td>
+              <td style="text-align: center; font-weight: 700;">25</td>
+              <td style="text-align: center;">3</td>
+              <td style="text-align: center;">22</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">25</td>
+              <td style="text-align: center;">
+                0.0%
+                <div class="prog-bg"><div class="prog-fill amber" style="width: 0.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">0</td>
+              <td style="text-align: center; color: #64748b;">0</td>
+              <td style="text-align: center;"><span class="badge badge-danger">Pendiente Impresión</span></td>
+            </tr>
+    
+            <tr class="">
+              <td><strong>16</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-08-31</td>
+              <td style="text-align: center; font-weight: 700;">21</td>
+              <td style="text-align: center;">2</td>
+              <td style="text-align: center;">19</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">21</td>
+              <td style="text-align: center;">
+                0.0%
+                <div class="prog-bg"><div class="prog-fill amber" style="width: 0.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">0</td>
+              <td style="text-align: center; color: #64748b;">0</td>
+              <td style="text-align: center;"><span class="badge badge-danger">Pendiente Impresión</span></td>
+            </tr>
+    
+            <tr class="">
+              <td><strong>17</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-09-02</td>
+              <td style="text-align: center; font-weight: 700;">67</td>
+              <td style="text-align: center;">7</td>
+              <td style="text-align: center;">60</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">67</td>
+              <td style="text-align: center;">
+                0.0%
+                <div class="prog-bg"><div class="prog-fill amber" style="width: 0.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">0</td>
+              <td style="text-align: center; color: #64748b;">0</td>
+              <td style="text-align: center;"><span class="badge badge-danger">Pendiente Impresión</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>18</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-09-08</td>
+              <td style="text-align: center; font-weight: 700;">42</td>
+              <td style="text-align: center;">5</td>
+              <td style="text-align: center;">37</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">42</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">42</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">71</td>
+              <td style="text-align: center; color: #64748b;">281</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>19</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-09-09</td>
+              <td style="text-align: center; font-weight: 700;">75</td>
+              <td style="text-align: center;">4</td>
+              <td style="text-align: center;">71</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">75</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">75</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">87</td>
+              <td style="text-align: center; color: #64748b;">462</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>20</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-09-14</td>
+              <td style="text-align: center; font-weight: 700;">55</td>
+              <td style="text-align: center;">5</td>
+              <td style="text-align: center;">50</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">55</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">55</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">40</td>
+              <td style="text-align: center; color: #64748b;">315</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>21</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-09-15</td>
+              <td style="text-align: center; font-weight: 700;">22</td>
+              <td style="text-align: center;">1</td>
+              <td style="text-align: center;">21</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">22</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">22</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">31</td>
+              <td style="text-align: center; color: #64748b;">141</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>22</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-09-21</td>
+              <td style="text-align: center; font-weight: 700;">114</td>
+              <td style="text-align: center;">16</td>
+              <td style="text-align: center;">98</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">114</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">114</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">131</td>
+              <td style="text-align: center; color: #64748b;">701</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>23</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-09-30</td>
+              <td style="text-align: center; font-weight: 700;">83</td>
+              <td style="text-align: center;">9</td>
+              <td style="text-align: center;">74</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">83</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">83</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">106</td>
+              <td style="text-align: center; color: #64748b;">523</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>24</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-10-13</td>
+              <td style="text-align: center; font-weight: 700;">99</td>
+              <td style="text-align: center;">8</td>
+              <td style="text-align: center;">91</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">99</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">99</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">102</td>
+              <td style="text-align: center; color: #64748b;">598</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>25</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-10-20</td>
+              <td style="text-align: center; font-weight: 700;">58</td>
+              <td style="text-align: center;">7</td>
+              <td style="text-align: center;">51</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">58</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">58</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">30</td>
+              <td style="text-align: center; color: #64748b;">320</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>26</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-10-22</td>
+              <td style="text-align: center; font-weight: 700;">16</td>
+              <td style="text-align: center;">0</td>
+              <td style="text-align: center;">16</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">16</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">16</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">15</td>
+              <td style="text-align: center; color: #64748b;">95</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="highlight-green">
+              <td><strong>27</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-10-27</td>
+              <td style="text-align: center; font-weight: 700;">55</td>
+              <td style="text-align: center;">2</td>
+              <td style="text-align: center;">53</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">55</td>
+              <td style="text-align: center; font-weight: 700; color: #64748b;">0</td>
+              <td style="text-align: center;">
+                100.0%
+                <div class="prog-bg"><div class="prog-fill green" style="width: 100.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">55</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">3</td>
+              <td style="text-align: center; color: #64748b;">278</td>
+              <td style="text-align: center;"><span class="badge badge-success">Entregado 100%</span></td>
+            </tr>
+    
+            <tr class="">
+              <td><strong>28</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-11-04</td>
+              <td style="text-align: center; font-weight: 700;">41</td>
+              <td style="text-align: center;">3</td>
+              <td style="text-align: center;">38</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">41</td>
+              <td style="text-align: center;">
+                0.0%
+                <div class="prog-bg"><div class="prog-fill amber" style="width: 0.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">0</td>
+              <td style="text-align: center; color: #64748b;">0</td>
+              <td style="text-align: center;"><span class="badge badge-danger">Pendiente Impresión</span></td>
+            </tr>
+    
+            <tr class="">
+              <td><strong>29</strong></td>
+              <td style="text-align: center; color: #64748b; font-size: 0.8rem;">2026-11-09</td>
+              <td style="text-align: center; font-weight: 700;">43</td>
+              <td style="text-align: center;">3</td>
+              <td style="text-align: center;">40</td>
+              <td style="text-align: center; font-weight: 700; color: #15803d;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #dc2626;">43</td>
+              <td style="text-align: center;">
+                0.0%
+                <div class="prog-bg"><div class="prog-fill amber" style="width: 0.0%;"></div></div>
+              </td>
+              <td style="text-align: center; color: #0d9488; font-weight: 600;">0</td>
+              <td style="text-align: center; font-weight: 700; color: #7c3aed;">0</td>
+              <td style="text-align: center; color: #64748b;">0</td>
+              <td style="text-align: center;"><span class="badge badge-danger">Pendiente Impresión</span></td>
+            </tr>
+    
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2">TOTAL GENERAL (Lotes 1 al 29)</td>
+              <td style="text-align: center;">3,128</td>
+              <td style="text-align: center;">1,192</td>
+              <td style="text-align: center;">1,936</td>
+              <td style="text-align: center; color: #15803d;">1,676</td>
+              <td style="text-align: center; color: #dc2626;">1,452</td>
+              <td style="text-align: center;">53.6%</td>
+              <td style="text-align: center; color: #0d9488;">1,671</td>
+              <td style="text-align: center; color: #7c3aed;">55,582</td>
+              <td style="text-align: center;">64,060</td>
+              <td style="text-align: center;">-</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sección 4: Mapa de los 427 Faltantes -->
+    <div class="section-card">
+      <div class="section-header">
+        <div>
+          <h2>🗺️ Mapa Crítico de Faltantes para Re-impresión (427 Tarjetas)</h2>
+          <p>Desglose exacto por lote para solicitar y completar el 100% de la nómina SENADIS 2026</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+        <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 1.25rem; borderRadius: 10px;">
+          <h3 style="color: #991b1b; font-size: 1.05rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+            ⚠️ Faltantes 1ª Cohorte (343 tarjetas en Lotes 2 al 17)
+          </h3>
+          <p style="font-size: 0.85rem; color: #7f1d1d; margin-bottom: 0.75rem;">
+            En estos lotes la EPS entregó tarjetas de forma incompleta o quedaron pedidos rezagados:
+          </p>
+          <ul style="font-size: 0.84rem; color: #7f1d1d; padding-left: 1.2rem; line-height: 1.7;">
+            <li><strong>Lote 2:</strong> 78 tarjetas faltantes (de 290)</li>
+            <li><strong>Lote 17:</strong> 67 tarjetas faltantes (0% impreso)</li>
+            <li><strong>Lote 13:</strong> 64 tarjetas faltantes (solo 1 impresa)</li>
+            <li><strong>Lote 14:</strong> 52 tarjetas faltantes (0% impreso)</li>
+            <li><strong>Lote 15:</strong> 25 tarjetas faltantes (0% impreso)</li>
+            <li><strong>Lote 16:</strong> 21 tarjetas faltantes (0% impreso)</li>
+            <li><strong>Lote 5:</strong> 19 tarjetas faltantes (de 77)</li>
+            <li><strong>Lotes 9, 10, 11:</strong> 4 tarjetas faltantes c/u (12 total)</li>
+            <li><strong>Lote 12:</strong> 2 tarjetas faltantes (de 61)</li>
+            <li><strong>Lotes 4, 6, 8:</strong> 1 tarjeta faltante c/u (3 total)</li>
+          </ul>
+        </div>
+
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 1.25rem; borderRadius: 10px;">
+          <h3 style="color: #1e40af; font-size: 1.05rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+            📦 Nuevos Pedidos Pendientes de Remisión / Emisión (84 tarjetas)
+          </h3>
+          <p style="font-size: 0.85rem; color: #1e3a8a; margin-bottom: 0.75rem;">
+            Solicitudes cargadas recientemente en el sistema pendientes del proceso de fábrica de la EPS:
+          </p>
+          <ul style="font-size: 0.84rem; color: #1e3a8a; padding-left: 1.2rem; line-height: 1.7;">
+            <li><strong>Lote 28:</strong> 41 tarjetas (3 Visuales, 38 Generales) cargadas el 04/11/2026.</li>
+            <li><strong>Lote 29:</strong> 43 tarjetas (3 Visuales, 40 Generales) cargadas el 09/11/2026.</li>
+          </ul>
+          <div style="margin-top: 1.25rem; padding: 0.75rem; background: white; border-radius: 8px; border: 1px solid #93c5fd;">
+            <strong style="color: #1d4ed8; font-size: 0.85rem;">Acción recomendada:</strong>
+            <p style="font-size: 0.82rem; color: #1e40af; margin-top: 0.25rem;">
+              Emitir una nota formal a la EPS solicitando la emisión consolidada de los <strong>343 faltantes de los Lotes 2 al 17</strong> junto con los <strong>84 de los Lotes 28 y 29</strong>, totalizando una orden de trabajo de <strong>427 plásticos físicos</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="text-align: center; color: #94a3b8; font-size: 0.82rem; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--slate-200);">
+      Centro de Información y Monitoreo (CID) • Viceministerio de Transporte (VMT) • Ministerio de Obras Públicas y Comunicaciones (MOPC)<br>
+      Reporte de trazabilidad generado automáticamente cruzando BBDD Monitoreo CID y BBDD Opentransit SNBE
+    </footer>
+
+  </div>
+
+</body>
+</html>

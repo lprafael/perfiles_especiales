@@ -83,7 +83,7 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
         sessionStorage.setItem('last_eps_email', reenvioEmails.trim());
         setShowReenvioForm(false);
         setReenvioMotivo('');
-        
+
         // Recargar datos actualizados del perfil y observaciones
         const resP = await fetch(`${API_BASE}/perfiles/${currentPerfil.orden}/trazabilidad`, {
           headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
@@ -93,7 +93,7 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
           setCurrentPerfil(updatedP);
           if (onPerfilUpdated) onPerfilUpdated(updatedP);
         }
-        
+
         const resObs = await fetch(`${API_BASE}/perfiles/${currentPerfil.orden}/observaciones`, {
           headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
         });
@@ -437,11 +437,11 @@ const ModalTrazabilidadTarjeta = ({ perfil, onClose, onPerfilUpdated, isAdmin = 
 
         {/* Modal Body */}
         <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, backgroundColor: '#ffffff' }}>
-          
+
           {/* TAB 1: LÍNEA DE TIEMPO / TRAZABILIDAD */}
           {activeTab === 'timeline' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              
+
               {/* Tarjeta de Resumen Rápido */}
               <div style={{
                 display: 'grid',

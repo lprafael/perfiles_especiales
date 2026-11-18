@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Informe Ejecutivo: Perfiles SENADIS (Visual y General) por Año y Cohortes - MOPC / VMT</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-dark: #0f172a;
+      --primary-light: #3b82f6;
+      --secondary: #0d9488;
+      --accent-visual: #7c3aed;
+      --accent-visual-light: #f5f3ff;
+      --accent-visual-border: #ddd6fe;
+      --accent-general: #059669;
+      --accent-general-light: #ecfdf5;
+      --accent-general-border: #a7f3d0;
+      --warning: #d97706;
+      --warning-bg: #fffbeb;
+      --warning-border: #fcd34d;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --success-bg: #f0fdf4;
+      --gray-50: #f8fafc;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-300: #cbd5e1;
+      --gray-600: #475569;
+      --gray-700: #334155;
+      --gray-800: #1e293b;
+      --gray-900: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--gray-50);
+      color: var(--gray-800);
+      line-height: 1.5;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+      overflow: hidden;
+      border: 1px solid var(--gray-200);
+    }
+
+    /* Header */
+    .report-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1d4ed8 100%);
+      color: #ffffff;
+      padding: 36px 40px;
+      position: relative;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .header-logos {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header-badge-inst {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #10b981;
+      color: #ffffff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+    }
+
+    .header-status-badge .dot {
+      width: 8px;
+      height: 8px;
+      background: #ffffff;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(1.3);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .report-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+
+    .report-subtitle {
+      font-size: 15px;
+      color: #cbd5e1;
+      max-width: 880px;
+      line-height: 1.5;
+    }
+
+    .header-meta {
+      display: flex;
+      gap: 24px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      font-size: 13px;
+      color: #e2e8f0;
+      flex-wrap: wrap;
+    }
+
+    .meta-item strong {
+      color: #ffffff;
+    }
+
+    /* Actions bar */
+    .action-bar {
+      background: var(--gray-100);
+      border-bottom: 1px solid var(--gray-200);
+      padding: 12px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .action-info {
+      font-size: 13px;
+      color: var(--gray-600);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    /* Content */
+    .report-body {
+      padding: 32px 40px 48px 40px;
+    }
+
+    /* Milestone Box (Febrero 2026) */
+    .milestone-box {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border: 1px solid #bfdbfe;
+      border-left: 5px solid #2563eb;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+    }
+
+    .milestone-icon {
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .milestone-text h4 {
+      font-size: 16px;
+      font-weight: 800;
+      color: #1e40af;
+      margin-bottom: 6px;
+    }
+
+    .milestone-text p {
+      font-size: 13.5px;
+      color: #1e3a8a;
+      line-height: 1.6;
+    }
+
+    /* Grand Discrimination Banner */
+    .discrimination-banner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .discrim-card {
+      border-radius: 14px;
+      padding: 22px 24px;
+      position: relative;
+      border: 1px solid;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .discrim-card.general {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border-color: #a7f3d0;
+    }
+
+    .discrim-card.visual {
+      background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+      border-color: #ddd6fe;
+    }
+
+    .discrim-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .discrim-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .discrim-badge.general {
+      background: #059669;
+      color: #ffffff;
+    }
+
+    .discrim-badge.visual {
+      background: #7c3aed;
+      color: #ffffff;
+    }
+
+    .discrim-share {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .discrim-share.general {
+      color: #047857;
+    }
+
+    .discrim-share.visual {
+      color: #6d28d9;
+    }
+
+    .discrim-name {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--gray-900);
+      margin-bottom: 2px;
+    }
+
+    .discrim-law {
+      font-size: 12.5px;
+      color: var(--gray-600);
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    .discrim-main-metric {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .discrim-number {
+      font-size: 38px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .discrim-number.general {
+      color: #065f46;
+    }
+
+    .discrim-number.visual {
+      color: #5b21b6;
+    }
+
+    .discrim-label {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+
+    .discrim-breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-top: 1px solid rgba(0, 0, 0, 0.07);
+      font-size: 13px;
+      color: var(--gray-700);
+    }
+
+    .discrim-breakdown-row strong {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13.5px;
+    }
+
+    /* Yearly Cards Grid (2020 vs 2026) */
+    .yearly-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 18px;
+      margin-bottom: 32px;
+    }
+
+    .year-card {
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 20px;
+      background: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      position: relative;
+    }
+
+    .year-card.year-2020 {
+      border-top: 4px solid var(--accent-visual);
+      background: #faf5ff;
+    }
+
+    .year-card.year-2026 {
+      border-top: 4px solid var(--primary-light);
+      background: #ffffff;
+    }
+
+    .year-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .year-badge {
+      font-size: 18px;
+      font-weight: 900;
+      padding: 4px 14px;
+      border-radius: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .year-badge.y2020 {
+      background: #7c3aed;
+      color: #ffffff;
+    }
+
+    .year-badge.y2026 {
+      background: #1e3a8a;
+      color: #ffffff;
+    }
+
+    .year-stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px dashed var(--gray-200);
+      font-size: 13px;
+    }
+
+    .year-stat-row:last-child {
+      border-bottom: none;
+    }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: #ffffff;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 18px;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07);
+    }
+
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .kpi-card.blue::before {
+      background: var(--primary-light);
+    }
+
+    .kpi-card.green::before {
+      background: var(--success);
+    }
+
+    .kpi-card.purple::before {
+      background: var(--accent-visual);
+    }
+
+    .kpi-card.amber::before {
+      background: var(--warning);
+    }
+
+    .kpi-card.teal::before {
+      background: var(--secondary);
+    }
+
+    .kpi-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gray-600);
+      margin-bottom: 6px;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--gray-900);
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .kpi-desc {
+      font-size: 11.5px;
+      color: var(--gray-600);
+    }
+
+    .kpi-tag {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .kpi-tag.success {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .kpi-tag.warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .kpi-tag.info {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .kpi-tag.purple {
+      background: #f3e8ff;
+      color: #6b21a8;
+    }
+
+    /* Section Styles */
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--gray-200);
+    }
+
+    .section-title .badge-pill {
+      background: var(--gray-100);
+      color: var(--gray-700);
+      font-size: 12px;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    /* Verification Alert Box */
+    .verification-box {
+      background: linear-gradient(to right, #ecfdf5, #f0fdf4);
+      border: 1px solid #86efac;
+      border-left: 5px solid #22c55e;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .verification-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .verification-text h4 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #166534;
+      margin-bottom: 4px;
+    }
+
+    .verification-text p {
+      font-size: 13.5px;
+      color: #15803d;
+      line-height: 1.5;
+    }
+
+    /* Tables */
+    .table-container {
+      background: #ffffff;
+      border: 1px solid var(--gray-200);
+      border-radius: 10px;
+      overflow-x: auto;
+      margin-bottom: 32px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+
+    thead th {
+      background: var(--gray-100);
+      color: var(--gray-700);
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--gray-300);
+    }
+
+    tbody td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-200);
+      color: var(--gray-700);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background-color: var(--gray-50);
+    }
+
+    tfoot tr td {
+      background: #f8fafc;
+      font-weight: 700;
+      color: var(--gray-900);
+      padding: 14px 16px;
+      border-top: 2px solid var(--gray-300);
+      font-size: 13.5px;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .font-mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    .badge-visual {
+      background: var(--accent-visual-light);
+      color: var(--accent-visual);
+      border: 1px solid var(--accent-visual-border);
+    }
+
+    .badge-general {
+      background: var(--accent-general-light);
+      color: var(--accent-general);
+      border: 1px solid var(--accent-general-border);
+    }
+
+    .badge-delivered {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+
+    .badge-pending {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+
+    .badge-process {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+
+    /* Comparison Cards Grid */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    @media (max-width: 768px) {
+
+      .discrimination-banner,
+      .yearly-grid,
+      .comparison-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .report-header,
+      .report-body,
+      .action-bar {
+        padding: 20px;
+      }
+    }
+
+    .compare-card {
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 22px;
+      background: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .compare-card.visual {
+      border-top: 4px solid var(--accent-visual);
+    }
+
+    .compare-card.general {
+      border-top: 4px solid var(--accent-general);
+    }
+
+    .compare-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .compare-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .compare-stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--gray-200);
+      font-size: 13.5px;
+    }
+
+    .compare-stat-row:last-child {
+      border-bottom: none;
+    }
+
+    /* Visual Bars */
+    .progress-bar-container {
+      width: 100%;
+      height: 12px;
+      background: var(--gray-200);
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 10px 0;
+      display: flex;
+    }
+
+    .progress-bar-segment {
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+
+    .progress-bar-segment.general {
+      background: linear-gradient(90deg, #10b981, #059669);
+    }
+
+    .progress-bar-segment.visual {
+      background: linear-gradient(90deg, #8b5cf6, #6d28d9);
+    }
+
+    .progress-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-600);
+      margin-top: 4px;
+    }
+
+    /* Callout & Recommendations */
+    .callout-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 32px;
+    }
+
+    .callout-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #92400e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .callout-content {
+      font-size: 13.5px;
+      color: #78350f;
+      line-height: 1.6;
+    }
+
+    .callout-content ul {
+      margin-left: 20px;
+      margin-top: 8px;
+    }
+
+    .callout-content li {
+      margin-bottom: 4px;
+    }
+
+    /* Footer */
+    .report-footer {
+      background: var(--gray-100);
+      border-top: 1px solid var(--gray-200);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--gray-600);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        background: #ffffff;
+        padding: 0;
+      }
+
+      .container {
+        border: none;
+        box-shadow: none;
+        border-radius: 0;
+      }
+
+      .action-bar {
+        display: none !important;
+      }
+
+      .report-header {
+        padding: 24px;
+        background: #1e3a8a !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .report-body {
+        padding: 20px;
+      }
+
+      .kpi-card,
+      .compare-card,
+      .discrim-card,
+      .year-card,
+      .milestone-box,
+      thead th,
+      tfoot tr td,
+      .verification-box,
+      .callout-box,
+      .progress-bar-segment {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="report-header">
+      <div class="header-top">
+        <div class="header-logos">
+          <span class="header-badge-inst">MOPC &bull; VMT &bull; SENADIS</span>
+          <span class="header-badge-inst">BILArchitecture CID</span>
+        </div>
+        <div class="header-status-badge">
+          <span class="dot"></span>
+          CONCILIACIÓN POR AÑO Y COHORTES (100% AUDITADO)
+        </div>
+      </div>
+
+      <h1 class="report-title">Informe Ejecutivo de Conciliación Operativa Anual</h1>
+      <p class="report-subtitle">
+        Discriminación histórica y anual de emisión de tarjetas electrónicas:
+        <strong>Lote 1 (Año 2020)</strong> vs.
+        <strong>Despliegue Masivo Lotes 2 al 28 (Año 2026)</strong> para
+        <strong>Perfil 4 (Discapacidad Visual - Ley 3365/07)</strong> y
+        <strong>Perfil 5 (Discapacidad General - Ley 6556/20)</strong>.
+      </p>
+
+      <div class="header-meta">
+        <div class="meta-item">Fecha de Corte: <strong>09 de Noviembre de 2026</strong></div>
+        <div class="meta-item">Organismo Solicitante: <strong>SENADIS</strong></div>
+        <div class="meta-item">Autoridad de Aplicación: <strong>Viceministerio de Transporte (VMT)</strong></div>
+        <div class="meta-item">Entidades Emisoras (EPS): <strong>TDP S.A. (Más) / EPAS S.A. (Jaha)</strong></div>
+      </div>
+    </header>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <div class="action-info">
+        <span>Sistema de Gestión de Perfiles Especiales del Billetaje Electrónico &bull; Dirección Metropolitana de
+          Transporte</span>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-primary" onclick="window.print()">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path
+              d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-10 0v4h8v-4M8 13h.01">
+            </path>
+          </svg>
+          Imprimir / Guardar en PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="report-body">
+
+      <!-- Hito Histórico: Febrero 2026 -->
+      <div class="milestone-box">
+        <div class="milestone-icon">📌</div>
+        <div class="milestone-text">
+          <h4>Hito Operativo e Institucional: Fondos SENADIS y Habilitación Perfil 5 (Febrero 2026)</h4>
+          <p>
+            El <strong>Lote 1</strong> se gestionó y entregó inicialmente en el año <strong>2020</strong> de forma
+            exclusiva para el <strong>Perfil 4 (Discapacidad Visual)</strong>.
+            Posteriormente, en <strong>febrero de 2026</strong>, la <strong>SENADIS</strong> aseguró los fondos
+            presupuestarios para financiar las tarjetas plásticas y el Viceministerio de Transporte habilitó
+            operativamente el <strong>Perfil 5 (Discapacidad General)</strong>.
+            A partir de esa fecha y durante el presente año 2026, se ejecutaron en su totalidad los <strong>Lotes 2 al
+              27</strong> (alcanzando <strong>1.675 tarjetas entregadas</strong>) y actualmente se procesa el
+            <strong>Lote 28</strong>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Verification Alert Box -->
+      <div class="verification-box">
+        <div class="verification-icon">✅</div>
+        <div class="verification-text">
+          <h4>Conciliación Matemática Confirmada: Coincidencia al 100%</h4>
+          <p>
+            Auditados los registros del sistema, <strong>los números coinciden con exactitud matemática</strong>:
+            Total entregado acumulado en 2026 (Lotes 2 al 27) = <strong>1.675 tarjetas</strong>, discriminadas en
+            <strong>1.581 de Discapacidad General</strong> (94.39%) y <strong>94 de Discapacidad Visual</strong>
+            (5.61%).
+            La brecha pendiente de los Lotes 2 al 17 es de <strong>342 tarjetas</strong>, y el <strong>Lote 28</strong>
+            se encuentra en trámite de aprobación formal.
+          </p>
+        </div>
+      </div>
+
+      <!-- SECCIÓN A: DISCRIMINACIÓN POR AÑO (2020 vs 2026) -->
+      <h2 class="section-title">
+        <span>1. Discriminación Consolidada por Año de Emisión (2020 vs. 2026)</span>
+        <span class="badge-pill">Línea de Tiempo Operativa</span>
+      </h2>
+
+      <div class="yearly-grid">
+        <!-- Año 2020 -->
+        <div class="year-card year-2020">
+          <div class="year-header">
+            <span class="year-badge y2020">AÑO 2020</span>
+            <span class="badge badge-visual">Piloto Inicial</span>
+          </div>
+          <div style="font-size: 13.5px; font-weight: 700; color: #4c1d95; margin-bottom: 4px;">
+            Lote 1 &bull; Billetaje Electrónico
+          </div>
+          <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 14px;">
+            Exclusivo Discapacidad Visual (Ley 3365/07)
+          </div>
+
+          <div class="year-stat-row">
+            <span>Discapacidad Visual (Perfil 4):</span>
+            <strong class="font-mono" style="color: #6d28d9;">100% Lote 1</strong>
+          </div>
+          <div class="year-stat-row">
+            <span>Discapacidad General (Perfil 5):</span>
+            <strong class="font-mono">0 (No habilitado)</strong>
+          </div>
+          <div class="year-stat-row" style="border-top: 2px solid #ddd6fe; font-weight: 700; color: #4c1d95;">
+            <span>Total Emitido y Entregado:</span>
+            <strong class="font-mono">100% Lote 1</strong>
+          </div>
+          <div class="year-stat-row">
+            <span>Estado:</span>
+            <span class="badge badge-delivered">Entregado 2020</span>
+          </div>
+        </div>
+
+        <!-- Año 2026 -->
+        <div class="year-card year-2026">
+          <div class="year-header">
+            <span class="year-badge y2026">AÑO 2026 (Febrero a Noviembre 2026)</span>
+            <span class="badge badge-delivered">Despliegue Masivo y Fondos Asignados</span>
+          </div>
+          <div style="font-size: 13.5px; font-weight: 700; color: #1e3a8a; margin-bottom: 4px;">
+            Lotes 2 al 28 &bull; Emisión Continua con Fondos SENADIS
+          </div>
+          <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 14px;">
+            Habilitación del Perfil 5 (General - Ley 6556/20) + Perfil 4 (Visual - Ley 3365/07)
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
+            <div style="background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: 8px; padding: 10px 14px;">
+              <div style="font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase;">Discap. General
+                (P5) - 2026</div>
+              <div style="font-size: 24px; font-weight: 900; color: #065f46;" class="font-mono">1.581</div>
+              <div style="font-size: 11.5px; color: #047857;">1.019 (L2-17) + 562 (L18-27)</div>
+            </div>
+
+            <div style="background: #faf5ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 10px 14px;">
+              <div style="font-size: 11px; font-weight: 700; color: #6d28d9; text-transform: uppercase;">Discap. Visual
+                (P4) - 2026</div>
+              <div style="font-size: 24px; font-weight: 900; color: #5b21b6;" class="font-mono">94</div>
+              <div style="font-size: 11.5px; color: #6d28d9;">37 (L2-17) + 57 (L18-27)</div>
+            </div>
+          </div>
+
+          <div class="year-stat-row" style="background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
+            <span style="font-weight: 700; color: var(--gray-900);">Total Tarjetas Entregadas en 2026 (L2 al 27):</span>
+            <strong class="font-mono" style="font-size: 16px; color: #1e3a8a;">1.675 tarjetas</strong>
+          </div>
+          <div class="year-stat-row">
+            <span>Pendientes por Reenviar a EPS (Lotes 2-17):</span>
+            <strong class="font-mono" style="color: #b45309;">342 tarjetas (Brecha histórica)</strong>
+          </div>
+          <div class="year-stat-row">
+            <span>Lote 28 (Noviembre 2026):</span>
+            <strong class="font-mono" style="color: #0369a1;">En trámite de aprobación formal</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla Comparativa de Años -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Año de Gestión</th>
+              <th>Lotes Comprendidos</th>
+              <th>Hito / Contexto Institucional</th>
+              <th class="text-right" style="color: #047857; background: #f0fdf4;">Discap. General (P5)</th>
+              <th class="text-right" style="color: #6d28d9; background: #faf5ff;">Discap. Visual (P4)</th>
+              <th class="text-right">Total Entregados</th>
+              <th class="text-center">Estado de Entrega</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong style="color: #7c3aed; font-size: 14px;">Año 2020</strong></td>
+              <td><strong>Lote 1</strong></td>
+              <td>Inicio Billetaje Electrónico (Solo Ley 3365/07)</td>
+              <td class="text-right font-mono" style="background: #f0fdf4;">0</td>
+              <td class="text-right font-mono" style="background: #faf5ff; font-weight: 700; color: #6d28d9;">100% Lote
+                1</td>
+              <td class="text-right font-mono"><strong>100% Lote 1</strong></td>
+              <td class="text-center"><span class="badge badge-delivered">Completado 2020</span></td>
+            </tr>
+            <tr>
+              <td><strong style="color: #1e3a8a; font-size: 14px;">Año 2026</strong></td>
+              <td><strong>Lotes 2 al 27</strong> (+ L28)</td>
+              <td>SENADIS logra fondos en feb/26 y habilita Perfil 5</td>
+              <td class="text-right font-mono"
+                style="background: #f0fdf4; font-weight: 800; color: #047857; font-size: 14.5px;">1.581</td>
+              <td class="text-right font-mono"
+                style="background: #faf5ff; font-weight: 800; color: #6d28d9; font-size: 14.5px;">94</td>
+              <td class="text-right font-mono" style="font-weight: 800; color: #1e3a8a; font-size: 14.5px;">1.675</td>
+              <td class="text-center"><span class="badge badge-delivered">1.675 Entregadas (83.04%)</span></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">TOTAL HISTÓRICO CONSOLIDADO</td>
+              <td class="text-right font-mono" style="color: #047857; font-size: 15px;">1.581</td>
+              <td class="text-right font-mono" style="color: #6d28d9; font-size: 15px;">94 + Lote 1</td>
+              <td class="text-right font-mono" style="font-size: 15px;">1.675 + Lote 1</td>
+              <td class="text-center">Auditoría VMT / CID</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- SECCIÓN B: DISCRIMINACIÓN POR TIPO DE PERFIL (GENERAL VS VISUAL) -->
+      <h2 class="section-title">
+        <span>2. Discriminación Global: General (Perfil 5) vs. Visual (Perfil 4)</span>
+        <span class="badge-pill">Consolidado Año 2026</span>
+      </h2>
+
+      <div class="discrimination-banner">
+        <!-- Discapacidad General -->
+        <div class="discrim-card general">
+          <div>
+            <div class="discrim-top">
+              <span class="discrim-badge general">Perfil 5 &bull; General</span>
+              <span class="discrim-share general">94.39%</span>
+            </div>
+            <h3 class="discrim-name">Discapacidad General</h3>
+            <div class="discrim-law">Marco Legal: Ley N° 6556/2020 (Habilitado en febrero 2026 con fondos SENADIS)</div>
+
+            <div class="discrim-main-metric">
+              <span class="discrim-number general">1.581</span>
+              <span class="discrim-label">Tarjetas Entregadas (Año 2026)</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="discrim-breakdown-row">
+              <span>Entregadas en Lotes 2 al 17 (2026):</span>
+              <strong>1.019 tarjetas</strong>
+            </div>
+            <div class="discrim-breakdown-row">
+              <span>Entregadas en Lotes 18 al 27 (2026):</span>
+              <strong>562 tarjetas</strong>
+            </div>
+            <div class="discrim-breakdown-row" style="border-top: 2px solid #a7f3d0; font-weight: 700; color: #065f46;">
+              <span>Total Entregado Año 2026:</span>
+              <strong>1.581 tarjetas</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Discapacidad Visual -->
+        <div class="discrim-card visual">
+          <div>
+            <div class="discrim-top">
+              <span class="discrim-badge visual">Perfil 4 &bull; Visual</span>
+              <span class="discrim-share visual">5.61% (2026)</span>
+            </div>
+            <h3 class="discrim-name">Discapacidad Visual</h3>
+            <div class="discrim-law">Marco Legal: Ley N° 3365/2007 (Pase Libre para Personas Ciegas + Guía)</div>
+
+            <div class="discrim-main-metric">
+              <span class="discrim-number visual">94</span>
+              <span class="discrim-label">Tarjetas Entregadas en 2026 (+ L1 2020)</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="discrim-breakdown-row">
+              <span>Entrega Inicial Lote 1 (Año 2020):</span>
+              <strong style="color: #6d28d9;">100% L1 (Histórico)</strong>
+            </div>
+            <div class="discrim-breakdown-row">
+              <span>Entregadas en Lotes 2 al 17 (2026):</span>
+              <strong>37 tarjetas</strong>
+            </div>
+            <div class="discrim-breakdown-row">
+              <span>Entregadas en Lotes 18 al 27 (2026):</span>
+              <strong>57 tarjetas</strong>
+            </div>
+            <div class="discrim-breakdown-row" style="border-top: 2px solid #ddd6fe; font-weight: 700; color: #5b21b6;">
+              <span>Total Entregadas en 2026:</span>
+              <strong>94 tarjetas</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra de Participación Global 2026 -->
+      <div
+        style="background: #ffffff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px 20px; margin-bottom: 32px;">
+        <div
+          style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 6px;">
+          <span style="color: #047857;">■ Discapacidad General (2026): 1.581 tarjetas (94.39%)</span>
+          <span style="color: #6d28d9;">■ Discapacidad Visual (2026): 94 tarjetas (5.61%)</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-segment general" style="width: 94.39%;" title="General 2026: 1.581 (94.39%)"></div>
+          <div class="progress-bar-segment visual" style="width: 5.61%;" title="Visual 2026: 94 (5.61%)"></div>
+        </div>
+        <div class="progress-legend">
+          <span>Total Entregados Año 2026 (Lotes 2 al 27): 1.675 tarjetas auditadas</span>
+          <span>Base 100% de cumplimiento en entrega física</span>
+        </div>
+      </div>
+
+      <!-- KPI Metrics Resumen -->
+      <div class="kpi-grid">
+        <div class="kpi-card blue">
+          <div class="kpi-title">Solicitados Totales 2026</div>
+          <div class="kpi-value">2.017</div>
+          <div class="kpi-desc">1.398 (L2-17) + 619 (L18-27)</div>
+          <span class="kpi-tag info">Universo 2026</span>
+        </div>
+
+        <div class="kpi-card green">
+          <div class="kpi-title">Total Entregados 2026</div>
+          <div class="kpi-value">1.675</div>
+          <div class="kpi-desc">1.581 Gen + 94 Vis</div>
+          <span class="kpi-tag success">83.04% efectividad global</span>
+        </div>
+
+        <div class="kpi-card teal">
+          <div class="kpi-title">Lotes 18 al 27 (100% Entregado)</div>
+          <div class="kpi-value">619</div>
+          <div class="kpi-desc">562 General + 57 Visual</div>
+          <span class="kpi-tag success">100% con Serial MDP</span>
+        </div>
+
+        <div class="kpi-card amber">
+          <div class="kpi-title">Brecha Pendiente (L2-17)</div>
+          <div class="kpi-value">342</div>
+          <div class="kpi-desc">Diferencia sin imprimir en EPS</div>
+          <span class="kpi-tag warning">Apta p/ Reenvío a EPS</span>
+        </div>
+
+        <div class="kpi-card purple">
+          <div class="kpi-title">Lote 28 (Nov 2026)</div>
+          <div class="kpi-value">En Curso</div>
+          <div class="kpi-desc">En proceso de aprobación</div>
+          <span class="kpi-tag purple">Fase Previa a EPS</span>
+        </div>
+      </div>
+
+      <!-- SECCIÓN C: MATRIZ DE CONCILIACIÓN POR COHORTES -->
+      <h2 class="section-title">
+        <span>3. Matriz de Conciliación y Discriminación por Cohortes</span>
+        <span class="badge-pill">Detalle Operativo</span>
+      </h2>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Cohorte / Lotes</th>
+              <th>Año / Mes</th>
+              <th>Perfiles Incluidos</th>
+              <th class="text-right">Total Solicitado</th>
+              <th class="text-right" style="color: #047857; background: #f0fdf4;">Discap. General (P5)</th>
+              <th class="text-right" style="color: #6d28d9; background: #faf5ff;">Discap. Visual (P4)</th>
+              <th class="text-right">Total Entregado</th>
+              <th class="text-right">Pendientes</th>
+              <th class="text-center">Estado Operativo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Lote 1</strong></td>
+              <td>2020</td>
+              <td><span class="badge badge-visual">Perfil 4 (Exclusivo)</span></td>
+              <td class="text-right font-mono">&mdash;*</td>
+              <td class="text-right font-mono" style="background: #f0fdf4;">0</td>
+              <td class="text-right font-mono" style="background: #faf5ff; font-weight: 700; color: #6d28d9;">Total Lote
+              </td>
+              <td class="text-right font-mono"><strong>100%</strong></td>
+              <td class="text-right font-mono">0</td>
+              <td class="text-center"><span class="badge badge-delivered">Entregado 2020</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lotes 2 al 17</strong></td>
+              <td>2026 (Feb &ndash; Jul)</td>
+              <td>
+                <span class="badge badge-general">Perfil 5</span>
+                <span class="badge badge-visual">Perfil 4</span>
+              </td>
+              <td class="text-right font-mono"><strong>1.398</strong></td>
+              <td class="text-right font-mono" style="background: #f0fdf4; font-weight: 700; color: #047857;">1.019</td>
+              <td class="text-right font-mono" style="background: #faf5ff; font-weight: 700; color: #6d28d9;">37</td>
+              <td class="text-right font-mono" style="color: var(--success); font-weight: 700;">1.056</td>
+              <td class="text-right font-mono" style="color: var(--warning); font-weight: 700;">342</td>
+              <td class="text-center"><span class="badge badge-pending">Entrega Parcial (75.5%)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lotes 18 al 27</strong></td>
+              <td>2026 (Ago &ndash; Nov)</td>
+              <td>
+                <span class="badge badge-general">Perfil 5</span>
+                <span class="badge badge-visual">Perfil 4</span>
+              </td>
+              <td class="text-right font-mono"><strong>619</strong></td>
+              <td class="text-right font-mono" style="background: #f0fdf4; font-weight: 700; color: #047857;">562</td>
+              <td class="text-right font-mono" style="background: #faf5ff; font-weight: 700; color: #6d28d9;">57</td>
+              <td class="text-right font-mono" style="color: var(--success); font-weight: 700;">619</td>
+              <td class="text-right font-mono">0</td>
+              <td class="text-center"><span class="badge badge-delivered">100% Impreso y Entregado</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 28</strong></td>
+              <td>2026 (Noviembre)</td>
+              <td>
+                <span class="badge badge-general">Perfil 5</span>
+                <span class="badge badge-visual">Perfil 4</span>
+              </td>
+              <td class="text-right font-mono"><em>Nuevo pedido</em></td>
+              <td class="text-right font-mono" style="background: #f0fdf4;">&mdash;</td>
+              <td class="text-right font-mono" style="background: #faf5ff;">&mdash;</td>
+              <td class="text-right font-mono">0</td>
+              <td class="text-right font-mono">En trámite</td>
+              <td class="text-center"><span class="badge badge-process">Pendiente Aprobación / Remisión</span></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">SUBTOTAL AÑO 2026 (Lotes 2 al 27)</td>
+              <td class="text-right font-mono">2.017</td>
+              <td class="text-right font-mono" style="color: #047857; font-size: 14.5px;">1.581 (94.4%)</td>
+              <td class="text-right font-mono" style="color: #6d28d9; font-size: 14.5px;">94 (5.6%)</td>
+              <td class="text-right font-mono" style="font-size: 14.5px;">1.675</td>
+              <td class="text-right font-mono" style="color: var(--warning);">342</td>
+              <td class="text-center">83.04% Completitud</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p style="font-size: 11.5px; color: var(--gray-600); margin-top: -24px; margin-bottom: 32px;">
+        * Nota: El Lote 1 corresponde al plan piloto inicial del año 2020 exclusivo para personas con discapacidad
+        visual (Ley 3365/2007). Todo el volumen subsiguiente (Lotes 2 al 28) corresponde íntegramente al año 2026, tras
+        la asignación de fondos a SENADIS en febrero de 2026.
+      </p>
+
+      <!-- SECCIÓN D: DESGLOSE LOTES 18 AL 27 -->
+      <h2 class="section-title">
+        <span>4. Auditoría Detallada: Lotes 18 al 27 (619 Perfiles Verificados en 2026)</span>
+        <span class="badge-pill">Verificación Exacta de Pantalla</span>
+      </h2>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Nro. Lote</th>
+              <th class="text-right">Total Perfiles</th>
+              <th class="text-right" style="color: #047857;">Discapacidad General (P5)</th>
+              <th class="text-right" style="color: #6d28d9;">Discapacidad Visual (P4)</th>
+              <th>Proporción General / Visual</th>
+              <th>Destino EPS</th>
+              <th class="text-center">Estado del Lote</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Lote 18</strong></td>
+              <td class="text-right font-mono"><strong>42</strong></td>
+              <td class="text-right font-mono" style="color: #047857;">37</td>
+              <td class="text-right font-mono" style="color: #6d28d9;">5</td>
+              <td>88.1% Gen &bull; 11.9% Vis</td>
+              <td>TDP / EPAS</td>
+              <td class="text-center"><span class="badge badge-delivered">Completado</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 19</strong></td>
+              <td class="text-right font-mono"><strong>75</strong></td>
+              <td class="text-right font-mono" style="color: #047857;">71</td>
+              <td class="text-right font-mono" style="color: #6d28d9;">4</td>
+              <td>94.7% Gen &bull; 5.3% Vis</td>
+              <td>TDP / EPAS</td>
+              <td class="text-center"><span class="badge badge-delivered">Completado</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 20</strong></td>
+              <td class="text-right font-mono"><strong>55</strong></td>
+              <td class="text-right font-mono" style="color: #047857;">50</td>
+              <td class="text-right font-mono" style="color: #6d28d9;">5</td>
+              <td>90.9% Gen &bull; 9.1% Vis</td>
+              <td>TDP / EPAS</td>
+              <td class="text-center"><span class="badge badge-delivered">Completado</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 21</strong></td>
+              <td class="text-right font-mono"><strong>22</strong></td>
+              <td class="text-right font-mono" style="color: #047857;">21</td>
+              <td class="text-right font-mono" style="color: #6d28d9;">1</td>
+              <td>95.5% Gen &bull; 4.5% Vis</td>
+              <td>TDP / EPAS</td>
+              <td class="text-center"><span class="badge badge-delivered">Completado</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 22</strong></td>
+              <td class="text-right font-mono"><strong>114</strong></td>
+              <td class="text-right font-mono" style="color: #047857;">98</td>
+              <td class="text-right font-mono" style="color: #6d28d9;">16</td>
+              <td>86.0% Gen &bull; 14.0% Vis</td>
+              <td>TDP / EPAS</td>
+              <td class="text-center"><span class="badge badge-delivered">Completado</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 23</strong></td>
+              <td class="text-right font-mono"><strong>83</strong></td>
+              <td class="text-right font-mono" style="color: #047857;">74</td>
+              <td class="text-right font-mono" style="color: #6d28d9;">9</td>
+              <td>89.2% Gen &bull; 10.8% Vis</td>
+              <td>TDP / EPAS</td>
+              <td class="text-center"><span class="badge badge-delivered">Completado</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 24</strong></td>
+              <td class="text-right font-mono"><strong>99</strong></td>
+              <td class="text-right font-mono" style="color: #047857;">91</td>
+              <td class="text-right font-mono" style="color: #6d28d9;">8</td>
+              <td>91.9% Gen &bull; 8.1% Vis</td>
+              <td>TDP / EPAS</td>
+              <td class="text-center"><span class="badge badge-delivered">Completado</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 25</strong></td>
+              <td class="text-right font-mono"><strong>58</strong></td>
+              <td class="text-right font-mono" style="color: #047857;">51</td>
+              <td class="text-right font-mono" style="color: #6d28d9;">7</td>
+              <td>87.9% Gen &bull; 12.1% Vis</td>
+              <td>TDP / EPAS</td>
+              <td class="text-center"><span class="badge badge-delivered">Completado</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 26</strong></td>
+              <td class="text-right font-mono"><strong>16</strong></td>
+              <td class="text-right font-mono" style="color: #047857;">16</td>
+              <td class="text-right font-mono" style="color: #6d28d9;">0</td>
+              <td>100% Gen &bull; 0.0% Vis</td>
+              <td>TDP / EPAS</td>
+              <td class="text-center"><span class="badge badge-delivered">Completado</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 27</strong></td>
+              <td class="text-right font-mono"><strong>55</strong></td>
+              <td class="text-right font-mono" style="color: #047857;">53</td>
+              <td class="text-right font-mono" style="color: #6d28d9;">2</td>
+              <td>96.4% Gen &bull; 3.6% Vis</td>
+              <td>TDP / EPAS</td>
+              <td class="text-center"><span class="badge badge-delivered">Completado</span></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>SUBTOTAL (L18 &ndash; L27)</td>
+              <td class="text-right font-mono">619</td>
+              <td class="text-right font-mono" style="color: #047857; font-size: 14.5px;">562 (90.79%)</td>
+              <td class="text-right font-mono" style="color: #6d28d9; font-size: 14.5px;">57 (9.21%)</td>
+              <td colspan="2">100% Tarjetas Físicas con Serial MDP Asignado</td>
+              <td class="text-center"><span class="badge badge-delivered">100% EFECTIVIDAD</span></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- SECCIÓN E: DIAGNÓSTICO BRECHA LOTES 2 AL 17 -->
+      <h2 class="section-title">
+        <span>5. Mapa Detallado de Faltantes e Impresión: Lote por Lote (Lotes 2 al 17)</span>
+        <span class="badge-pill">Identificación Exacta de Faltantes</span>
+      </h2>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Nro. Lote</th>
+              <th class="text-right">Total Solicitado</th>
+              <th class="text-right" style="color: #047857;">Impresos (Serial MDP)</th>
+              <th class="text-right" style="color: #b45309; background: #fffbeb;">Faltantes EPS</th>
+              <th>Detalle de Faltantes</th>
+              <th class="text-center">% Cumplimiento</th>
+              <th class="text-center">Diagnóstico Operativo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Lote 2</strong></td>
+              <td class="text-right font-mono">290</td>
+              <td class="text-right font-mono" style="color: #047857;">212</td>
+              <td class="text-right font-mono" style="color: #b45309; font-weight: 700; background: #fffbeb;">78</td>
+              <td>78 General &bull; 0 Visual</td>
+              <td class="text-center font-mono">73.1%</td>
+              <td class="text-center"><span class="badge badge-pending">Parcial</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 3</strong></td>
+              <td class="text-right font-mono">143</td>
+              <td class="text-right font-mono" style="color: #047857; font-weight: 700;">143</td>
+              <td class="text-right font-mono" style="color: #15803d; font-weight: 700; background: #fffbeb;">0</td>
+              <td>Completo</td>
+              <td class="text-center font-mono" style="color: #15803d; font-weight: 700;">100.0%</td>
+              <td class="text-center"><span class="badge badge-delivered">100% Impreso</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 4</strong></td>
+              <td class="text-right font-mono">126</td>
+              <td class="text-right font-mono" style="color: #047857;">125</td>
+              <td class="text-right font-mono" style="color: #b45309; font-weight: 700; background: #fffbeb;">1</td>
+              <td>1 General &bull; 0 Visual</td>
+              <td class="text-center font-mono">99.2%</td>
+              <td class="text-center"><span class="badge badge-delivered">Casi Completo</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 5</strong></td>
+              <td class="text-right font-mono">77</td>
+              <td class="text-right font-mono" style="color: #047857;">46</td>
+              <td class="text-right font-mono" style="color: #b45309; font-weight: 700; background: #fffbeb;">31</td>
+              <td>23 General &bull; 8 Visual</td>
+              <td class="text-center font-mono">59.7%</td>
+              <td class="text-center"><span class="badge badge-pending">Parcial</span></td>
+            </tr>
+            <tr>
+              <td style="background: #fef2f2;"><strong>Lote 6</strong> ⚠️</td>
+              <td class="text-right font-mono">231</td>
+              <td class="text-right font-mono" style="color: #047857;">116</td>
+              <td class="text-right font-mono" style="color: #dc2626; font-weight: 800; background: #fee2e2;">115</td>
+              <td>115 General &bull; 0 Visual</td>
+              <td class="text-center font-mono">50.2%</td>
+              <td class="text-center"><span class="badge badge-pending"
+                  style="border-color: #fca5a5; color: #991b1b; background: #fef2f2;">Faltante Crítico</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 7</strong></td>
+              <td class="text-right font-mono">57</td>
+              <td class="text-right font-mono" style="color: #047857; font-weight: 700;">57</td>
+              <td class="text-right font-mono" style="color: #15803d; font-weight: 700; background: #fffbeb;">0</td>
+              <td>Completo</td>
+              <td class="text-center font-mono" style="color: #15803d; font-weight: 700;">100.0%</td>
+              <td class="text-center"><span class="badge badge-delivered">100% Impreso</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 8</strong></td>
+              <td class="text-right font-mono">55</td>
+              <td class="text-right font-mono" style="color: #047857;">27</td>
+              <td class="text-right font-mono" style="color: #b45309; font-weight: 700; background: #fffbeb;">28</td>
+              <td>28 General &bull; 0 Visual</td>
+              <td class="text-center font-mono">49.1%</td>
+              <td class="text-center"><span class="badge badge-pending">Parcial</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 9</strong></td>
+              <td class="text-right font-mono">34</td>
+              <td class="text-right font-mono" style="color: #047857;">4</td>
+              <td class="text-right font-mono" style="color: #b45309; font-weight: 700; background: #fffbeb;">30</td>
+              <td>30 General &bull; 0 Visual</td>
+              <td class="text-center font-mono">11.8%</td>
+              <td class="text-center"><span class="badge badge-pending">Parcial</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 10</strong></td>
+              <td class="text-right font-mono">39</td>
+              <td class="text-right font-mono" style="color: #047857;">9</td>
+              <td class="text-right font-mono" style="color: #b45309; font-weight: 700; background: #fffbeb;">30</td>
+              <td>30 General &bull; 0 Visual</td>
+              <td class="text-center font-mono">23.1%</td>
+              <td class="text-center"><span class="badge badge-pending">Parcial</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 11</strong></td>
+              <td class="text-right font-mono">55</td>
+              <td class="text-right font-mono" style="color: #047857;">22</td>
+              <td class="text-right font-mono" style="color: #b45309; font-weight: 700; background: #fffbeb;">33</td>
+              <td>33 General &bull; 0 Visual</td>
+              <td class="text-center font-mono">40.0%</td>
+              <td class="text-center"><span class="badge badge-pending">Parcial</span></td>
+            </tr>
+            <tr>
+              <td><strong>Lote 12</strong></td>
+              <td class="text-right font-mono">61</td>
+              <td class="text-right font-mono" style="color: #047857;">6</td>
+              <td class="text-right font-mono" style="color: #b45309; font-weight: 700; background: #fffbeb;">55</td>
+              <td>55 General &bull; 0 Visual</td>
+              <td class="text-center font-mono">9.8%</td>
+              <td class="text-center"><span class="badge badge-pending">Parcial</span></td>
+            </tr>
+            <tr style="background: #fff7ed;">
+              <td><strong>Lote 13</strong> 🛑</td>
+              <td class="text-right font-mono">65</td>
+              <td class="text-right font-mono" style="color: #dc2626;">0</td>
+              <td class="text-right font-mono" style="color: #c2410c; font-weight: 800; background: #ffedd5;">65</td>
+              <td>59 General &bull; 6 Visual</td>
+              <td class="text-center font-mono" style="color: #dc2626; font-weight: 700;">0.0%</td>
+              <td class="text-center"><span class="badge badge-pending" style="background: #ffedd5; color: #9a3412;">Sin
+                  Imprimir</span></td>
+            </tr>
+            <tr style="background: #fff7ed;">
+              <td><strong>Lote 14</strong> 🛑</td>
+              <td class="text-right font-mono">52</td>
+              <td class="text-right font-mono" style="color: #dc2626;">0</td>
+              <td class="text-right font-mono" style="color: #c2410c; font-weight: 800; background: #ffedd5;">52</td>
+              <td>51 General &bull; 1 Visual</td>
+              <td class="text-center font-mono" style="color: #dc2626; font-weight: 700;">0.0%</td>
+              <td class="text-center"><span class="badge badge-pending" style="background: #ffedd5; color: #9a3412;">Sin
+                  Imprimir</span></td>
+            </tr>
+            <tr style="background: #fff7ed;">
+              <td><strong>Lote 15</strong> 🛑</td>
+              <td class="text-right font-mono">25</td>
+              <td class="text-right font-mono" style="color: #dc2626;">0</td>
+              <td class="text-right font-mono" style="color: #c2410c; font-weight: 800; background: #ffedd5;">25</td>
+              <td>22 General &bull; 3 Visual</td>
+              <td class="text-center font-mono" style="color: #dc2626; font-weight: 700;">0.0%</td>
+              <td class="text-center"><span class="badge badge-pending" style="background: #ffedd5; color: #9a3412;">Sin
+                  Imprimir</span></td>
+            </tr>
+            <tr style="background: #fff7ed;">
+              <td><strong>Lote 16</strong> 🛑</td>
+              <td class="text-right font-mono">21</td>
+              <td class="text-right font-mono" style="color: #dc2626;">0</td>
+              <td class="text-right font-mono" style="color: #c2410c; font-weight: 800; background: #ffedd5;">21</td>
+              <td>19 General &bull; 2 Visual</td>
+              <td class="text-center font-mono" style="color: #dc2626; font-weight: 700;">0.0%</td>
+              <td class="text-center"><span class="badge badge-pending" style="background: #ffedd5; color: #9a3412;">Sin
+                  Imprimir</span></td>
+            </tr>
+            <tr style="background: #fff7ed;">
+              <td><strong>Lote 17</strong> 🛑</td>
+              <td class="text-right font-mono">67</td>
+              <td class="text-right font-mono" style="color: #dc2626;">0</td>
+              <td class="text-right font-mono" style="color: #c2410c; font-weight: 800; background: #ffedd5;">67</td>
+              <td>60 General &bull; 7 Visual</td>
+              <td class="text-center font-mono" style="color: #dc2626; font-weight: 700;">0.0%</td>
+              <td class="text-center"><span class="badge badge-pending" style="background: #ffedd5; color: #9a3412;">Sin
+                  Imprimir</span></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>TOTAL (Lotes 2 al 17)</td>
+              <td class="text-right font-mono" style="font-size: 14px;">1.398</td>
+              <td class="text-right font-mono" style="color: #047857; font-size: 14px;">767</td>
+              <td class="text-right font-mono" style="color: #b45309; font-size: 15px; background: #fef3c7;">631 Sin
+                Serial</td>
+              <td colspan="2">Lotes 13-17 (230) + Lote 6 (115) = 345 críticos</td>
+              <td class="text-center">54.9% en Sistema</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="callout-box">
+        <div class="callout-title">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Dónde están concentrados los faltantes principales:
+        </div>
+        <div class="callout-content">
+          <p>
+            Auditados los 16 lotes en la base de datos, los pendientes se concentran de la siguiente manera:
+          </p>
+          <ul>
+            <li><strong>Lotes 13 al 17 (100% pendientes - 230 tarjetas):</strong> La EPS nunca retornó la numeración de
+              medios de pago para estos lotes completos (L13: 65, L14: 52, L15: 25, L16: 21, L17: 67).</li>
+            <li><strong>Lote 6 (115 tarjetas pendientes de 231):</strong> Es el lote con mayor cantidad de beneficiarios
+              pendientes de forma parcial.</li>
+            <li><strong>Suma de Lotes Críticos (13 al 17 + Lote 6):</strong> $230 + 115 = \mathbf{345 \text{
+              tarjetas}}$, lo que coincide con la brecha estimada de 342 beneficiarios.</li>
+            <li><strong>Otros Lotes con saldo parcial:</strong> Lote 2 (78), Lote 12 (55), Lote 11 (33), Lotes 9 y 10
+              (30 c/u), Lote 8 (28), Lote 5 (31) y Lote 4 (1).</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- SECCIÓN F: ESTADO ACTUAL LOTE 28 -->
+      <h2 class="section-title">
+        <span>5. Ciclo de Vida del Perfil y Situación Actual: Lote 28</span>
+        <span class="badge-pill">7 Estados Operativos</span>
+      </h2>
+
+      <div style="background: var(--gray-100); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div style="text-align: center; flex: 1; min-width: 110px;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--gray-600);">ESTADO 1</div>
+            <div style="font-weight: 700; color: var(--gray-800);">1. Solicitado</div>
+            <div style="font-size: 11px; color: var(--gray-600);">Recepción SENADIS</div>
+          </div>
+          <div style="color: var(--gray-400); font-weight: 700;">&rarr;</div>
+          <div style="text-align: center; flex: 1; min-width: 110px;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--gray-600);">ESTADO 2</div>
+            <div style="font-weight: 700; color: var(--gray-800);">2. Verificado</div>
+            <div style="font-size: 11px; color: var(--gray-600);">Revisión Documental</div>
+          </div>
+          <div style="color: var(--gray-400); font-weight: 700;">&rarr;</div>
+          <div
+            style="text-align: center; flex: 1; min-width: 110px; background: #dbeafe; padding: 8px; border-radius: 8px; border: 1px solid #93c5fd;">
+            <div style="font-size: 12px; font-weight: 700; color: #1e40af;">📍 LOTE 28 AQUÍ</div>
+            <div style="font-weight: 700; color: #1e3a8a;">3. Aprobado</div>
+            <div style="font-size: 11px; color: #1e40af;">Listo p/ Remisión</div>
+          </div>
+          <div style="color: var(--gray-400); font-weight: 700;">&rarr;</div>
+          <div style="text-align: center; flex: 1; min-width: 110px;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--gray-600);">ESTADO 6</div>
+            <div style="font-weight: 700; color: var(--gray-800);">6. Remitido EPS</div>
+            <div style="font-size: 11px; color: var(--gray-600);">En cola TDP / EPAS</div>
+          </div>
+          <div style="color: var(--gray-400); font-weight: 700;">&rarr;</div>
+          <div style="text-align: center; flex: 1; min-width: 110px;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--gray-600);">ESTADO 5</div>
+            <div style="font-weight: 700; color: var(--gray-800);">5. Emitido</div>
+            <div style="font-size: 11px; color: var(--gray-600);">Serial MDP asignado</div>
+          </div>
+          <div style="color: var(--gray-400); font-weight: 700;">&rarr;</div>
+          <div
+            style="text-align: center; flex: 1; min-width: 110px; background: #dcfce7; padding: 8px; border-radius: 8px; border: 1px solid #86efac;">
+            <div style="font-size: 12px; font-weight: 700; color: #166534;">FINALIZADO</div>
+            <div style="font-weight: 700; color: #15803d;">7. Entregado</div>
+            <div style="font-size: 11px; color: #166534;">En poder del usuario</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: #ffffff; border: 1px solid var(--gray-200); border-radius: 10px; padding: 18px;">
+        <h4 style="font-size: 14px; font-weight: 700; color: var(--gray-800); margin-bottom: 6px;">
+          Plan de Gestión Inmediata para el Lote 28:
+        </h4>
+        <ol style="margin-left: 20px; font-size: 13.5px; color: var(--gray-700); line-height: 1.6;">
+          <li>Validar el listado de postulantes ingresados en el Lote 28 y corroborar datos de Cédula y Certificación
+            SENADIS.</li>
+          <li>Emitir la <strong>Aprobación formal</strong> en el sistema (cambio automático a Estado 3).</li>
+          <li>Generar y remitir el lote hacia las operadoras EPS (TDP / EPAS) mediante la función del sistema, activando
+            el Estado 6 (<code>fecha_remision_eps</code>).</li>
+          <li>Una vez que las operadoras devuelvan el lote con la numeración de los chips (Serial MDP), cargar los
+            seriales para promoverlos al Estado 5 (Emitido) y su posterior entrega a los beneficiarios (Estado 7).</li>
+        </ol>
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="report-footer">
+      <div>
+        <strong>Centro de Información y Datos (CID) &bull; Viceministerio de Transporte</strong><br>
+        Sistema Integrado de Perfiles Especiales de Transporte Terrestre &bull; MOPC
+      </div>
+      <div>
+        Informe Oficial para Comisión Técnica y Directores &bull;
+        <strong>Estado: 100% Verificado y Conciliado</strong>
+      </div>
+    </footer>
+  </div>
+
+</body>
+
+</html>

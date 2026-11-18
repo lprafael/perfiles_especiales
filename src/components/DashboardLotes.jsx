@@ -74,8 +74,8 @@ const DashboardLotes = ({ user }) => {
       return;
     }
 
-    const cantidadMsg = reenvioAlcance === 'pendientes_impresion' 
-      ? `${modalReenvioLote.en_impresion_eps} perfiles aún no impresos` 
+    const cantidadMsg = reenvioAlcance === 'pendientes_impresion'
+      ? `${modalReenvioLote.en_impresion_eps} perfiles aún no impresos`
       : `${modalReenvioLote.total_perfiles} perfiles en total`;
 
     if (!window.confirm(`Se reenviará la solicitud a la EPS ${reenvioEps} para ${cantidadMsg} del Lote ${modalReenvioLote.lote}.\n¿Desea continuar?`)) {
